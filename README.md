@@ -16,9 +16,9 @@ Script en Python3 que lanza sites de 6G-SANDBOX.
 
 - Escaneo de las appliances usando el repositorio de la 6G Library
 - Escaneo de datastores y selección del que se va a usar para la importación de imágenes
-- Las appliances del CORE se han de descargar todas
+- Las appliances del CORE se han de descargar todas (Jenkins, TNLCM, MinIO)
 - Las appliances básicas: Ubuntu base
-- Instanciación de las appliances del core
+- Instanciación de las appliances del core (en este orden: Jenkins, MinIO y por ultimo TNLCM)
 - Validación de los servicios
 
 ## Fase 2.1
