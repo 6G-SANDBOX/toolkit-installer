@@ -175,7 +175,21 @@ def marketapps_ready(ID):
         return False
     return True
 
-# Download appliance with user intervention. Lists appliances containing the specified name and lets the user select the version and datastore
+# Downloads appliance without user intervention.
+def download_appliance(name, ID, ds_ID):
+    cmd = "onemarketapp export " + str(ID) + " " + name.replace(' ', '_')  + " -d "  + str(ds_ID)
+    res = run_command(cmd)
+    if res["rc"] != 0:
+        msg("error", "Could not run '" + cmd + "'Error:")
+        msg("error", res["stderr"])
+        sys.exit(255)
+    result_dict = parse_output(res["stdout"])
+    for image_id in result_dict["IMAGE"]:
+        wait_for_image(image_id)
+    return result_dict
+
+
+# Downloads appliance with user intervention. Lists appliances containing the specified name and lets the user select the version and datastore
 def download_appliance_guided(name):
     res = run_command("onemarketapp list -j")
     if res["rc"] != 0:
@@ -187,40 +201,10 @@ def download_appliance_guided(name):
     appliance_versions = []
     for app in apps_list:
         if name.lower() in app["NAME"].lower():
-            appliance_versions.append({"ID": app["ID"], "name": app["NAME"]})
-    msg("info", "Available " + name + " versions:")
-    for version in appliance_versions:
-        print("[  ID: " + version["ID"] + "  |  Name: " + version["name"] + "  ]")
-
-    valid_ids = {int(version["ID"]) for version in appliance_versions}
-    while True:
-        try:
-            ID = int(questionary.text("Please, introduce the ID of the desired " + name + " version:").ask())
-            if ID in valid_ids:
-                break
-            else:
-                msg("info", "Invalid input. Please enter a valid ID.")
-        except ValueError:
-            msg("info", "Invalid input. Please enter a valid integer.")
-    print("Chosen appliance ID: " + str(ID))
-
-    image_ds_list = list_image_datastores()
-    msg("info", "Available image datastores:")
-    for ds in image_ds_list:
-        print("[  ID: " + ds["ID"] + "  |  Name: " + ds["NAME"] + "  ]")
-
-
-    valid_ids = {int(ds["ID"]) for ds in image_ds_list}
-    while True:
-        try:
-            ds_ID = int(questionary.text("Please, introduce the ID of the datastore to download the " + name + " appliance:").ask())
-            if ds_ID in valid_ids:
-                break
-            else:
-                msg("info", "Invalid input. Please enter a valid datastore ID.")
-        except ValueError:
-            msg("info", "Invalid input. Please enter a valid integer.")
-
+            appliance_versions.append(app)
+    ID = select_elements(appliance_versions, elem_type= name + " appliance", action="download", display_field="NAME", select_single=True)["ID"]
+    selected_datastore = select_elements(list_image_datastores(), elem_type="datastore", action="use", display_field="ID", select_single=True)
+    ds_ID = selected_datastore["ID"]
     cmd = "onemarketapp export " + str(ID) + " " + name.replace(' ', '_')  + " -d "  + str(ds_ID)
     res = run_command(cmd)
     if res["rc"] != 0:
@@ -355,3 +339,28 @@ def match_appliance_urls(urls):
         if app["SOURCE"] in urls:
             matching_apps_list.append(app)
     return matching_apps_list
+
+# Receives a list of elements and lets the user chose one/several. 
+# Parameters:
+#   elements => list of dicts (objects) from where the user will choose
+#   action => action that will be performed with the selected elements. Visual only
+#   display_field => attribute of each object that will be shown to the user for selection
+#   select_single => determines wether the user can select more than one element (select_single=False)
+
+def select_elements(elements, elem_type="elements", action="download", display_field="NAME", select_single=False):
+    choices = [element[display_field] for element in elements]
+    if select_single == False:
+        selected_display_names = questionary.checkbox(
+            "Please select the " + elem_type + " you want to " + action + ":",
+            choices=choices
+        ).ask()
+        # Map the selected display names back to the original elements
+        result = [element for element in elements if element[display_field] in selected_display_names]
+    else:
+        selected_display_name = questionary.select(
+            "Please select the " + elem_type + " you want to " + action + ":",
+            choices=choices
+        ).ask()
+        # Map the selected display name back to the original element
+        result = [element for element in elements if element[display_field] == selected_display_name][0]
+    return result

@@ -72,11 +72,14 @@ def main():
     appliance_urls = extract_appliance_values("6G-SANDBOX/6G-Library")
     # Match those appliance URLs to APPs in the Sandbox Marketplace
     matching_apps = match_appliance_urls(appliance_urls)
-    msg("info", "Available appliances for download:")
-    for app in matching_apps:
-        print("[  ID: " + app["ID"] + "  |  Name: " + app["NAME"] + "  ]")
 
+    # User selects the desired appliances for download
+    selected_apps = select_elements(matching_apps, elem_type="appliances", action="download", display_field="NAME")
+    # User selects the desired datastore for download
+    selected_datastore = select_elements(list_image_datastores(), elem_type="datastore", action="use", display_field="ID", select_single=True)
 
+    for app in selected_apps:
+        download_appliance(app["NAME"], app["ID"], selected_datastore["ID"])
 
 
 if __name__ == "__main__":
