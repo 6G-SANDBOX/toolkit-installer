@@ -52,8 +52,16 @@ def run_command(command):
         return {"rc": return_code, "stdout": stdout, "stderr": stderr}
     except Exception as e:
         return {"rc": -1, "stdout": None, "stderr": str(e)}
+    exit_code = process.returncode
+
+    # Return the final stdout and exit code
+    return {"rc": exit_code, "stdout": final_output}
+
 
 def check_user():
+    print()
+    msg("info", "[USER CHECK]")
+    print()
     res = run_command("whoami")
     if res["rc"] != 0:
         msg("error", "Could not run woami command for user checking")
@@ -65,20 +73,40 @@ def check_user():
 
 
 def check_one_health():
-
+    print()
+    msg("info", "[OPENNEBULA HEALTHCHECK]")
+    print()
     # Check that CLI tools are working and can be used => this implies that XMLRPC API is healthy and reachable
-    res = run_command("onevm list")
+    command = "onevm list"
+    res = run_command(command)
     if res["rc"] != 0:
-        msg("error", "OpenNebula CLI healthcheck failed.")
+        msg("error", "OpenNebula CLI healthcheck failed. Command: " + command)
         sys.exit(255) # For UNIX systems, exit code must be unsiged in the 0-255 range
-    res = run_command("onevm list")
+
+    command = "onevm list"
+    res = run_command(command)
     if res["rc"] != 0:
-        msg("error", "OpenNebula CLI healthcheck failed.")
+        msg("error", "OpenNebula CLI healthcheck failed. Command: " + command)
         sys.exit(255)
-    res = run_command("onedatastore list")
+    command = "onedatastore list"
+    res = run_command(command)
     if res["rc"] != 0:
-        msg("error", "OpenNebula CLI healthcheck failed.")
+        msg("error", "OpenNebula CLI healthcheck failed. Command: " + command)
         sys.exit(255)
+
+    command = "oneflow list"
+    res = run_command(command)
+    if res["rc"] != 0:
+        msg("error", "OpenNebula CLI healthcheck failed. Command: " + command)
+        sys.exit(255)
+
+    # Testing onegate health with curl
+    command = "curl " + get_onegate_endpoint()
+    res = run_command(command)
+    if res["rc"] != 0:
+        msg("error", "OpenNebula CLI healthcheck failed. Command: " + command)
+        sys.exit(255)
+
 
     # Pending to add futher health checks
 
@@ -86,7 +114,16 @@ def check_one_health():
     return 0
 
 
-
+def get_onegate_endpoint():
+    command = "cat /etc/one/oned.conf | grep 'ONEGATE_ENDPOINT ='"
+    res = run_command(command)
+    if res["rc"] != 0:
+        msg("error", "Unable to run '" + command + "'")
+        sys.exit(255)
+    if not res["stdout"]:
+        msg("error", "ONEGATE_ENDPOINT not found in the OpenNebula configuration.")
+        sys.exit(255)
+    return res["stdout"].split('"')[1]
 
 
 def add_sandbox_marketplace():
@@ -163,7 +200,7 @@ def restart_oned():
         check_one_health()
         return 0
 
-
+# Checks whether the SANDBOX marketplace contains any APPs. If it does, it means that the marketplace has been monitored and is ready to be used
 def marketapps_ready(ID):
     res = run_command("onemarket show -j " + str(ID))
     if res["rc"] != 0:
@@ -190,7 +227,7 @@ def download_appliance(name, ID, ds_ID):
 
 
 # Downloads appliance with user intervention. Lists appliances containing the specified name and lets the user select the version and datastore
-def download_appliance_guided(name):
+def download_appliance_guided(name, appliance_type):
     res = run_command("onemarketapp list -j")
     if res["rc"] != 0:
         msg("error", "Could not run 'onemarketapp list -j'. Error:")
@@ -199,13 +236,34 @@ def download_appliance_guided(name):
     apps_dict = json.loads(res["stdout"])
     apps_list = apps_dict["MARKETPLACEAPP_POOL"]["MARKETPLACEAPP"]
     appliance_versions = []
+    # Filtering appliances by name and type
     for app in apps_list:
         if name.lower() in app["NAME"].lower():
-            appliance_versions.append(app)
-    ID = select_elements(appliance_versions, elem_type= name + " appliance", action="download", display_field="NAME", select_single=True)["ID"]
+            if appliance_type == "VM" and (app["TYPE"] == "1" or app["TYPE"] == "2"):
+                appliance_versions.append(app)
+            elif appliance_type == "SERVICE" and app["TYPE"] == "3":
+                appliance_versions.append(app)
+    #ID = select_elements(appliance_versions, elem_type= name + " appliance", action="download", display_field="NAME", select_single=True)["ID"]
+    selected_app = select_elements(appliance_versions, elem_type= name + " appliance", action="download", display_field="NAME", select_single=True)
+    ID = selected_app["ID"]
+    NAME = selected_app["NAME"].replace(' ', '_')
     selected_datastore = select_elements(list_image_datastores(), elem_type="datastore", action="use", display_field="ID", select_single=True)
     ds_ID = selected_datastore["ID"]
-    cmd = "onemarketapp export " + str(ID) + " " + name.replace(' ', '_')  + " -d "  + str(ds_ID)
+
+    # Searching whether the appliance already exists in the cluster. If it exists, it returns it.
+    found_appliance = appliance_search(NAME, appliance_type)
+    if found_appliance is not False:
+        msg("info", "VM template " + NAME + " already present, skipping download...")
+        if appliance_type == "VM":
+            return {'IMAGE': [], 'VMTEMPLATE': [found_appliance["ID"]]}
+        elif appliance_type == "SERVICE":
+            templates_list = []
+            for role in found_appliance["TEMPLATE"]["BODY"]["roles"]:
+                templates_list.append(role["vm_template"])
+            return {'IMAGE': [], 'VMTEMPLATE': templates_list, 'SERVICETEMPLATE': found_appliance["ID"]}
+        else:
+            msg("error", "Invalid appliance type. Valid appliance types are 'VM' and 'SERVICE'.")
+    cmd = "onemarketapp export " + str(ID) + " " + str(NAME) + " -d "  + str(ds_ID)
     res = run_command(cmd)
     if res["rc"] != 0:
         msg("error", "Could not run '" + cmd + "'Error:")
@@ -216,6 +274,42 @@ def download_appliance_guided(name):
         wait_for_image(image_id)
     return result_dict
 
+
+# Searches for appliances in the OpenNebula templates. Returns the first matching appliance.
+# name => appliance name to search for
+# appliance_type => defines whether it should search for VM templates or for service template. Valid options are "VM" and "SERVICE"
+def appliance_search(name, appliance_type):
+    if appliance_type == "VM":
+        res = run_command("onetemplate list -j")
+        if res["rc"] != 0:
+            msg("error", "Could not run 'onetemplate list -j'. Error:")
+            msg("error", res["stderr"])
+            sys.exit(255)
+        apps_dict = json.loads(res["stdout"])
+        apps_list = apps_dict["VMTEMPLATE_POOL"]["VMTEMPLATE"]
+        for app in apps_list:
+            if app["NAME"] == name:
+                return app
+        return False
+    elif appliance_type == "SERVICE":
+        res = run_command("oneflow-template list -j")
+        if res["rc"] != 0:
+            msg("error", "Could not run 'oneflow-template list -j'. Error:")
+            msg("error", res["stderr"])
+            sys.exit(255)
+        apps_dict = json.loads(res["stdout"])
+
+        # No service templates present
+        if not "DOCUMENT" in apps_dict["DOCUMENT_POOL"]:
+            return False
+        apps_list = apps_dict["DOCUMENT_POOL"]["DOCUMENT"]
+        for app in apps_list:
+            if app["NAME"] == name:
+                return app
+        return False
+    else:
+        msg("error", "Invalid appliance type. Valid appliance types are 'VM' and 'SERVICE'.")
+        sys.exit(255)
 
 def list_image_datastores():
     res = run_command("onedatastore list -j")
@@ -231,6 +325,7 @@ def list_image_datastores():
         if ds["TEMPLATE"]["TYPE"] == "IMAGE_DS":
             image_ds_list.append(ds)
     return image_ds_list
+
 
 def parse_output(output):
     lines = output.strip().split('\n')
@@ -270,6 +365,24 @@ def wait_for_image(ID):
             break
         sleep(1)
     msg("info", "Image with ID " + str(ID) + " successfully downloaded.")
+
+
+def wait_for_service_running(ID):
+    msg("info", "Waiting for service ID:" + str(ID) + " to be in running state... This process can take several minutes.")
+    while True:
+        cmd = "oneflow show -j " + str(ID)
+        res = run_command(cmd)
+        if res["rc"] != 0:
+            msg("error", "Could not run '" + cmd + "'Error:")
+            msg("error", res["stderr"])
+            sys.exit(255)
+        svc_dict = json.loads(res["stdout"])
+        svc = svc_dict["DOCUMENT"]
+        # Check if the service is in running state (2)
+        if str(svc["TEMPLATE"]["BODY"]["state"]) == "2":
+            break
+        sleep(1)
+    msg("info", "Service with ID " + str(ID) + " is running.")
 
 
 
@@ -364,3 +477,122 @@ def select_elements(elements, elem_type="elements", action="download", display_f
         # Map the selected display name back to the original element
         result = [element for element in elements if element[display_field] == selected_display_name][0]
     return result
+
+def instantiate_sandbox_service(ID):
+    res = run_command("oneflow-template list -j")
+    if res["rc"] != 0:
+        msg("error", "Could not run 'oneflow-template list -j'. Error:")
+        msg("error", res["stderr"])
+        sys.exit(255)
+    svc_dict = json.loads(res["stdout"])
+
+    # Edge case: no service templates present
+    if not "DOCUMENT" in svc_dict["DOCUMENT_POOL"]:
+        return False
+    svc_list = svc_dict["DOCUMENT_POOL"]["DOCUMENT"]
+
+    # Checking if the Sandbox service exists
+    svc_exists = False
+    for svc in svc_list:
+        if svc["ID"] == str(ID):
+            svc_name = svc["NAME"]
+            svc_exists = True
+            break
+
+    if svc_exists == False:
+        msg("error", "Unable not download service with ID " + str(ID) + ". Service not found.")
+        sys.exit(255)
+    msg("info", "Instantiating service " + svc_name + "...")
+
+    msg("info", "PLEASE, INTRODUCE THE REQUIRED PARAMETERS FOR THE 6G-SANDBOX CORE APPLIANCES")
+    params = get_sandbox_svc_parameters()
+    # Write parameters to a JSON service template file
+    with open('svc_params.json', 'w') as file:
+        json.dump(params, file, indent=2)
+
+    #Instantiate service
+    command = "oneflow-template instantiate " + str(ID) + " < svc_params.json"
+    res = run_command(command)
+    if res["rc"] != 0:
+        msg("error", "Could not run '" + command + "'. Error:")
+        msg("error", res["stderr"])
+        sys.exit(255)
+    svc_ID = res["stdout"].split(" ")[1]
+    wait_for_service_running(svc_ID)
+    run_command("rm svc_params.json")
+
+
+
+def get_sandbox_svc_parameters():
+    attrs = {
+    "custom_attrs" : {
+    "oneapp_minio_hostname": "O|text|MinIO hostname for TLS certificate||localhost,minio-*.example.net",
+    "oneapp_minio_opts": "O|text|Additional commandline options for MinIO server||--console-address :9001",
+    "oneapp_minio_root_user": "O|text|MinIO root user for MinIO server. At least 3 characters||myminioadmin",
+    "oneapp_minio_root_password": "M|password|MinIO root user password for MinIO server. At least 8 characters",
+    "oneapp_minio_tls_cert": "O|text64|MinIO TLS certificate (.crt)||",
+    "oneapp_minio_tls_key": "O|text64|MinIO TLS key (.key)||",
+    "oneapp_jenkins_username": "O|text|The username for the Jenkins admin user||admin",
+    "oneapp_jenkins_password": "M|password|The password for the Jenkins admin user",
+    "oneapp_jenkins_ansible_vault": "M|password|Passphrase to encrypt and decrypt the 6G-Sandbox-Sites repository files for your site using Ansible Vault",
+    "oneapp_jenkins_opennebula_endpoint": "M|text|The URL of your OpenNebula XML-RPC Endpoint API (for example, 'http://example.com:2633/RPC2')||",
+    "oneapp_jenkins_opennebula_flow_endpoint": "M|text|The URL of your OneFlow HTTP Endpoint API (for example, 'http://example.com:2474')||",
+    "oneapp_jenkins_opennebula_username": "M|text|The OpenNebula username used by Jenkins to deploy each component||",
+    "oneapp_jenkins_opennebula_password": "M|password|The password for the OpenNebula user used by Jenkins to deploy each component",
+    "oneapp_jenkins_opennebula_insecure": "O|boolean|Allow insecure connexions into the OpenNebula XML-RPC Endpoint API (skip TLS verification)||YES"
+        }
+    }
+
+    custom_attrs = attrs["custom_attrs"]
+
+    responses = {}
+
+    for key, value in custom_attrs.items():
+        parts = value.split('|')
+        required = parts[0] == 'M'
+        field_type = parts[1]
+        description = parts[2]
+
+        # Handling default value extraction
+        if len(parts) > 3:
+            default_value = value.split('||')[1] if '||' in value else parts[3]
+        else:
+            default_value = ''
+
+        prompt_text = f"{description} (default: {default_value})"
+        
+        custom_style = questionary.Style([
+            ('question', '#cda02b')
+        ])
+        if field_type == 'text' or field_type == 'boolean':
+            response = questionary.text(prompt_text, default=default_value, style=custom_style).ask()
+        elif field_type == 'password':
+            response = questionary.password(prompt_text, style=custom_style).ask()
+        elif field_type == 'text64':
+            # Assuming text64 is a text field with default value
+            response = questionary.text(prompt_text, default=default_value, style=custom_style).ask()
+        else:
+            raise ValueError(f"Unsupported field type: {field_type}")
+
+        responses[key] = response
+
+    res = run_command("onevnet list -j")
+    if res["rc"] != 0:
+        msg("error", "Could not run 'onevnet list -j'. Error:")
+        msg("error", res["stderr"])
+        sys.exit(255)
+    vnet_dict = json.loads(res["stdout"])["VNET_POOL"]["VNET"]
+    selected_vnet = select_elements(vnet_dict, elem_type="network", action="instantiate the 6G-SANDBOX CORE service", display_field="NAME", select_single=True)
+    selected_vnet_id = selected_vnet["ID"]
+
+    output_dict = {
+        "custom_attrs_values": responses,  
+        "networks_values": [
+            {
+                "Public": {
+                    "id": str(selected_vnet_id)
+                }
+            }
+        ]
+    }
+    return output_dict

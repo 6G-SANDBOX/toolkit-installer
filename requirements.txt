@@ -2,4 +2,3 @@ questionary
 PyGithub
 PyYAML
 requests
-zipfile

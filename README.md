@@ -1,47 +1,61 @@
-# INSTALADOR DEL TOOLKIT
+# 6G-SANDBOX TOOLKIT INSTALLER
 
-Script en Python3 que lanza sites de 6G-SANDBOX.
+Python3 script that configures an OpenNebula cluster as a 6G-SANDBOX site. 
 
-## Pre-requisitos
+## Pre-requirements
 
-- Tener ya desplegada una instalación de OpenNebula con salida a internet
-- La ejecución del script de instalación se realiza desde el FE de OpenNebula ya que es donde están instaladas las OpenNebula Tools. Podría hacerse una versión que atacara en remoto al API de OpenNebula (en siguientes iteraciones)
+- An OpenNebula cluster with VMs internet access.
+- Python3 and pip3 packages installed in the OpenNebula Frontend VMs.
 
-## Fase 1
+## Requirements installation
 
-- Añadir el marketplace de 6GSandbox a OpenNebula
-- Refrescar la lista de appliances disponibles en el marketplace
+```bash
+pip3 install -r requirements.txt
+```
 
-## Fase 2
+## Running
+The script execution must be performed in the OpenNebula Frontend using root user. This is due to the necessity of using the OpenNebula CLI tools and modifying core OpenNebula configurations. In future versions the possibility to use this tool remotely could be added.
 
-- Escaneo de las appliances usando el repositorio de la 6G Library
-- Escaneo de datastores y selección del que se va a usar para la importación de imágenes
-- Las appliances del CORE se han de descargar todas (Jenkins, TNLCM, MinIO)
-- Las appliances básicas: Ubuntu base
-- Instanciación de las appliances del core (en este orden: Jenkins, MinIO y por ultimo TNLCM)
-- Validación de los servicios
+Running the script:
+```bash
+python3 src/toolkit_installer.py
+```
 
-## Fase 2.1
+<details>
+  <summary>Running phases</summary>
+  ## Phase 1
 
-- Descarga del servicio OneKE para los clusters as a service de Kubernetes
+  - Adding the 6GSandbox marketplace to OpenNebula if not present
+  - Refreshing the list of available appliances in the marketplace
 
-## Fase 3
+  ## Phase 2
 
-- Diálogo en consola, preguntando al instalador qué appliances de componentes quiere importar en el datastore. Este listado lo hemos sacado previamente del escaneo del repositorio de la 6G Library
+  - Downloading base required appliances: Ubuntu, OneKE, 6GSANDBOX-core. The user is able to select version and datastore for each one.
 
-## Fase 4
+  ## Phase 2.1
 
-- Crear un formulario con la información incluida en el repositorio de SITES
-  - ID de las redes
-  - ID de las imágenes
-  - ID de los servicios
-- A partir de una plantilla jinja, generar el fichero de SITES asociado para poder subirlo a repo privado
-- Push del nuevo site al github
-  - TBD: Hay que encriptar la info de los sites para que no se vea una con otros y así evitar fallos de seguridad. Esto es sencillo usando Ansible encrypt/decrypt. Así se puede hacer público el repositorio, y evitamos configuración adicional en Jenkins para clonar y pushear repos privados.
-  - Cada SITE debe conservar su clave maestra para desencriptar su fichero y configurarla en su Jenkins
+  - Instantiation of the 6GSANDBOX-core appliance. The user will be prompted for the required parameters. Pending to add further healthchecks.
 
-## Fase 5
+  ## Phase 3
 
-- Lanzamiento de una TN básica. Puede crearse un pipeline en Jenkins, para que el operador entre y ejecute.
-- Validación y certificación. Algo de testing.
+  - Donwloading and scanning the 6G Library repository for appliances
+  - Matching the found appliances with the ones present in the 6G-SANDBOX Marketplace
+  - Console dialog, asking the installer which component appliances  wants to import into the datastore. The appliances shown are the ones matching.
+
+
+  ## Phase 4 => Pending
+
+  - Create a form with information included in the SITES repository
+    - ID of the networks
+    - ID of the images
+    - ID of the services
+  - From a jinja template, generate the associated SITES file to be uploaded to private repo
+  - Push the new site to github
+    - TBD: You have to encrypt the info of the sites so that they are not seen with each other to avoid security flaws. This is easy using Ansible encrypt/decrypt. This way the repository can be made public, and we avoid additional configuration in Jenkins to clone and push private repos.
+    - Each SITE must keep their master key to decrypt their file and configure it in their Jenkins
+
+  ## Phase 5 => Pending
+
+  - Launching a basic TN. A pipeline can be created in Jenkins, for the operator to enter and execute.
+  - Validation and certification. Some testing.
 
