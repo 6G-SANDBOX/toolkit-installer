@@ -23,6 +23,7 @@ python3 src/toolkit_installer.py
 
 <details>
   <summary>Running phases</summary>
+  
   ## Phase 1
 
   - Adding the 6GSandbox marketplace to OpenNebula if not present
