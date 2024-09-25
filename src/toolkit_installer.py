@@ -79,7 +79,7 @@ def main():
     msg("info", "[6GSANDBOX CORE SERVICE INSTANTIATION]")
     print()
     instantiate_sandbox_service(toolkit_service_id)
-
+    #create_jenkins_user()
 
     # PHASE 3
     # Scan 6G-SANDBOX/6G-Library repo looking for appliance URLs

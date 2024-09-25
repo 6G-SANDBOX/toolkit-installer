@@ -510,6 +510,39 @@ def instantiate_sandbox_service(ID):
     with open('svc_params.json', 'w') as file:
         json.dump(params, file, indent=2)
 
+
+    # Check if jenkins user exists
+    jenkins_user = params["custom_attrs_values"]["oneapp_jenkins_opennebula_username"]
+    jenkins_user_password = params["custom_attrs_values"]["oneapp_jenkins_opennebula_password"]
+
+    command = "oneuser list -j"
+    res = run_command(command)
+    if res["rc"] != 0:
+        msg("error", "Could not run '" + command + "'. Error:")
+        msg("error", res["stderr"])
+        sys.exit(255)
+    user_dict = json.loads(res["stdout"])
+    user_list = user_dict["USER_POOL"]["USER"]
+    found = False
+    for user in user_list:
+        if user["NAME"] == jenkins_user:
+            jenkins_user_id = user["ID"]
+            found = True
+
+    if found:
+        msg("info", "Jenkins OpenNebula user already present as " + jenkins_user +". Please, make sure that the password introduced is the one configurd for the already-present user.")
+    else:
+        #Create jenkins user
+        msg("info", "Jenkins OpenNebula user not found, creating Jenkins user...")
+        command = "oneuser create " + jenkins_user + " " + jenkins_user_password
+        res = run_command(command)
+        if res["rc"] != 0:
+            msg("error", "Could not run '" + command + "'. Error:")
+            msg("error", res["stderr"])
+            sys.exit(255)
+        jenkins_user_id = res["stdout"].split(" ")[1]
+        msg("info", jenkins_user + " user created successfully with ID " + jenkins_user_id)
+
     #Instantiate service
     command = "oneflow-template instantiate " + str(ID) + " < svc_params.json"
     res = run_command(command)
@@ -520,6 +553,51 @@ def instantiate_sandbox_service(ID):
     svc_ID = res["stdout"].split(" ")[1]
     wait_for_service_running(svc_ID)
     run_command("rm svc_params.json")
+
+
+    # Parse Jenkins VM ID from service
+    command = "oneflow show " + str(svc_ID) + " -j"
+    res = run_command(command)
+    if res["rc"] != 0:
+        msg("error", "Could not run '" + command + "'. Error:")
+        msg("error", res["stderr"])
+        sys.exit(255)
+    svc_dict = json.loads(res["stdout"])
+    svc_roles = svc_dict["DOCUMENT"]["TEMPLATE"]["BODY"]["roles"]
+    for role in svc_roles:
+        if role["name"] == "jenkins":
+            for node in role["nodes"]:
+                jenkins_id = node["vm_info"]["VM"]["ID"]
+    
+    if not jenkins_id:
+        msg("error", "Jenkins VM not found, unable to parse VM ID.")
+        sys.exit(255)
+    
+    # Wait for Jenkins to report SSH key
+    msg("info", "Waiting for Jenkins VM to report SSH key.")
+    while True:
+        command = "onevm show " + jenkins_id + " -j"
+        res = run_command(command)
+        if res["rc"] != 0:
+            msg("error", "Could not run '" + command + "'. Error:")
+            msg("error", res["stderr"])
+            sys.exit(255)
+        jenkins_dict = json.loads(res["stdout"])
+        try:
+            jenkins_ssh_key = jenkins_dict["VM"]["USER_TEMPLATE"]["SSH_KEY"]
+            break
+        except:
+            pass
+    msg ("info", "Jenkins reported public SSH key, adding key to OpenNebula Jenkins user...")
+    command = "echo \'SSH_PUBLIC_KEY=\"" + jenkins_ssh_key + "\"\' | oneuser update " + jenkins_user_id
+    print("Command: " + command)
+    res = run_command(command)
+    if res["rc"] != 0:
+        msg("error", "Could not run '" + command + "'. Error:")
+        msg("error", res["stderr"])
+        sys.exit(255)
+    msg("info", "Jenkins SSH key added successfully to user " + jenkins_user)
+
 
 
 
@@ -596,3 +674,12 @@ def get_sandbox_svc_parameters():
         ]
     }
     return output_dict
+
+
+
+def create_jenkins_user():
+    command = ""
+    res = run_command("whoami")
+    if res["rc"] != 0:
+        msg("error", "Could not run woami command for user checking")
+        sys.exit(255)
