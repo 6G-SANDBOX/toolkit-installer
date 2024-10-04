@@ -1,8 +1,4 @@
 # -*- coding: utf-8 -*-
-import questionary
-import yaml
-import socket
-import sys
 from functions import *
 from time import sleep
 
@@ -106,7 +102,22 @@ def main():
         for app in selected_apps:
             download_appliance(app["NAME"], app["ID"], selected_datastore["ID"])
 
+    # PHASE 5
+    # Run a trial network test
+    print()
+    msg("info", "[TNLCM RUN TRIAL NETWORK]")
+    print()
+    tnlcm_id = extract_tnlcm_id(toolkit_service_id)
+    tnlcm_ip = extract_tnclm_ip(tnlcm_id)
+    tnlcm_port = 5000
+    tnlcm_url = f"http://{tnlcm_ip}:{tnlcm_port}"
+    vm_tnlcm_admin_username, vm_tnlcm_admin_password = extract_tnlcm_admin_user(tnlcm_id)
+    access_token = login_tnlcm(tnlcm_url, vm_tnlcm_admin_username, vm_tnlcm_admin_password)
+    # Extract the trial network that is used for testing
+    trial_network_path = extract_trial_network("6G-SANDBOX/TNLCM")
+    site = select_platform(tnlcm_url)
+    tn_id = create_trial_network(tnlcm_url, site, access_token, trial_network_path)
+    deploy_trial_network(tnlcm_url, tn_id, access_token)
 
 if __name__ == "__main__":
     main()
-

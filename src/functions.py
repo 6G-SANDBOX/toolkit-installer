@@ -6,9 +6,10 @@ import zipfile
 import os
 import questionary
 import yaml
+import shutil
+import base64
 from datetime import datetime
 from time import sleep
-from github import Github
 
 
 def msg(msg_type, *args):
@@ -675,11 +676,145 @@ def get_sandbox_svc_parameters():
     }
     return output_dict
 
-
-
 def create_jenkins_user():
-    command = ""
     res = run_command("whoami")
     if res["rc"] != 0:
         msg("error", "Could not run woami command for user checking")
+        sys.exit(255)
+
+def extract_tnlcm_id(toolkit_service_id):
+    command = "oneflow show " + str(toolkit_service_id) + " -j"
+    res = run_command(command)
+    if res["rc"] != 0:
+        msg("error", "Could not run '" + command + "'. Error:")
+        msg("error", res["stderr"])
+        sys.exit(255)
+    svc_dict = json.loads(res["stdout"])
+    svc_roles = svc_dict["DOCUMENT"]["TEMPLATE"]["BODY"]["roles"]
+    for role in svc_roles:
+        if role["name"] == "tnlcm":
+            for node in role["nodes"]:
+                tnlcm_id = node["vm_info"]["VM"]["ID"]
+    
+    if not tnlcm_id:
+        msg("error", "TNLCM VM not found, unable to parse VM ID.")
+        sys.exit(255)
+    
+    return tnlcm_id
+    
+def extract_tnclm_ip(tnlcm_id):
+    command = "onevm show " + str(tnlcm_id) + " -j"
+    res = run_command(command)
+    if res["rc"] != 0:
+        msg("error", "Could not run '" + command + "'. Error:")
+        msg("error", res["stderr"])
+        sys.exit(255)
+    vm_dict = json.loads(res["stdout"])
+    vm_ip = vm_dict["VM"]["TEMPLATE"]["NIC"][0]["IP"]
+
+    if not vm_ip:
+        msg("error", "TNLCM IP not found.")
+        sys.exit(255)
+    
+    return vm_ip
+
+def extract_tnlcm_admin_user(tnlcm_id):
+    command = "onevm show " + str(tnlcm_id) + " -j"
+    res = run_command(command)
+    vm_dict = json.loads(res["stdout"])
+    vm_tnlcm_admin_username = vm_dict["VM"]["USER_TEMPLATE"]["ONEAPP_TNLCM_ADMIN_USER"]
+    vm_tnlcm_admin_password = vm_dict["VM"]["USER_TEMPLATE"]["ONEAPP_TNLCM_ADMIN_PASSWORD"]
+
+    if not vm_tnlcm_admin_username or not vm_tnlcm_admin_password:
+        msg("error", "TNLCM admin user not found.")
+        sys.exit(255)
+    
+    return vm_tnlcm_admin_username, vm_tnlcm_admin_password
+
+def login_tnlcm(tnlcm_url, vm_tnlcm_admin_username, vm_tnlcm_admin_password):
+    credentials = f"{vm_tnlcm_admin_username}:{vm_tnlcm_admin_password}"
+    encoded_credentials = base64.b64encode(credentials.encode('utf-8')).decode('utf-8')
+    headers = {
+        "accept": "application/json",
+        "authorization": f"Basic {encoded_credentials}"
+    }
+    res = requests.post(f"{tnlcm_url}/tnlcm/user/login", headers=headers)
+    if res.status_code != 201:
+        msg("error", res["message"])
+        sys.exit(255)
+    data = res.json()
+    return data["access_token"]
+
+def extract_trial_network(tnlcm_repo):
+    download_repo(tnlcm_repo)
+    tnlcm_path = f"repo/{tnlcm_repo.split('/')[1]}-main"
+
+    file_path = os.path.join(tnlcm_path, "tnlcm", "tn_template_lib", "08_descriptor.yaml")
+
+    if not os.path.exists(file_path):
+        msg("error", f"File not found in {file_path} path")
+        sys.exit(255)
+    destination_path = "08_descriptor.yaml"
+    shutil.copy(file_path, destination_path)
+    remove_repo()
+    return destination_path
+
+def select_platform(tnlcm_url):
+    url = f"{tnlcm_url}/tnlcm/6G-Sandbox-Sites/branches/"
+    res = requests.get(url)
+    if res.status_code != 200:
+        msg("error", res["message"])
+        sys.exit(255)
+    platforms = res.json()
+    prompt_text = "Please choose a platform:"
+    default_value = platforms[0]
+    chosen_platform = questionary.select(
+        prompt_text,
+        choices=platforms,
+        default=default_value
+    ).ask()
+
+    return chosen_platform
+
+def create_trial_network(tnlcm_url, site, access_token, trial_network):
+    url = f"{tnlcm_url}/tnlcm/trial-network"
+    params = {
+        "tn_id": "test",
+        "deployment_site": site,
+        "github_6g_library_reference_type": "branch",
+        "github_6g_library_reference_value": "main",
+        "github_6g_sandbox_sites_reference_type": "branch",
+        "github_6g_sandbox_sites_reference_value": site
+    }
+    headers = {
+        "accept": "application/json",
+        "Authorization": f"Bearer {access_token}"
+    }
+    try:
+        with open(trial_network, "rb") as file:
+            files = {
+                "descriptor": file
+            }
+            res = requests.post(url, headers=headers, params=params, files=files)
+        if res.status_code != 201:
+            msg("error", res["message"])
+            sys.exit(255)
+        data = res.json()
+        return data["tn_id"]
+    except FileNotFoundError:
+        msg("error", f"File {trial_network} not found")
+        sys.exit(255)
+
+def deploy_trial_network(tnlcm_url, tn_id, access_token):
+    url = f"{tnlcm_url}/tnlcm/trial-network"
+    params = {
+        "tn_id": tn_id
+    }
+    headers = {
+        "accept": "application/json",
+        "Authorization": f"Bearer {access_token}"
+    }
+    res = requests.put(url, headers=headers, params=params)
+    if res.status_code != 200:
+        msg("error", res["message"])
         sys.exit(255)
