@@ -8,6 +8,8 @@ import questionary
 import yaml
 import shutil
 import base64
+
+from git import Repo
 from datetime import datetime
 from time import sleep
 
@@ -414,6 +416,12 @@ def remove_repo():
         msg("error", res["stderr"])
     return 0
 
+def remove_file(file_path):
+    res = run_command(f"rm {file_path}")
+    if res["rc"] != 0:
+        msg("error", "Could not remove file, skipping...")
+        msg("error", res["stderr"])
+    return 0
 
 def extract_appliance_values(repo_name):
     # Download and extract the repository
@@ -754,27 +762,37 @@ def extract_trial_network(tnlcm_repo):
     if not os.path.exists(file_path):
         msg("error", f"File not found in {file_path} path")
         sys.exit(255)
-    destination_path = "08_descriptor.yaml"
-    shutil.copy(file_path, destination_path)
+    trial_network_path = "08_descriptor.yaml"
+    shutil.copy(file_path, trial_network_path)
     remove_repo()
-    return destination_path
+    return trial_network_path
 
-def select_platform(tnlcm_url):
-    url = f"{tnlcm_url}/tnlcm/6G-Sandbox-Sites/branches/"
-    res = requests.get(url)
-    if res.status_code != 200:
-        msg("error", res["message"])
-        sys.exit(255)
-    platforms = res.json()
-    prompt_text = "Please choose a platform:"
-    default_value = platforms[0]
-    chosen_platform = questionary.select(
+def extract_sites(sites_remote_directory):
+    sites_local_directory = os.path.join(os.getcwd(), "6G-Sandbox-Sites")
+    os.makedirs(sites_local_directory)
+    # Clone repository
+    repo = Repo.clone_from(sites_remote_directory, sites_local_directory)
+    return [branch.name.replace("origin/", "") for branch in repo.remotes.origin.refs if branch.name.replace("origin/", "") != "HEAD"]
+
+def select_site(sites):
+    # 1) Ask to enter the name of the site.
+    # 1.1) If it is a site that is not in the sites repository ...
+    # 1.2) If it is a site that is in the repository sites continuous
+    prompt_text = "Please choose a site:"
+    default_value = sites[0]
+    choices = sites + ["new site"]
+    chosen_site = questionary.select(
         prompt_text,
-        choices=platforms,
+        choices=choices,
         default=default_value
     ).ask()
 
-    return chosen_platform
+    if chosen_site == "new site":
+        new_site = questionary.text("Enter the name of the new site:").ask()
+        # TODO: maybe need git branch, create new folder, create core.yaml, fill file and git push when finish new site configuration
+        return new_site
+    else: 
+        return chosen_site
 
 def create_trial_network(tnlcm_url, site, access_token, trial_network):
     url = f"{tnlcm_url}/tnlcm/trial-network"
@@ -815,6 +833,20 @@ def deploy_trial_network(tnlcm_url, tn_id, access_token):
         "Authorization": f"Bearer {access_token}"
     }
     res = requests.put(url, headers=headers, params=params)
+    if res.status_code != 200:
+        msg("error", res["message"])
+        sys.exit(255)
+
+def delete_trial_network(tnlcm_url, tn_id, access_token):
+    url = f"{tnlcm_url}/tnlcm/trial-network"
+    params = {
+        "tn_id": tn_id
+    }
+    headers = {
+        "accept": "application/json",
+        "Authorization": f"Bearer {access_token}"
+    }
+    res = requests.delete(url, headers=headers, params=params)
     if res.status_code != 200:
         msg("error", res["message"])
         sys.exit(255)
