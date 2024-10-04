@@ -102,6 +102,11 @@ def main():
         for app in selected_apps:
             download_appliance(app["NAME"], app["ID"], selected_datastore["ID"])
 
+    # TODO: PHASE 4
+    # Check whether it is a new site or an existing one
+    sites = extract_sites("https://github.com/6G-SANDBOX/6G-Sandbox-Sites.git")
+    site = select_site(sites)
+
     # PHASE 5
     # Run a trial network test
     print()
@@ -115,9 +120,10 @@ def main():
     access_token = login_tnlcm(tnlcm_url, vm_tnlcm_admin_username, vm_tnlcm_admin_password)
     # Extract the trial network that is used for testing
     trial_network_path = extract_trial_network("6G-SANDBOX/TNLCM")
-    site = select_platform(tnlcm_url)
     tn_id = create_trial_network(tnlcm_url, site, access_token, trial_network_path)
+    remove_file(trial_network_path)
     deploy_trial_network(tnlcm_url, tn_id, access_token)
+    delete_trial_network(tnlcm_url, tn_id, access_token)
 
 if __name__ == "__main__":
     main()
