@@ -55,8 +55,7 @@ python3 src/toolkit_installer.py
     - TBD: You have to encrypt the info of the sites so that they are not seen with each other to avoid security flaws. This is easy using Ansible encrypt/decrypt. This way the repository can be made public, and we avoid additional configuration in Jenkins to clone and push private repos.
     - Each SITE must keep their master key to decrypt their file and configure it in their Jenkins
 
-  ## Phase 5 => Pending
+  ## Phase 5
 
   - Launching a basic TN. A pipeline can be created in Jenkins, for the operator to enter and execute.
   - Validation and certification. Some testing.
-
