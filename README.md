@@ -7,18 +7,33 @@ Python3 script that configures an OpenNebula cluster as a 6G-SANDBOX site.
 - An OpenNebula cluster with VMs internet access.
 - Python3 and pip3 packages installed in the OpenNebula Frontend VMs.
 
-## Requirements installation
+## Installation types
+
+### Manual 
 
 ```bash
 pip3 install -r requirements.txt
 ```
 
-## Running
 The script execution must be performed in the OpenNebula Frontend using root user. This is due to the necessity of using the OpenNebula CLI tools and modifying core OpenNebula configurations. In future versions the possibility to use this tool remotely could be added.
 
 Running the script:
 ```bash
 python3 src/toolkit_installer.py
+```
+
+### Automatic
+
+Give execute permissions to the file toolkit.sh
+
+```bash
+chmod 777 toolkit.sh
+```
+
+Init script
+
+```bash
+./toolkit.sh
 ```
 
 <details>
