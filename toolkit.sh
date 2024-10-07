@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+apt-get update
+
 # Check if a token argument was provided
 if [ -z "$1" ]; then
     echo "Error: No GitHub token provided."
@@ -9,7 +11,7 @@ fi
 echo "Usage: $0 with token $1"
 GITHUB_TOKEN=$1
 
-# # Check if Python is installed
+# Check if Python is installed
 PYTHON_VERSION="3.12.6"
 PYTHON_BIN="/usr/local/bin/python${PYTHON_VERSION%.*}"
 
@@ -33,8 +35,17 @@ if git --version &>/dev/null; then
     echo "Git is already installed."
 else
     echo "Git not found. Installing Git..."
-    apt-get update
     apt-get install -y git
+fi
+
+# Check if Ansible is installed
+if ansible --version &>/dev/null; then
+    echo "Ansible is already installed."
+else
+    echo "Ansible not found. Installing Ansible Core..."
+    apt-get install -y software-properties-common
+    add-apt-repository --yes --update ppa:ansible/ansible
+    apt-get install -y ansible-core
 fi
 
 # Clone toolkit-installer repository using the provided token
