@@ -757,7 +757,7 @@ def extract_trial_network(tnlcm_repo):
     download_repo(tnlcm_repo)
     tnlcm_path = f"repo/{tnlcm_repo.split('/')[1]}-main"
 
-    file_path = os.path.join(tnlcm_path, "tnlcm", "tn_template_lib", "08_descriptor.yaml")
+    file_path = os.path.join(tnlcm_path, "tn_template_lib", "08_descriptor.yaml")
 
     if not os.path.exists(file_path):
         msg("error", f"File not found in {file_path} path")
@@ -826,6 +826,7 @@ def create_trial_network(tnlcm_url, site, access_token, trial_network):
 def deploy_trial_network(tnlcm_url, tn_id, access_token):
     url = f"{tnlcm_url}/tnlcm/trial-network"
     params = {
+        "jenkins_deploy_pipeline": "TN_DEPLOY",
         "tn_id": tn_id
     }
     headers = {
@@ -840,6 +841,7 @@ def deploy_trial_network(tnlcm_url, tn_id, access_token):
 def delete_trial_network(tnlcm_url, tn_id, access_token):
     url = f"{tnlcm_url}/tnlcm/trial-network"
     params = {
+        "jenkins_destroy_pipeline": "TN_DESTROY",
         "tn_id": tn_id
     }
     headers = {
