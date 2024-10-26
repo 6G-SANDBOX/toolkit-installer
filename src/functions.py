@@ -13,7 +13,6 @@ from git import Repo
 from datetime import datetime
 from time import sleep
 
-
 def msg(msg_type, *args):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -30,7 +29,6 @@ def msg(msg_type, *args):
         print(f"[{timestamp}] => UNKNOWN [?!]:", *args)
         return 2
     return 0
-
 
 def run_command(command):
     """
@@ -60,7 +58,6 @@ def run_command(command):
     # Return the final stdout and exit code
     return {"rc": exit_code, "stdout": final_output}
 
-
 def check_user():
     print()
     msg("info", "[USER CHECK]")
@@ -73,7 +70,6 @@ def check_user():
         msg("error", "Current user: " + res["stdout"] + "   Please, run this script as root. The script requires root acces in order to modify /etc/one/oned.conf configuration file.")
         sys.exit(255)
     return 0
-
 
 def check_one_health():
     print()
@@ -116,9 +112,8 @@ def check_one_health():
     msg("info", "OpenNebula is healthy")
     return 0
 
-
 def get_onegate_endpoint():
-    command = "cat /etc/one/oned.conf | grep 'ONEGATE_ENDPOINT ='"
+    command = "cat /etc/one/oned.conf | grep 'ONEGATE_ENDPOINT ='" # Mejor entrar en el fichero y aplicar una expresión regular
     res = run_command(command)
     if res["rc"] != 0:
         msg("error", "Unable to run '" + command + "'")
@@ -150,8 +145,6 @@ MARKET_MAD = one
     run_command("rm market_template")
     return int(market_id)
 
-
-
 def find_sandbox_marketplace():
     res = run_command("onemarket list -j")
     markets_dict = json.loads(res["stdout"])
@@ -161,8 +154,6 @@ def find_sandbox_marketplace():
                 msg("info", "6GSANDBOX marketplace already present with ID " + marketplace["ID"])
                 return int(marketplace["ID"])
     return False
-
-
 
 def set_market_monitoring_interval(new_value):
     old_value = None
@@ -290,10 +281,15 @@ def appliance_search(name, appliance_type):
             sys.exit(255)
         apps_dict = json.loads(res["stdout"])
         apps_list = apps_dict["VMTEMPLATE_POOL"]["VMTEMPLATE"]
-        for app in apps_list:
-            if app["NAME"] == name:
-                return app
-        return False
+        if isinstance(apps_list, dict):
+            if apps_list["NAME"] == name:
+                return apps_list
+            return False
+        else:
+            for app in apps_list:
+                if app["NAME"] == name:
+                    return app
+            return False
     elif appliance_type == "SERVICE":
         res = run_command("oneflow-template list -j")
         if res["rc"] != 0:
@@ -353,7 +349,6 @@ def parse_output(output):
 
     return result
 
-
 def wait_for_image(ID):
     msg("info", "Waiting for image ID:" + str(ID) + " to be ready... This process can take several minutes.")
     while True:
@@ -368,7 +363,6 @@ def wait_for_image(ID):
             break
         sleep(1)
     msg("info", "Image with ID " + str(ID) + " successfully downloaded.")
-
 
 def wait_for_service_running(ID):
     msg("info", "Waiting for service ID:" + str(ID) + " to be in running state... This process can take several minutes.")
@@ -386,9 +380,6 @@ def wait_for_service_running(ID):
             break
         sleep(1)
     msg("info", "Service with ID " + str(ID) + " is running.")
-
-
-
 
 def download_repo(repo_name):
     # Construct the URL to download the repository as a ZIP file
@@ -445,7 +436,6 @@ def extract_appliance_values(repo_name):
                         app_data.append(appliance_value + "/download/0")
     remove_repo()
     return app_data
-
 
 # Matches appliance URLs from the 6GLibrary repo with Sandbox Marketplace APPs
 def match_appliance_urls(urls):
@@ -607,30 +597,27 @@ def instantiate_sandbox_service(ID):
         sys.exit(255)
     msg("info", "Jenkins SSH key added successfully to user " + jenkins_user)
 
-
-
+    return svc_ID
 
 def get_sandbox_svc_parameters():
-    attrs = {
-    "custom_attrs" : {
-    "oneapp_minio_hostname": "O|text|MinIO hostname for TLS certificate||localhost,minio-*.example.net",
-    "oneapp_minio_opts": "O|text|Additional commandline options for MinIO server||--console-address :9001",
-    "oneapp_minio_root_user": "O|text|MinIO root user for MinIO server. At least 3 characters||myminioadmin",
-    "oneapp_minio_root_password": "M|password|MinIO root user password for MinIO server. At least 8 characters",
-    "oneapp_minio_tls_cert": "O|text64|MinIO TLS certificate (.crt)||",
-    "oneapp_minio_tls_key": "O|text64|MinIO TLS key (.key)||",
-    "oneapp_jenkins_username": "O|text|The username for the Jenkins admin user||admin",
-    "oneapp_jenkins_password": "M|password|The password for the Jenkins admin user",
-    "oneapp_jenkins_ansible_vault": "M|password|Passphrase to encrypt and decrypt the 6G-Sandbox-Sites repository files for your site using Ansible Vault",
-    "oneapp_jenkins_opennebula_endpoint": "M|text|The URL of your OpenNebula XML-RPC Endpoint API (for example, 'http://example.com:2633/RPC2')||",
-    "oneapp_jenkins_opennebula_flow_endpoint": "M|text|The URL of your OneFlow HTTP Endpoint API (for example, 'http://example.com:2474')||",
-    "oneapp_jenkins_opennebula_username": "M|text|The OpenNebula username used by Jenkins to deploy each component||",
-    "oneapp_jenkins_opennebula_password": "M|password|The password for the OpenNebula user used by Jenkins to deploy each component",
-    "oneapp_jenkins_opennebula_insecure": "O|boolean|Allow insecure connexions into the OpenNebula XML-RPC Endpoint API (skip TLS verification)||YES"
+    custom_attrs = {
+        "oneapp_minio_hostname": "O|text|MinIO hostname for TLS certificate||localhost,minio-*.example.net",
+        "oneapp_minio_opts": "O|text|Additional commandline options for MinIO server||--console-address :9001",
+        "oneapp_minio_root_user": "O|text|MinIO root user for MinIO server. At least 3 characters||myminioadmin",
+        "oneapp_minio_root_password": "M|password|MinIO root user password for MinIO server. At least 8 characters",
+        "oneapp_minio_tls_cert": "O|text64|MinIO TLS certificate (.crt)||",
+        "oneapp_minio_tls_key": "O|text64|MinIO TLS key (.key)||",
+        "oneapp_jenkins_username": "O|text|The username for the Jenkins admin user||admin",
+        "oneapp_jenkins_password": "M|password|The password for the Jenkins admin user",
+        "oneapp_jenkins_sites_token": "M|password|Passphrase to encrypt and decrypt the 6G-Sandbox-Sites repository files for your site using Ansible Vault",
+        "oneapp_jenkins_opennebula_endpoint": "M|text|The URL of your OpenNebula XML-RPC Endpoint API (for example, 'http://example.com:2633/RPC2')||",
+        "oneapp_jenkins_opennebula_flow_endpoint": "M|text|The URL of your OneFlow HTTP Endpoint API (for example, 'http://example.com:2474')||",
+        "oneapp_jenkins_opennebula_username": "M|text|The OpenNebula username used by Jenkins to deploy each component||",
+        "oneapp_jenkins_opennebula_password": "M|password|The password for the OpenNebula user used by Jenkins to deploy each component",
+        "oneapp_jenkins_opennebula_insecure": "O|boolean|Allow insecure connexions into the OpenNebula XML-RPC Endpoint API (skip TLS verification)||YES",
+        "oneapp_tnlcm_admin_user": "O|text|Name of the TNLCM admin user. Default: tnlcm||tnlcm",
+        "oneapp_tnlcm_admin_password": "O|password|Password of the TNLCM admin user. Default: tnlcm||tnlcm"
         }
-    }
-
-    custom_attrs = attrs["custom_attrs"]
 
     responses = {}
 
@@ -690,8 +677,8 @@ def create_jenkins_user():
         msg("error", "Could not run woami command for user checking")
         sys.exit(255)
 
-def extract_tnlcm_id(toolkit_service_id):
-    command = "oneflow show " + str(toolkit_service_id) + " -j"
+def extract_tnlcm_id(svc_ID):
+    command = "oneflow show " + str(svc_ID) + " -j"
     res = run_command(command)
     if res["rc"] != 0:
         msg("error", "Could not run '" + command + "'. Error:")
