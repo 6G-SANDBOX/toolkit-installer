@@ -74,7 +74,7 @@ def main():
     print()
     msg("info", "[6GSANDBOX CORE SERVICE INSTANTIATION]")
     print()
-    instantiate_sandbox_service(toolkit_service_id)
+    svc_ID = instantiate_sandbox_service(toolkit_service_id)
     #create_jenkins_user()
 
     # PHASE 3
@@ -112,7 +112,7 @@ def main():
     print()
     msg("info", "[TNLCM RUN TRIAL NETWORK]")
     print()
-    tnlcm_id = extract_tnlcm_id(toolkit_service_id)
+    tnlcm_id = extract_tnlcm_id(svc_ID)
     tnlcm_ip = extract_tnclm_ip(tnlcm_id)
     tnlcm_port = 5000
     tnlcm_url = f"http://{tnlcm_ip}:{tnlcm_port}"
