@@ -1,32 +1,16 @@
 # -*- coding: utf-8 -*-
-from functions import *
+from src.functions import *
 from time import sleep
 
-BANNER = """
-
- ██████╗  ██████╗ ███████╗ █████╗ ███╗   ██╗██████╗ ██████╗  ██████╗ ██╗  ██╗
-██╔════╝ ██╔════╝ ██╔════╝██╔══██╗████╗  ██║██╔══██╗██╔══██╗██╔═══██╗╚██╗██╔╝
-███████╗ ██║  ███╗███████╗███████║██╔██╗ ██║██║  ██║██████╔╝██║   ██║ ╚███╔╝
-██╔═══██╗██║   ██║╚════██║██╔══██║██║╚██╗██║██║  ██║██╔══██╗██║   ██║ ██╔██╗
-╚██████╔╝╚██████╔╝███████║██║  ██║██║ ╚████║██████╔╝██████╔╝╚██████╔╝██╔╝ ██╗
- ╚═════╝  ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝
-          ████████╗ ██████╗  ██████╗ ██╗     ██╗  ██╗██╗████████╗                      
-          ╚══██╔══╝██╔═══██╗██╔═══██╗██║     ██║ ██╔╝██║╚══██╔══╝                      
-             ██║   ██║   ██║██║   ██║██║     █████╔╝ ██║   ██║                         
-             ██║   ██║   ██║██║   ██║██║     ██╔═██╗ ██║   ██║                         
-             ██║   ╚██████╔╝╚██████╔╝███████╗██║  ██╗██║   ██║                         
-             ╚═╝    ╚═════╝  ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝   ╚═╝                         
-
-"""
 '''
- force_fast_market_monitoring => Defines whether maket monitoring should be forced. If True, oned will be restarted. If false, market monitoring will take by default 600s.
- Please, set to false if the script is being used in critical environments where restarting oned could represent a risk.
+force_fast_market_monitoring => Defines whether maket monitoring should be forced. If True, oned will be restarted. If false, market monitoring will take by default 600s.
+Please, set to false if the script is being used in critical environments where restarting oned could represent a risk.
 '''
 force_fast_market_monitoring = True
 
-
-
 def main():
+    generate_banner()
+    
     check_user()
     check_one_health()
 
