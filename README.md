@@ -6,9 +6,9 @@ Python3 script that configures an OpenNebula cluster as a 6G-SANDBOX site.
 <summary>Table of Contents</summary>
 
 - [6G-SANDBOX TOOLKIT INSTALLER](#6g-sandbox-toolkit-installer)
-  - [Pre-requirements](#pre-requirements)
-  - [Installation](#installation)
-  - [Phases](#phases)
+  - [:white\_check\_mark: Requirements](#white_check_mark-requirements)
+  - [:rocket: Getting Stared](#rocket-getting-stared)
+  - [:cyclone: Phases](#cyclone-phases)
     - [Phase 1](#phase-1)
     - [Phase 2](#phase-2)
     - [Phase 3](#phase-3)
@@ -17,12 +17,12 @@ Python3 script that configures an OpenNebula cluster as a 6G-SANDBOX site.
 
 </details>
 
-## Pre-requirements
+## :white_check_mark: Requirements
 
 - An OpenNebula cluster with VMs internet access.
 - Python3 and pip3 packages installed in the OpenNebula Frontend VMs.
 
-## Installation
+## :rocket: Getting Stared
 
 Install Poetry
 
@@ -33,14 +33,20 @@ curl -sSL https://install.python-poetry.org | POETRY_HOME=${POETRY_FOLDER} pytho
 ${POETRY_BIN} config virtualenvs.in-project true
 ```
 
-Install libraries. The value of `<toolkit-install-directory>` has to be the path where toolkit-installer repository was cloned
+Access to the path in which the toolkit-installer repository was cloned 
+
 ```bash
-${POETRY_BIN} install --no-root --directory <toolkit-install-directory>
+cd <toolkit-installer-directory>
 ```
 
-Activate environment. The value of `<toolkit-install-directory>` has to be the path where libraries were installed
+Install libraries
+
+${POETRY_BIN} install --no-root
+```
+
+Activate environment
 ```bash
-${POETRY_BIN} shell --directory <toolkit-install-directory>
+${POETRY_BIN} shell
 ```
 
 > [!IMPORTANT]
@@ -50,7 +56,7 @@ ${POETRY_BIN} shell --directory <toolkit-install-directory>
 python3 toolkit_installer.py
 ```
 
-## Phases
+## :cyclone: Phases
 
 ### Phase 1
 
