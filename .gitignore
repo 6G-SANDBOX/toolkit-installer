@@ -163,8 +163,3 @@ cython_debug/
 
 # Vscode
 .vscode/
-
-# TNLCM
-core/temp/files/
-core/logs/executions/
-core/trial_networks/
