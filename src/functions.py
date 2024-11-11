@@ -8,6 +8,7 @@ import questionary
 import yaml
 import shutil
 import base64
+import pyfiglet
 
 from git import Repo
 from datetime import datetime
@@ -57,6 +58,10 @@ def run_command(command):
 
     # Return the final stdout and exit code
     return {"rc": exit_code, "stdout": final_output}
+
+def generate_banner():
+    ascii_banner = pyfiglet.figlet_format("6G-SANDBOX TOOLKIT")
+    print(ascii_banner)
 
 def check_user():
     print()
