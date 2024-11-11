@@ -1,4 +1,0 @@
-questionary
-PyGithub
-PyYAML
-requests

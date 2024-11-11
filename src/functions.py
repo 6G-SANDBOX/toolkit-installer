@@ -6,10 +6,13 @@ import zipfile
 import os
 import questionary
 import yaml
+import shutil
+import base64
+import pyfiglet
+
+from git import Repo
 from datetime import datetime
 from time import sleep
-from github import Github
-
 
 def msg(msg_type, *args):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -27,7 +30,6 @@ def msg(msg_type, *args):
         print(f"[{timestamp}] => UNKNOWN [?!]:", *args)
         return 2
     return 0
-
 
 def run_command(command):
     """
@@ -57,6 +59,9 @@ def run_command(command):
     # Return the final stdout and exit code
     return {"rc": exit_code, "stdout": final_output}
 
+def generate_banner():
+    ascii_banner = pyfiglet.figlet_format("6G-SANDBOX TOOLKIT")
+    print(ascii_banner)
 
 def check_user():
     print()
@@ -70,7 +75,6 @@ def check_user():
         msg("error", "Current user: " + res["stdout"] + "   Please, run this script as root. The script requires root acces in order to modify /etc/one/oned.conf configuration file.")
         sys.exit(255)
     return 0
-
 
 def check_one_health():
     print()
@@ -113,9 +117,8 @@ def check_one_health():
     msg("info", "OpenNebula is healthy")
     return 0
 
-
 def get_onegate_endpoint():
-    command = "cat /etc/one/oned.conf | grep 'ONEGATE_ENDPOINT ='"
+    command = "cat /etc/one/oned.conf | grep 'ONEGATE_ENDPOINT ='" # Mejor entrar en el fichero y aplicar una expresión regular
     res = run_command(command)
     if res["rc"] != 0:
         msg("error", "Unable to run '" + command + "'")
@@ -147,8 +150,6 @@ MARKET_MAD = one
     run_command("rm market_template")
     return int(market_id)
 
-
-
 def find_sandbox_marketplace():
     res = run_command("onemarket list -j")
     markets_dict = json.loads(res["stdout"])
@@ -158,8 +159,6 @@ def find_sandbox_marketplace():
                 msg("info", "6GSANDBOX marketplace already present with ID " + marketplace["ID"])
                 return int(marketplace["ID"])
     return False
-
-
 
 def set_market_monitoring_interval(new_value):
     old_value = None
@@ -287,10 +286,15 @@ def appliance_search(name, appliance_type):
             sys.exit(255)
         apps_dict = json.loads(res["stdout"])
         apps_list = apps_dict["VMTEMPLATE_POOL"]["VMTEMPLATE"]
-        for app in apps_list:
-            if app["NAME"] == name:
-                return app
-        return False
+        if isinstance(apps_list, dict):
+            if apps_list["NAME"] == name:
+                return apps_list
+            return False
+        else:
+            for app in apps_list:
+                if app["NAME"] == name:
+                    return app
+            return False
     elif appliance_type == "SERVICE":
         res = run_command("oneflow-template list -j")
         if res["rc"] != 0:
@@ -350,7 +354,6 @@ def parse_output(output):
 
     return result
 
-
 def wait_for_image(ID):
     msg("info", "Waiting for image ID:" + str(ID) + " to be ready... This process can take several minutes.")
     while True:
@@ -365,7 +368,6 @@ def wait_for_image(ID):
             break
         sleep(1)
     msg("info", "Image with ID " + str(ID) + " successfully downloaded.")
-
 
 def wait_for_service_running(ID):
     msg("info", "Waiting for service ID:" + str(ID) + " to be in running state... This process can take several minutes.")
@@ -383,9 +385,6 @@ def wait_for_service_running(ID):
             break
         sleep(1)
     msg("info", "Service with ID " + str(ID) + " is running.")
-
-
-
 
 def download_repo(repo_name):
     # Construct the URL to download the repository as a ZIP file
@@ -413,6 +412,12 @@ def remove_repo():
         msg("error", res["stderr"])
     return 0
 
+def remove_file(file_path):
+    res = run_command(f"rm {file_path}")
+    if res["rc"] != 0:
+        msg("error", "Could not remove file, skipping...")
+        msg("error", res["stderr"])
+    return 0
 
 def extract_appliance_values(repo_name):
     # Download and extract the repository
@@ -436,7 +441,6 @@ def extract_appliance_values(repo_name):
                         app_data.append(appliance_value + "/download/0")
     remove_repo()
     return app_data
-
 
 # Matches appliance URLs from the 6GLibrary repo with Sandbox Marketplace APPs
 def match_appliance_urls(urls):
@@ -598,30 +602,27 @@ def instantiate_sandbox_service(ID):
         sys.exit(255)
     msg("info", "Jenkins SSH key added successfully to user " + jenkins_user)
 
-
-
+    return svc_ID
 
 def get_sandbox_svc_parameters():
-    attrs = {
-    "custom_attrs" : {
-    "oneapp_minio_hostname": "O|text|MinIO hostname for TLS certificate||localhost,minio-*.example.net",
-    "oneapp_minio_opts": "O|text|Additional commandline options for MinIO server||--console-address :9001",
-    "oneapp_minio_root_user": "O|text|MinIO root user for MinIO server. At least 3 characters||myminioadmin",
-    "oneapp_minio_root_password": "M|password|MinIO root user password for MinIO server. At least 8 characters",
-    "oneapp_minio_tls_cert": "O|text64|MinIO TLS certificate (.crt)||",
-    "oneapp_minio_tls_key": "O|text64|MinIO TLS key (.key)||",
-    "oneapp_jenkins_username": "O|text|The username for the Jenkins admin user||admin",
-    "oneapp_jenkins_password": "M|password|The password for the Jenkins admin user",
-    "oneapp_jenkins_ansible_vault": "M|password|Passphrase to encrypt and decrypt the 6G-Sandbox-Sites repository files for your site using Ansible Vault",
-    "oneapp_jenkins_opennebula_endpoint": "M|text|The URL of your OpenNebula XML-RPC Endpoint API (for example, 'http://example.com:2633/RPC2')||",
-    "oneapp_jenkins_opennebula_flow_endpoint": "M|text|The URL of your OneFlow HTTP Endpoint API (for example, 'http://example.com:2474')||",
-    "oneapp_jenkins_opennebula_username": "M|text|The OpenNebula username used by Jenkins to deploy each component||",
-    "oneapp_jenkins_opennebula_password": "M|password|The password for the OpenNebula user used by Jenkins to deploy each component",
-    "oneapp_jenkins_opennebula_insecure": "O|boolean|Allow insecure connexions into the OpenNebula XML-RPC Endpoint API (skip TLS verification)||YES"
+    custom_attrs = {
+        "oneapp_minio_hostname": "O|text|MinIO hostname for TLS certificate||localhost,minio-*.example.net",
+        "oneapp_minio_opts": "O|text|Additional commandline options for MinIO server||--console-address :9001",
+        "oneapp_minio_root_user": "O|text|MinIO root user for MinIO server. At least 3 characters||myminioadmin",
+        "oneapp_minio_root_password": "M|password|MinIO root user password for MinIO server. At least 8 characters",
+        "oneapp_minio_tls_cert": "O|text64|MinIO TLS certificate (.crt)||",
+        "oneapp_minio_tls_key": "O|text64|MinIO TLS key (.key)||",
+        "oneapp_jenkins_username": "O|text|The username for the Jenkins admin user||admin",
+        "oneapp_jenkins_password": "M|password|The password for the Jenkins admin user",
+        "oneapp_jenkins_sites_token": "M|password|Passphrase to encrypt and decrypt the 6G-Sandbox-Sites repository files for your site using Ansible Vault",
+        "oneapp_jenkins_opennebula_endpoint": "M|text|The URL of your OpenNebula XML-RPC Endpoint API (for example, 'http://example.com:2633/RPC2')||",
+        "oneapp_jenkins_opennebula_flow_endpoint": "M|text|The URL of your OneFlow HTTP Endpoint API (for example, 'http://example.com:2474')||",
+        "oneapp_jenkins_opennebula_username": "M|text|The OpenNebula username used by Jenkins to deploy each component||",
+        "oneapp_jenkins_opennebula_password": "M|password|The password for the OpenNebula user used by Jenkins to deploy each component",
+        "oneapp_jenkins_opennebula_insecure": "O|boolean|Allow insecure connexions into the OpenNebula XML-RPC Endpoint API (skip TLS verification)||YES",
+        "oneapp_tnlcm_admin_user": "O|text|Name of the TNLCM admin user. Default: tnlcm||tnlcm",
+        "oneapp_tnlcm_admin_password": "O|password|Password of the TNLCM admin user. Default: tnlcm||tnlcm"
         }
-    }
-
-    custom_attrs = attrs["custom_attrs"]
 
     responses = {}
 
@@ -675,11 +676,171 @@ def get_sandbox_svc_parameters():
     }
     return output_dict
 
-
-
 def create_jenkins_user():
-    command = ""
     res = run_command("whoami")
     if res["rc"] != 0:
         msg("error", "Could not run woami command for user checking")
+        sys.exit(255)
+
+def extract_tnlcm_id(svc_ID):
+    command = "oneflow show " + str(svc_ID) + " -j"
+    res = run_command(command)
+    if res["rc"] != 0:
+        msg("error", "Could not run '" + command + "'. Error:")
+        msg("error", res["stderr"])
+        sys.exit(255)
+    svc_dict = json.loads(res["stdout"])
+    svc_roles = svc_dict["DOCUMENT"]["TEMPLATE"]["BODY"]["roles"]
+    for role in svc_roles:
+        if role["name"] == "tnlcm":
+            for node in role["nodes"]:
+                tnlcm_id = node["vm_info"]["VM"]["ID"]
+    
+    if not tnlcm_id:
+        msg("error", "TNLCM VM not found, unable to parse VM ID.")
+        sys.exit(255)
+    
+    return tnlcm_id
+    
+def extract_tnclm_ip(tnlcm_id):
+    command = "onevm show " + str(tnlcm_id) + " -j"
+    res = run_command(command)
+    if res["rc"] != 0:
+        msg("error", "Could not run '" + command + "'. Error:")
+        msg("error", res["stderr"])
+        sys.exit(255)
+    vm_dict = json.loads(res["stdout"])
+    vm_ip = vm_dict["VM"]["TEMPLATE"]["NIC"][0]["IP"]
+
+    if not vm_ip:
+        msg("error", "TNLCM IP not found.")
+        sys.exit(255)
+    
+    return vm_ip
+
+def extract_tnlcm_admin_user(tnlcm_id):
+    command = "onevm show " + str(tnlcm_id) + " -j"
+    res = run_command(command)
+    vm_dict = json.loads(res["stdout"])
+    vm_tnlcm_admin_username = vm_dict["VM"]["USER_TEMPLATE"]["ONEAPP_TNLCM_ADMIN_USER"]
+    vm_tnlcm_admin_password = vm_dict["VM"]["USER_TEMPLATE"]["ONEAPP_TNLCM_ADMIN_PASSWORD"]
+
+    if not vm_tnlcm_admin_username or not vm_tnlcm_admin_password:
+        msg("error", "TNLCM admin user not found.")
+        sys.exit(255)
+    
+    return vm_tnlcm_admin_username, vm_tnlcm_admin_password
+
+def login_tnlcm(tnlcm_url, vm_tnlcm_admin_username, vm_tnlcm_admin_password):
+    credentials = f"{vm_tnlcm_admin_username}:{vm_tnlcm_admin_password}"
+    encoded_credentials = base64.b64encode(credentials.encode('utf-8')).decode('utf-8')
+    headers = {
+        "accept": "application/json",
+        "authorization": f"Basic {encoded_credentials}"
+    }
+    res = requests.post(f"{tnlcm_url}/tnlcm/user/login", headers=headers)
+    if res.status_code != 201:
+        msg("error", res["message"])
+        sys.exit(255)
+    data = res.json()
+    return data["access_token"]
+
+def extract_trial_network(tnlcm_repo):
+    download_repo(tnlcm_repo)
+    tnlcm_path = f"repo/{tnlcm_repo.split('/')[1]}-main"
+
+    file_path = os.path.join(tnlcm_path, "tn_template_lib", "07_descriptor.yaml")
+
+    if not os.path.exists(file_path):
+        msg("error", f"File not found in {file_path} path")
+        sys.exit(255)
+    trial_network_path = "07_descriptor.yaml"
+    shutil.copy(file_path, trial_network_path)
+    remove_repo()
+    return trial_network_path
+
+def extract_sites(sites_remote_directory):
+    sites_local_directory = os.path.join(os.getcwd(), "6G-Sandbox-Sites")
+    os.makedirs(sites_local_directory)
+    # Clone repository
+    repo = Repo.clone_from(sites_remote_directory, sites_local_directory)
+    return [branch.name.replace("origin/", "") for branch in repo.remotes.origin.refs if branch.name.replace("origin/", "") != "HEAD"]
+
+def select_site(sites):
+    # 1) Ask to enter the name of the site.
+    # 1.1) If it is a site that is not in the sites repository ...
+    # 1.2) If it is a site that is in the repository sites continuous
+    prompt_text = "Please choose a site:"
+    default_value = sites[0]
+    choices = sites + ["new site"]
+    chosen_site = questionary.select(
+        prompt_text,
+        choices=choices,
+        default=default_value
+    ).ask()
+
+    if chosen_site == "new site":
+        new_site = questionary.text("Enter the name of the new site:").ask()
+        # TODO: maybe need git branch, create new folder, create core.yaml, fill file and git push when finish new site configuration
+        return new_site
+    else: 
+        return chosen_site
+
+def create_trial_network(tnlcm_url, site, access_token, trial_network):
+    url = f"{tnlcm_url}/tnlcm/trial-network"
+    params = {
+        "tn_id": "test",
+        "deployment_site": site,
+        "github_6g_library_reference_type": "branch",
+        "github_6g_library_reference_value": "main",
+        "github_6g_sandbox_sites_reference_type": "branch",
+        "github_6g_sandbox_sites_reference_value": site
+    }
+    headers = {
+        "accept": "application/json",
+        "Authorization": f"Bearer {access_token}"
+    }
+    try:
+        with open(trial_network, "rb") as file:
+            files = {
+                "descriptor": file
+            }
+            res = requests.post(url, headers=headers, params=params, files=files)
+        if res.status_code != 201:
+            msg("error", res["message"])
+            sys.exit(255)
+        data = res.json()
+        return data["tn_id"]
+    except FileNotFoundError:
+        msg("error", f"File {trial_network} not found")
+        sys.exit(255)
+
+def deploy_trial_network(tnlcm_url, tn_id, access_token):
+    url = f"{tnlcm_url}/tnlcm/trial-network"
+    params = {
+        "jenkins_deploy_pipeline": "TN_DEPLOY",
+        "tn_id": tn_id
+    }
+    headers = {
+        "accept": "application/json",
+        "Authorization": f"Bearer {access_token}"
+    }
+    res = requests.put(url, headers=headers, params=params)
+    if res.status_code != 200:
+        msg("error", res["message"])
+        sys.exit(255)
+
+def delete_trial_network(tnlcm_url, tn_id, access_token):
+    url = f"{tnlcm_url}/tnlcm/trial-network"
+    params = {
+        "jenkins_destroy_pipeline": "TN_DESTROY",
+        "tn_id": tn_id
+    }
+    headers = {
+        "accept": "application/json",
+        "Authorization": f"Bearer {access_token}"
+    }
+    res = requests.delete(url, headers=headers, params=params)
+    if res.status_code != 200:
+        msg("error", res["message"])
         sys.exit(255)

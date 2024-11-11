@@ -1,36 +1,16 @@
 # -*- coding: utf-8 -*-
-import questionary
-import yaml
-import socket
-import sys
-from functions import *
+from src.functions import *
 from time import sleep
 
-BANNER = """
-
- ██████╗  ██████╗ ███████╗ █████╗ ███╗   ██╗██████╗ ██████╗  ██████╗ ██╗  ██╗
-██╔════╝ ██╔════╝ ██╔════╝██╔══██╗████╗  ██║██╔══██╗██╔══██╗██╔═══██╗╚██╗██╔╝
-███████╗ ██║  ███╗███████╗███████║██╔██╗ ██║██║  ██║██████╔╝██║   ██║ ╚███╔╝
-██╔═══██╗██║   ██║╚════██║██╔══██║██║╚██╗██║██║  ██║██╔══██╗██║   ██║ ██╔██╗
-╚██████╔╝╚██████╔╝███████║██║  ██║██║ ╚████║██████╔╝██████╔╝╚██████╔╝██╔╝ ██╗
- ╚═════╝  ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝
-          ████████╗ ██████╗  ██████╗ ██╗     ██╗  ██╗██╗████████╗                      
-          ╚══██╔══╝██╔═══██╗██╔═══██╗██║     ██║ ██╔╝██║╚══██╔══╝                      
-             ██║   ██║   ██║██║   ██║██║     █████╔╝ ██║   ██║                         
-             ██║   ██║   ██║██║   ██║██║     ██╔═██╗ ██║   ██║                         
-             ██║   ╚██████╔╝╚██████╔╝███████╗██║  ██╗██║   ██║                         
-             ╚═╝    ╚═════╝  ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝   ╚═╝                         
-
-"""
 '''
- force_fast_market_monitoring => Defines whether maket monitoring should be forced. If True, oned will be restarted. If false, market monitoring will take by default 600s.
- Please, set to false if the script is being used in critical environments where restarting oned could represent a risk.
+force_fast_market_monitoring => Defines whether maket monitoring should be forced. If True, oned will be restarted. If false, market monitoring will take by default 600s.
+Please, set to false if the script is being used in critical environments where restarting oned could represent a risk.
 '''
 force_fast_market_monitoring = True
 
-
-
 def main():
+    generate_banner()
+    
     check_user()
     check_one_health()
 
@@ -78,7 +58,7 @@ def main():
     print()
     msg("info", "[6GSANDBOX CORE SERVICE INSTANTIATION]")
     print()
-    instantiate_sandbox_service(toolkit_service_id)
+    svc_ID = instantiate_sandbox_service(toolkit_service_id)
     #create_jenkins_user()
 
     # PHASE 3
@@ -106,7 +86,28 @@ def main():
         for app in selected_apps:
             download_appliance(app["NAME"], app["ID"], selected_datastore["ID"])
 
+    # TODO: PHASE 4
+    # Check whether it is a new site or an existing one
+    sites = extract_sites("https://github.com/6G-SANDBOX/6G-Sandbox-Sites.git")
+    site = select_site(sites)
+
+    # PHASE 5
+    # Run a trial network test
+    print()
+    msg("info", "[TNLCM RUN TRIAL NETWORK]")
+    print()
+    tnlcm_id = extract_tnlcm_id(svc_ID)
+    tnlcm_ip = extract_tnclm_ip(tnlcm_id)
+    tnlcm_port = 5000
+    tnlcm_url = f"http://{tnlcm_ip}:{tnlcm_port}"
+    vm_tnlcm_admin_username, vm_tnlcm_admin_password = extract_tnlcm_admin_user(tnlcm_id)
+    access_token = login_tnlcm(tnlcm_url, vm_tnlcm_admin_username, vm_tnlcm_admin_password)
+    # Extract the trial network that is used for testing
+    trial_network_path = extract_trial_network("6G-SANDBOX/TNLCM")
+    tn_id = create_trial_network(tnlcm_url, site, access_token, trial_network_path)
+    remove_file(trial_network_path)
+    deploy_trial_network(tnlcm_url, tn_id, access_token)
+    delete_trial_network(tnlcm_url, tn_id, access_token)
 
 if __name__ == "__main__":
     main()
-
