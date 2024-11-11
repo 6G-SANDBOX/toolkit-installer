@@ -749,12 +749,12 @@ def extract_trial_network(tnlcm_repo):
     download_repo(tnlcm_repo)
     tnlcm_path = f"repo/{tnlcm_repo.split('/')[1]}-main"
 
-    file_path = os.path.join(tnlcm_path, "tn_template_lib", "08_descriptor.yaml")
+    file_path = os.path.join(tnlcm_path, "tn_template_lib", "07_descriptor.yaml")
 
     if not os.path.exists(file_path):
         msg("error", f"File not found in {file_path} path")
         sys.exit(255)
-    trial_network_path = "08_descriptor.yaml"
+    trial_network_path = "07_descriptor.yaml"
     shutil.copy(file_path, trial_network_path)
     remove_repo()
     return trial_network_path
