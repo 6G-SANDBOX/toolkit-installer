@@ -497,23 +497,24 @@ def instantiate_sandbox_service(ID):
 
     # Checking if the Sandbox service exists
     svc_exists = False
+    svc_custom_params = None
     for svc in svc_list:
         if svc["ID"] == str(ID):
             svc_name = svc["NAME"]
+            svc_custom_params = svc["TEMPLATE"]["BODY"]["custom_attrs"]
             svc_exists = True
             break
 
-    if svc_exists == False:
+    if not svc_exists:
         msg("error", "Unable not download service with ID " + str(ID) + ". Service not found.")
         sys.exit(255)
     msg("info", "Instantiating service " + svc_name + "...")
 
     msg("info", "PLEASE, INTRODUCE THE REQUIRED PARAMETERS FOR THE 6G-SANDBOX CORE APPLIANCES")
-    params = get_sandbox_svc_parameters()
+    params = get_sandbox_svc_parameters(svc_custom_params)
     # Write parameters to a JSON service template file
     with open('svc_params.json', 'w') as file:
         json.dump(params, file, indent=2)
-
 
     # Check if jenkins user exists
     jenkins_user = params["custom_attrs_values"]["oneapp_jenkins_opennebula_username"]
@@ -604,31 +605,13 @@ def instantiate_sandbox_service(ID):
 
     return svc_ID
 
-def get_sandbox_svc_parameters():
-    custom_attrs = {
-        "oneapp_minio_hostname": "O|text|MinIO hostname for TLS certificate||localhost,minio-*.example.net",
-        "oneapp_minio_opts": "O|text|Additional commandline options for MinIO server||--console-address :9001",
-        "oneapp_minio_root_user": "O|text|MinIO root user for MinIO server. At least 3 characters||myminioadmin",
-        "oneapp_minio_root_password": "M|password|MinIO root user password for MinIO server. At least 8 characters",
-        "oneapp_minio_tls_cert": "O|text64|MinIO TLS certificate (.crt)||",
-        "oneapp_minio_tls_key": "O|text64|MinIO TLS key (.key)||",
-        "oneapp_jenkins_username": "O|text|The username for the Jenkins admin user||admin",
-        "oneapp_jenkins_password": "M|password|The password for the Jenkins admin user",
-        "oneapp_jenkins_sites_token": "M|password|Passphrase to encrypt and decrypt the 6G-Sandbox-Sites repository files for your site using Ansible Vault",
-        "oneapp_jenkins_opennebula_endpoint": "M|text|The URL of your OpenNebula XML-RPC Endpoint API (for example, 'http://example.com:2633/RPC2')||",
-        "oneapp_jenkins_opennebula_flow_endpoint": "M|text|The URL of your OneFlow HTTP Endpoint API (for example, 'http://example.com:2474')||",
-        "oneapp_jenkins_opennebula_username": "M|text|The OpenNebula username used by Jenkins to deploy each component||",
-        "oneapp_jenkins_opennebula_password": "M|password|The password for the OpenNebula user used by Jenkins to deploy each component",
-        "oneapp_jenkins_opennebula_insecure": "O|boolean|Allow insecure connexions into the OpenNebula XML-RPC Endpoint API (skip TLS verification)||YES",
-        "oneapp_tnlcm_admin_user": "O|text|Name of the TNLCM admin user. Default: tnlcm||tnlcm",
-        "oneapp_tnlcm_admin_password": "O|password|Password of the TNLCM admin user. Default: tnlcm||tnlcm"
-        }
+def get_sandbox_svc_parameters(custom_attrs):
 
     responses = {}
-
+    
     for key, value in custom_attrs.items():
         parts = value.split('|')
-        required = parts[0] == 'M'
+        _ = parts[0] == 'M'
         field_type = parts[1]
         description = parts[2]
 
