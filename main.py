@@ -10,7 +10,7 @@ force_fast_market_monitoring = True
 def main():
     
     # PHASE 0
-    generate_banner()  
+    generate_banner(message="6G-SANDBOX TOOLKIT")  
     check_user()
     check_one_health()
 

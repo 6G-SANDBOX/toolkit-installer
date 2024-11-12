@@ -62,7 +62,7 @@ def check_one_health() -> None:
     # CHANGE: pending to add futher health checks
     msg("info", "OpenNebula is healthy")
 
-def get_onegate_endpoint():
+def get_onegate_endpoint() -> str:
     command = "cat /etc/one/oned.conf | grep 'ONEGATE_ENDPOINT ='" # Mejor entrar en el fichero y aplicar una expresión regular
     res = run_command(command)
     if res["rc"] != 0:

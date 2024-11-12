@@ -54,7 +54,7 @@ ${POETRY_BIN} shell
 > The script execution must be performed in the OpenNebula Frontend using **root** user. This is due to the necessity of using the OpenNebula CLI tools and modifying core OpenNebula configurations. In future versions the possibility to use this tool remotely could be added.
 
 ```bash
-python3 toolkit_installer.py
+python3 main.py
 ```
 
 ## :cyclone: Phases
