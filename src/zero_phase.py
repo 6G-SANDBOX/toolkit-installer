@@ -1,9 +1,10 @@
 import pyfiglet
 
+from src.utils.dotenv import load_dotenv_file
 from src.utils.cli import run_command
 from src.utils.logs import msg
 
-def generate_banner(message: str) -> None:
+def _generate_banner(message: str) -> None:
     """
     Generate an ASCII banner with a message
     
@@ -12,7 +13,7 @@ def generate_banner(message: str) -> None:
     ascii_banner = pyfiglet.figlet_format(message)
     print(ascii_banner)
     
-def check_user() -> None:
+def _check_user() -> None:
     """
     Check if the script is being run as root
     """
@@ -24,7 +25,7 @@ def check_user() -> None:
         stdout = res["stdout"]
         msg("error", f"Current user: {stdout}. Please, run this script as root. The script requires root acces in order to modify /etc/one/oned.conf configuration file.")
 
-def check_one_health() -> None:
+def _check_one_health() -> None:
     """
     Check the health of the OpenNebula installation
     """
@@ -51,7 +52,14 @@ def check_one_health() -> None:
         msg("error", f"OpenNebula CLI healthcheck failed. Command: '{command}'")
 
     # Testing onegate health with curl
-    onegate_endpoint = get_onegate_endpoint()
+    command = "cat /etc/one/oned.conf | grep 'ONEGATE_ENDPOINT ='" # Mejor entrar en el fichero y aplicar una expresión regular
+    res = run_command(command)
+    if res["rc"] != 0:
+        msg("error", f"Unable to run '{command}' command")
+    if not res["stdout"]:
+        msg("error", "ONEGATE_ENDPOINT not found in the OpenNebula configuration")
+    onegate_endpoint = res["stdout"].split('"')[1]
+    
     command = f"curl {onegate_endpoint}"
     res = run_command(command)
     if res["rc"] != 0:
@@ -60,11 +68,11 @@ def check_one_health() -> None:
     # CHANGE: pending to add futher health checks
     msg("info", "OpenNebula is healthy")
 
-def get_onegate_endpoint() -> str:
-    command = "cat /etc/one/oned.conf | grep 'ONEGATE_ENDPOINT ='" # Mejor entrar en el fichero y aplicar una expresión regular
-    res = run_command(command)
-    if res["rc"] != 0:
-        msg("error", f"Unable to run '{command}' command")
-    if not res["stdout"]:
-        msg("error", "ONEGATE_ENDPOINT not found in the OpenNebula configuration")
-    return res["stdout"].split('"')[1]
+def zero_phase() -> None:
+    """
+    Zero phase of the script
+    """
+    load_dotenv_file()
+    _generate_banner(message="6G-SANDBOX TOOLKIT")  
+    _check_user()
+    _check_one_health()
