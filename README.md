@@ -9,6 +9,7 @@ Python3 script that configures an OpenNebula cluster as a 6G-SANDBOX site.
   - [:white\_check\_mark: Requirements](#white_check_mark-requirements)
   - [:rocket: Getting Stared](#rocket-getting-stared)
   - [:cyclone: Phases](#cyclone-phases)
+    - [Phase 0](#phase-0)
     - [Phase 1](#phase-1)
     - [Phase 2](#phase-2)
     - [Phase 3](#phase-3)
@@ -58,10 +59,14 @@ python3 toolkit_installer.py
 
 ## :cyclone: Phases
 
+### Phase 0
+
+- Checking if the OpenNebula CLI tools are installed.
+
 ### Phase 1
 
-- Adding the 6GSandbox marketplace to OpenNebula if not present
-- Refreshing the list of available appliances in the marketplace
+- Adding the 6GSandbox marketplace to OpenNebula if not present.
+- Refreshing the list of available appliances in the marketplace.
 
 ### Phase 2
 
@@ -69,14 +74,13 @@ python3 toolkit_installer.py
 
 #### Phase 2.1 <!-- omit in toc -->
 
-  - Instantiation of the 6GSANDBOX-core appliance. The user will be prompted for the required parameters. Pending to add further healthchecks.
+- Instantiation of the 6GSANDBOX-core appliance. The user will be prompted for the required parameters. Pending to add further healthchecks.
 
 ### Phase 3
 
-- Donwloading and scanning the 6G Library repository for appliances
-- Matching the found appliances with the ones present in the 6G-SANDBOX Marketplace
+- Donwloading and scanning the 6G Library repository for appliances.
+- Matching the found appliances with the ones present in the 6G-SANDBOX Marketplace.
 - Console dialog, asking the installer which component appliances  wants to import into the datastore. The appliances shown are the ones matching.
-
 
 ### Phase 4 => Pending
 
