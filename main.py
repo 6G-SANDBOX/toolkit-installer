@@ -1,4 +1,5 @@
-from src.zero_phase import generate_banner, check_user, check_one_health
+from src.zero_phase import zero_phase
+from src.first_phase import first_phase
 from time import sleep
 
 """
@@ -10,19 +11,10 @@ force_fast_market_monitoring = True
 def main():
     
     # PHASE 0
-    generate_banner(message="6G-SANDBOX TOOLKIT")  
-    check_user()
-    check_one_health()
+    zero_phase()
 
-    # # PHASE 1
-    # # Marketplace registering
-    # print()
-    # msg("info", "[6GSANDBOX MARKETPLACE CHECK]")
-    # print()
-    # ID = find_sandbox_marketplace()
-    # if ID == False:
-    #     msg("info", "6GSANDBOX marketplace not present, adding...")
-    #     ID = add_sandbox_marketplace()
+    # PHASE 1
+    # first_phase()
 
     # if marketapps_ready(ID) == False:
     # # Appliance list refresh
