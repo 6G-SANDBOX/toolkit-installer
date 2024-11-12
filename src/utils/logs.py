@@ -10,6 +10,7 @@ def msg(type: str, message: str) -> int:
     :param message: the message to print, ``str``
     """
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print()
     if type == "info":
         print(f"[{timestamp}] [INFO] {message}")
     elif type == "debug":
@@ -22,3 +23,4 @@ def msg(type: str, message: str) -> int:
     else:
         print(f"[{timestamp}] [UNKNOWN] {message}")
         sys.exit(255)
+    print()
