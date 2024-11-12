@@ -23,4 +23,3 @@ def msg(type: str, message: str) -> int:
     else:
         print(f"[{timestamp}] [UNKNOWN] {message}")
         sys.exit(255)
-    print()
