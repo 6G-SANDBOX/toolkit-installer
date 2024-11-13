@@ -1,12 +1,11 @@
 from src.zero_phase import zero_phase
 from src.first_phase import first_phase
-from time import sleep
 
-"""
-force_fast_market_monitoring => Defines whether maket monitoring should be forced. If True, oned will be restarted. If false, market monitoring will take by default 600s.
-Please, set to false if the script is being used in critical environments where restarting oned could represent a risk.
-"""
-force_fast_market_monitoring = True
+# """
+# force_fast_market_monitoring => Defines whether maket monitoring should be forced. If True, oned will be restarted. If false, market monitoring will take by default 600s.
+# Please, set to false if the script is being used in critical environments where restarting oned could represent a risk.
+# """
+# force_fast_market_monitoring = True
 
 # def main():
 
