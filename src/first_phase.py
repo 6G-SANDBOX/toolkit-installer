@@ -1,6 +1,8 @@
+from textwrap import dedent
+
 from src.utils.dotenv import get_env_var
 from src.utils.cli import run_command
-from src.utils.file import loads_json, save_file
+from src.utils.file import loads_json, save_temp_file, save_file
 from src.utils.logs import msg
 
 def _find_marketplace_id(marketplace_name: str, marketplace_endpoint: str) -> int:
@@ -32,13 +34,13 @@ def _add_sandbox_marketplace(marketplace_name: str, marketplace_endpoint: str) -
     :param marketplace_endpoint: the endpoint of the marketplace, ``str``
     :return: the ID of the marketplace, ``int``
     """
-    marketplace_content = f"""
+    marketplace_content = dedent(f"""
         NAME = {marketplace_name}
         DESCRIPTION = "6G-SANDBOX Appliance repository"
         ENDPOINT = {marketplace_endpoint}
         MARKET_MAD = one
-    """
-    save_file(data=marketplace_content, file_path="marketplace_template", mode="w", encoding="utf-8")
+    """)
+    save_temp_file(data=marketplace_content, file_name="marketplace_template", mode="w", encoding="utf-8", extension="txt")
     res = run_command("onemarket create marketplace_content")
     if res["rc"] != 0:
         msg("error", f"The 6G-SANDBOX marketplace could not be registered. Please, review the marketplace_template file")
