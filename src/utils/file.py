@@ -22,7 +22,7 @@ def loads_json(data: str) -> dict:
     """
     return json.loads(data)
 
-TEMP_DIRECTORY = os.path.join("/root", ".toolkit-temp")
+TEMP_DIRECTORY = os.path.join(os.getcwd(), ".temp")
 
 def save_temp_file(data, file_path: str, mode: str, encoding: str) -> str:
     """
