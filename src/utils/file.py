@@ -1,8 +1,6 @@
 import os
 import json
 
-from tempfile import NamedTemporaryFile
-
 def load_file(file_path: str, mode: str, encoding: str) -> str:
     """
     Load the content from a file
@@ -24,34 +22,21 @@ def loads_json(data: str) -> dict:
     """
     return json.loads(data)
 
-def save_file(data: str, file_path: str, mode: str, encoding: str) -> None:
+TEMP_DIRECTORY = os.path.join("/root", ".toolkit-temp")
+
+def save_temp_file(data, file_path: str, mode: str, encoding: str) -> str:
     """
-    Save the given data in a file
+    Save the given data to a temporary file
     
-    :param data: the text to be saved (e.g. txt, markdown), ``str``
-    :param file_path: the file path where the data will be saved, ``str``
-    :param mode: the mode in which the file is opened (e.g. rt, rb), ``str``
+    :param data: the data to be saved to the file, ``str``
+    :param file_path: the path to the file to be saved, ``str``
+    :param mode: the mode in which the file is opened (e.g. wt, wb), ``str``
     :param encoding: the file encoding (e.g. utf-8), ``str``
+    :return: the path to the file where the data was saved, ``str``
     """
+    if not os.path.exists(TEMP_DIRECTORY):
+        os.makedirs(TEMP_DIRECTORY)
+    file_path = os.path.join(TEMP_DIRECTORY, file_path)
     with open(file_path, mode=mode, encoding=encoding) as file:
         file.write(data)
-
-TEMP_DIRECTORY = os.path.join("root", "temp")
-
-def save_temp_file(data, file_name: str, mode: str, encoding: str, extension: str) -> str:
-    """
-    Create a temporary file with the given data
-    
-    :param data: the data to be written in the file, ``str``
-    :param file_name: the name of the file, ``str``
-    :param mode: the mode in which the file is opened (e.g. rt, rb), ``str``
-    :param encoding: the file encoding (e.g. utf-8), ``str``
-    :param extension: the extension of the file, ``str``
-    :return: the path to the temporary file, ``str``
-    """
-    os.makedirs(TEMP_DIRECTORY, exist_ok=True)
-    with NamedTemporaryFile(delete=False, prefix=file_name, suffix=f".{extension}", mode=mode, encoding=encoding) as temp_file:
-        temp_file.write(data)
-        temp_file_path = temp_file.name
-    
-    return temp_file_path
+    return file_path
