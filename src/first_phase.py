@@ -2,7 +2,7 @@ from textwrap import dedent
 
 from src.utils.dotenv import get_env_var
 from src.utils.cli import run_command
-from src.utils.file import loads_json, save_temp_file, save_file
+from src.utils.file import loads_json, save_temp_file
 from src.utils.logs import msg
 
 def _find_marketplace_id(marketplace_name: str, marketplace_endpoint: str) -> int:
