@@ -78,7 +78,7 @@ def _set_marketplace_monitoring_interval(interval: int) -> int:
             old_interval = int(line.split("=")[1].strip())
             lines[i] = f"MARKET_MAD_INTERVAL = {interval}"
             break
-    if old_interval:
+    if old_interval is not None:
         oned_conf = "\n".join(lines)
         save_file(data=oned_conf, file_path="/etc/one/oned.conf", mode="w", encoding="utf-8")
         msg("info", f"Market monitoring interval set to interval {interval}")
