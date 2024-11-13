@@ -8,13 +8,7 @@ Please, set to false if the script is being used in critical environments where 
 """
 force_fast_market_monitoring = True
 
-def main():
-    
-    # PHASE 0
-    zero_phase()
-
-    # PHASE 1
-    # first_phase()
+# def main():
 
     # if marketapps_ready(ID) == False:
     # # Appliance list refresh
@@ -102,4 +96,9 @@ def main():
     # delete_trial_network(tnlcm_url, tn_id, access_token)
 
 if __name__ == "__main__":
-    main()
+    
+    # PHASE 0
+    zero_phase()
+    
+    # PHASE 1
+    first_phase()
