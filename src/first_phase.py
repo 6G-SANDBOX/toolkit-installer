@@ -72,16 +72,15 @@ def _set_marketplace_monitoring_interval(interval: int) -> int:
     """
     oned_conf = load_file(file_path="/etc/one/oned.conf", mode="r", encoding="utf-8")
     lines = oned_conf.splitlines(keepends=True)
-    old_interval = None
     for i, line in enumerate(lines):
         if line.startswith("MONITORING_INTERVAL_MARKET"):
             old_interval = int(line.split("=")[1].strip())
             lines[i] = f"MONITORING_INTERVAL_MARKET = {interval}\n"
             break
     if old_interval is not None:
-        oned_conf = "\n".join(lines)
+        oned_conf = "".join(lines)
         save_file(data=oned_conf, file_path="/etc/one/oned.conf", mode="w", encoding="utf-8")
-        msg("info", f"Market monitoring interval set to interval {interval}")
+        msg("info", f"Marketplace monitoring interval set to interval {interval}")
     return old_interval
 
 def _restart_oned() -> None:
