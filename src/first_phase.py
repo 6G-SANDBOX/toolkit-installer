@@ -111,7 +111,7 @@ def first_phase() -> None:
             sleep(new_interval)
             check_one_health()
             sleep(15)
-            _set_marketplace_monitoring_interval(interval=old_interval)
+            _ = _set_marketplace_monitoring_interval(interval=old_interval)
             _restart_oned()
             sleep(10)
             check_one_health()
