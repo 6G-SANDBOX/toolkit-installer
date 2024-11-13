@@ -1,6 +1,6 @@
 from src.utils.dotenv import get_env_var
 from src.utils.cli import run_command
-from src.utils.file import save_file
+from src.utils.file import loads_json, save_file
 from src.utils.logs import msg
 
 def _find_marketplace_id(marketplace_name: str, marketplace_endpoint: str) -> int:
@@ -15,7 +15,7 @@ def _find_marketplace_id(marketplace_name: str, marketplace_endpoint: str) -> in
     res = run_command("onemarket list -j")
     if res["rc"] != 0:
         msg("error", "Could not list the marketplaces")
-    marketplaces = res["stdout"]
+    marketplaces = loads_json(data=res["stdout"])
     marketplace_id = None
     for marketplace in marketplaces["MARKETPLACE_POOL"]["MARKETPLACE"]:
         if marketplace["NAME"] == marketplace_name and marketplace["TEMPLATE"]["ENDPOINT"] == marketplace_endpoint:
@@ -41,7 +41,6 @@ def _add_sandbox_marketplace(marketplace_name: str, marketplace_endpoint: str) -
     save_file(data=marketplace_content, file_path="marketplace_template", mode="w", encoding="utf-8")
     res = run_command("onemarket create marketplace_content")
     if res["rc"] != 0:
-        stderr = res["stderr"]
         msg("error", f"The 6G-SANDBOX marketplace could not be registered. Please, review the marketplace_template file")
     marketplace_id = res["stdout"].split()[1]
     msg("info", f"6G-SANDBOX marketplace registered successfully with ID {marketplace_id}")
