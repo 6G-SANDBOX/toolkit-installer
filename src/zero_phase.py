@@ -25,17 +25,12 @@ def _check_user() -> None:
         stdout = res["stdout"]
         msg("error", f"Current user: {stdout}. Please, run this script as root. The script requires root acces in order to modify /etc/one/oned.conf configuration file.")
 
-def _check_one_health() -> None:
+def check_one_health() -> None:
     """
     Check the health of the OpenNebula installation
     """
     msg("info", "[OPENNEBULA HEALTHCHECK]")
     # Check that CLI tools are working and can be used => this implies that XMLRPC API is healthy and reachable
-    command = "onevm list"
-    res = run_command(command)
-    if res["rc"] != 0:
-        msg("error",  f"OpenNebula CLI healthcheck failed. Command: '{command}'")
-
     command = "onevm list"
     res = run_command(command)
     if res["rc"] != 0:
@@ -75,4 +70,4 @@ def zero_phase() -> None:
     load_dotenv_file()
     _generate_banner(message="6G-SANDBOX TOOLKIT")  
     _check_user()
-    _check_one_health()
+    check_one_health()
