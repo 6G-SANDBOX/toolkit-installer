@@ -71,7 +71,7 @@ def _set_marketplace_monitoring_interval(interval: int) -> int:
     :return: the old interval value, ``int``
     """
     oned_conf = load_file(file_path="/etc/one/oned.conf", mode="r", encoding="utf-8")
-    lines = oned_conf.splitlines()
+    lines = oned_conf.splitlines(keepends=True)
     old_interval = None
     for i, line in enumerate(lines):
         if line.startswith("MONITORING_INTERVAL_MARKET"):
