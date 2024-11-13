@@ -22,6 +22,18 @@ def loads_json(data: str) -> dict:
     """
     return json.loads(data)
 
+def save_file(data, file_path: str, mode: str, encoding: str) -> None:
+    """
+    Save the given data to a file
+    
+    :param data: the data to be saved to the file, ``str``
+    :param file_path: the path to the file to be saved, ``str``
+    :param mode: the mode in which the file is opened (e.g. wt, wb), ``str``
+    :param encoding: the file encoding (e.g. utf-8), ``str``
+    """
+    with open(file_path, mode=mode, encoding=encoding) as file:
+        file.write(data)
+
 TEMP_DIRECTORY = os.path.join(os.getcwd(), ".temp")
 
 def save_temp_file(data, file_path: str, mode: str, encoding: str) -> str:
