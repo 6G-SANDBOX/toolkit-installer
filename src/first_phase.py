@@ -40,10 +40,10 @@ def _add_sandbox_marketplace(marketplace_name: str, marketplace_endpoint: str) -
         ENDPOINT = {marketplace_endpoint}
         MARKET_MAD = one
     """).strip()
-    save_temp_file(data=marketplace_content, file_path="marketplace_template", mode="w", encoding="utf-8")
-    res = run_command("onemarket create marketplace_content")
+    marketplace_template_path = save_temp_file(data=marketplace_content, file_path="marketplace_template", mode="w", encoding="utf-8")
+    res = run_command(f"onemarket create {marketplace_template_path}")
     if res["rc"] != 0:
-        msg("error", f"The 6G-SANDBOX marketplace could not be registered. Please, review the marketplace_template file")
+        msg("error", "The 6G-SANDBOX marketplace could not be registered. Please, review the marketplace_template file")
     marketplace_id = res["stdout"].split()[1]
     msg("info", f"6G-SANDBOX marketplace registered successfully with ID {marketplace_id}")
     return int(marketplace_id)
