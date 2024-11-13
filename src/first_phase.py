@@ -20,9 +20,9 @@ def _find_marketplace_id(marketplace_name: str, marketplace_endpoint: str) -> in
     for marketplace in marketplaces["MARKETPLACE_POOL"]["MARKETPLACE"]:
         if marketplace["NAME"] == marketplace_name and marketplace["TEMPLATE"]["ENDPOINT"] == marketplace_endpoint:
             msg("info", "6G-SANDBOX marketplace already present with ID " + marketplace["ID"])
-            marketplace_id = marketplace["ID"]
+            marketplace_id = int(marketplace["ID"])
             break
-    return int(marketplace_id)
+    return marketplace_id
 
 def _add_sandbox_marketplace(marketplace_name: str, marketplace_endpoint: str) -> int:
     """
