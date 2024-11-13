@@ -1,8 +1,10 @@
 from textwrap import dedent
+from time import sleep
 
+from src.zero_phase import check_one_health
 from src.utils.dotenv import get_env_var
 from src.utils.cli import run_command
-from src.utils.file import loads_json, save_temp_file
+from src.utils.file import load_file, loads_json, save_file, save_temp_file
 from src.utils.logs import msg
 
 def _find_marketplace_id(marketplace_name: str, marketplace_endpoint: str) -> int:
@@ -48,6 +50,48 @@ def _add_sandbox_marketplace(marketplace_name: str, marketplace_endpoint: str) -
     msg("info", f"6G-SANDBOX marketplace registered successfully with ID {marketplace_id}")
     return int(marketplace_id)
 
+def _is_marketplace_ready(marketplace_id: int) -> bool:
+    """
+    Check if the 6G-SANDBOX marketplace is ready to be used
+    
+    :param marketplace_id: the ID of the marketplace, ``int``
+    :return: whether the marketplace is ready, ``bool``
+    """
+    res = run_command(f"onemarket show -j {marketplace_id}")
+    if res["rc"] != 0:
+        msg("error", "Could not show the marketplace")
+    marketplace = loads_json(data=res["stdout"])
+    return marketplace["MARKETPLACE"]["MARKETPLACEAPPS"]
+
+def _set_marketplace_monitoring_interval(interval: int) -> int:
+    """
+    Set the monitoring interval of the marketplace
+    
+    :param interval: the interval in seconds, ``int``
+    :return: the old interval value, ``int``
+    """
+    oned_conf = load_file(file_path="/etc/one/oned.conf", mode="r", encoding="utf-8")
+    lines = oned_conf.splitlines()
+    for i, line in enumerate(lines):
+        if line.startswith("MONITORING_INTERVAL_MARKET"):
+            old_interval = int(line.split("=")[1].strip())
+            lines[i] = f"MARKET_MAD_INTERVAL = {interval}"
+            break
+    if old_interval:
+        oned_conf = "\n".join(lines)
+        save_file(data=oned_conf, file_path="/etc/one/oned.conf", mode="w", encoding="utf-8")
+        msg("info", f"Market monitoring interval set to interval {interval}")
+    return old_interval
+
+def _restart_oned() -> None:
+    """
+    Restart the OpenNebula daemon
+    """
+    res = run_command("systemctl restart opennebula")
+    if res["rc"] != 0:
+        msg("error", "Could not restart the OpenNebula daemon")
+    msg("info", "OpenNebula daemon restarted")
+
 def first_phase() -> None:
     marketplace_name = get_env_var("OPENNEBULA_MARKETPLACE_NAME")
     marketplace_endpoint = get_env_var("OPENNEBULA_MARKETPLACE_ENDPOINT")
@@ -55,3 +99,18 @@ def first_phase() -> None:
     if not marketplace_id:
         msg("info", "6G-SANDBOX marketplace not present, adding...")
         marketplace_id = _add_sandbox_marketplace(marketplace_name, marketplace_endpoint)
+    
+    if not _is_marketplace_ready(marketplace_id):
+        msg("info", "The 6G-SANDBOX marketplace is not ready...")
+        msg("info", "Forcing fast marketplace monitoring...")
+        new_interval = 10
+        old_interval = _set_marketplace_monitoring_interval(interval=new_interval)
+        if old_interval != new_interval:
+            _restart_oned()
+            sleep(new_interval)
+            check_one_health()
+            sleep(15)
+            _set_marketplace_monitoring_interval(interval=old_interval)
+            _restart_oned()
+            sleep(10)
+            check_one_health()
