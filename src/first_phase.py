@@ -76,7 +76,7 @@ def _set_marketplace_monitoring_interval(interval: int) -> int:
     for i, line in enumerate(lines):
         if line.startswith("MONITORING_INTERVAL_MARKET"):
             old_interval = int(line.split("=")[1].strip())
-            lines[i] = f"MARKET_MAD_INTERVAL = {interval}"
+            lines[i] = f"MONITORING_INTERVAL_MARKET = {interval}\n"
             break
     if old_interval is not None:
         oned_conf = "\n".join(lines)
