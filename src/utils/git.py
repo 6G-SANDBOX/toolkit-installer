@@ -1,19 +1,4 @@
-import re
-
 from git import Repo
-
-def _is_github_repo(url: str) -> bool:
-    """
-    Check if the repository url is a git repository
-
-    :param url: url to be checked, ``str``
-    :return: True if the URL is a valid GitHub repository. Otherwise False, ``bool``
-    """
-    github_url_patterns = [
-        r"^https://github.com/.+/.+\.git$",
-        r"^git@github.com:.+/.+\.git$"
-    ]
-    return any(re.match(pattern, url) for pattern in github_url_patterns)
 
 def get_repo(path: str) -> Repo:
     """
@@ -34,15 +19,14 @@ def git_branches(path: str) -> list[str]:
     repo = get_repo(path)
     return [ref.remote_head for ref in repo.remotes.origin.refs if ref.remote_head != "HEAD"]
 
-def git_clone(https_url: str, path: str) -> Repo:
+def git_clone(https_url: str, path: str) -> None:
     """
     Clone a GitHub repository to the specified path
 
     :param https_url: the URL of the GitHub repository, ``str``
     :param path: the local path to clone the repository into, ``str``
-    :return: the cloned repository, ``Repo``
     """
-    if _is_github_repo(https_url): return Repo.clone_from(https_url, path)
+    Repo.clone_from(https_url, path)
 
 def git_switch(path: str, branch: str) -> None:
     """

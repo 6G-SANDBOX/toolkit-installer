@@ -1,4 +1,5 @@
 import os
+import shutil
 
 TEMP_DIRECTORY = os.path.join(os.getcwd(), ".temp")
 
@@ -45,6 +46,8 @@ def save_temp_directory(directory_path: str) -> str:
     :return: the path to the directory where the data was saved, ``str``
     """
     temp_directory = os.path.join(TEMP_DIRECTORY, directory_path)
+    if os.path.exists(temp_directory):
+        shutil.rmtree(temp_directory)
     os.makedirs(temp_directory, exist_ok=True)
     return temp_directory
 
