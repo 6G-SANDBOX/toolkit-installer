@@ -2,6 +2,13 @@ import os
 
 TEMP_DIRECTORY = os.path.join(os.getcwd(), ".temp")
 
+def create_temp_directory() -> None:
+    """
+    Create the temporary directory if it does not exist
+    """
+    if not os.path.exists(TEMP_DIRECTORY):
+        os.makedirs(TEMP_DIRECTORY)
+
 def load_temp_file(file_path: str, mode: str, encoding: str) -> str:
     """
     Load the content from a temporary file
@@ -25,8 +32,6 @@ def save_temp_file(data, file_path: str, mode: str, encoding: str) -> str:
     :param encoding: the file encoding (e.g. utf-8), ``str``
     :return: the path to the file where the data was saved, ``str``
     """
-    if not os.path.exists(TEMP_DIRECTORY):
-        os.makedirs(TEMP_DIRECTORY)
     file_path = os.path.join(TEMP_DIRECTORY, file_path)
     with open(file_path, mode=mode, encoding=encoding) as file:
         file.write(data)
@@ -45,9 +50,9 @@ def save_temp_directory(directory_path: str) -> str:
 
 def temp_path(file_path: str) -> str:
     """
-    Create a temporary path for the given file
+    Get the path to the file in the temporary directory
     
     :param file_path: the path to the file, ``str``
-    :return: the temporary path for the file, ``str``
+    :return: the path to the file in the temporary directory, ``str``
     """
     return os.path.join(TEMP_DIRECTORY, file_path)

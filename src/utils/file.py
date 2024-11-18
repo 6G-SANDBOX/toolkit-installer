@@ -1,4 +1,5 @@
 import json
+import yaml
 import tomlkit
 
 def load_file(file_path: str, mode: str, encoding: str) -> str:
@@ -13,6 +14,18 @@ def load_file(file_path: str, mode: str, encoding: str) -> str:
     with open(file_path, mode=mode, encoding=encoding) as file:
         return file.read()
 
+def load_yaml(file_path: str, mode: str, encoding: str) -> dict:
+    """
+    Load data from a YAML file
+
+    :param file_path: the path to the YAML file to be loaded, ``str``
+    :param mode: the mode in which the file is opened (e.g. rt, rb), ``str``
+    :param encoding: the file encoding (e.g. utf-8), ``str``
+    :return: the data loaded from the YAML file, ``dict``
+    """
+    with open(file_path, mode=mode, encoding=encoding) as yaml_file:
+        return yaml.safe_load(yaml_file)
+
 def loads_json(data: str) -> dict:
     """
     Load the given data as JSON
@@ -22,7 +35,7 @@ def loads_json(data: str) -> dict:
     """
     return json.loads(data)
 
-def load_toml(file_path: str, mode: str, encoding: str) -> dict:
+def loads_toml(file_path: str, mode: str, encoding: str) -> dict:
     """
     Load data from a TOML file
 
@@ -45,3 +58,13 @@ def save_file(data, file_path: str, mode: str, encoding: str) -> None:
     """
     with open(file_path, mode=mode, encoding=encoding) as file:
         file.write(data)
+
+def save_yaml(data, file_path: str) -> None:
+    """
+    Save the data to a YAML file
+    
+    :param data: the data to be saved (must be serializable to YAML)
+    :param file_path: The file path where the data will be saved, ``str``
+    """
+    with open(file_path, "w") as yaml_file:
+        yaml.safe_dump(data, yaml_file, default_flow_style=False)
