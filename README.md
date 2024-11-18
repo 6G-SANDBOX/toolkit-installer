@@ -42,6 +42,7 @@ cd <toolkit-installer-directory>
 
 Install libraries
 
+```bash
 ${POETRY_BIN} install --no-root
 ```
 
