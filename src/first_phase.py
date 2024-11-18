@@ -39,6 +39,32 @@ def _update_site_config(site_core: str) -> dict:
         if isinstance(value, dict):
             print(f"\nUpdating nested fields in '{key}':")
             updated_data[key] = _update_site_config(value)
+        elif isinstance(value, bool):
+            new_value = ask_confirm(
+                f"Current value of '{key}' is '{value}' (or press Enter to use default value):",
+                default=value
+            )
+            updated_data[key] = new_value
+        elif isinstance(value, list):
+            pass
+            # print(f"\nUpdating list fields in '{key}':")
+            # updated_data[key] = []
+            # for i, item in enumerate(value):
+            #     if isinstance(item, dict):
+            #         print(f"\nUpdating nested fields in '{key}[{i}]':")
+            #         updated_data[key].append(_update_site_config(item))
+            #     elif isinstance(item, bool):
+            #         new_value = ask_confirm(
+            #             f"Current value of '{key}[{i}]' is '{item}' (or press Enter to use default value):",
+            #             default=item
+            #         )
+            #         updated_data[key].append(new_value)
+            #     else:
+            #         new_value = ask_text(
+            #             f"Current value of '{key}[{i}]' is '{item}' (or press Enter to use default value):",
+            #             default=str(item)
+            #         )
+            #         updated_data[key].append(item if new_value == "" else new_value)
         else:
             new_value = ask_text(
                 f"Current value of '{key}' is '{value}' (or press Enter to use default value):",
@@ -47,19 +73,19 @@ def _update_site_config(site_core: str) -> dict:
             updated_data[key] = value if new_value == "" else new_value
     return updated_data
 
-def _insert_site_token() -> str:
+def _insert_sites_token() -> str:
     """
     Insert the token for the site
     
     :return: the token for the site, ``str``
     """
-    site_token = ask_text(prompt="Enter the token for the site (mandatory insert value):", default="")
-    if site_token == "":
+    sites_token = ask_text(prompt="Enter the token for the site (mandatory insert value):", default="")
+    if sites_token == "":
         while True:
-            site_token = ask_text(prompt="Token cannot be empty, enter the token:", default="")
-            if site_token != "":
+            sites_token = ask_text(prompt="Token cannot be empty, enter the token:", default="")
+            if sites_token != "":
                 break
-    return site_token
+    return sites_token
 
 def first_phase() -> None:
     """
@@ -84,9 +110,9 @@ def first_phase() -> None:
     # TODO: Implement the case when need add _new_components(current_config)
     save_yaml(data=current_config, file_path=site_core_path)
     msg("info", f"Site configuration updated successfully")
-    site_token = _insert_site_token()
-    msg("info", f"Token '{site_token}' generated successfully")
-    token_path = save_temp_file(data=site_token, file_path="sites_token.txt", mode="w", encoding="utf-8")
+    sites_token = _insert_sites_token()
+    msg("info", f"Token '{sites_token}' generated successfully")
+    token_path = save_temp_file(data=sites_token, file_path="sites_token.txt", mode="w", encoding="utf-8")
     msg("info", f"Token saved successfully in '{token_path}'")
     run_command(f"ansible-vault encrypt {site_core_path} --vault-password-file {token_path}")
     msg("info", f"File '{site_core_path}' encrypted successfully")
