@@ -44,17 +44,6 @@ def _update_site_config(site_core: str) -> dict:
                 default=str(value)
             )
             updated_data[key] = value if new_value == "" else new_value
-    
-    add_fields = ask_confirm("Do you want to add new components?", default=False)
-    if add_fields:
-        while True:
-            new_key = ask_text(prompt="Enter the name of the new field (or press Enter to stop):", default="")
-            if not new_key:
-                break
-            new_value = ask_text(prompt=f"Enter the value for '{new_key}':", default="")
-            if new_key in updated_data:
-                msg("error", f"Field '{new_key}' already exists")
-            updated_data[new_key] = new_value
     return updated_data
 
 def _insert_site_token() -> str:
@@ -83,15 +72,16 @@ def first_phase() -> None:
     msg("info", f"Site name: '{site}'")
     git_switch(sites_path, site)
     msg("info", f"Site branch '{site}' created successfully in local")
-    site_path = os.path.join(sites_path, site)
+    site_path = save_temp_directory(os.path.join(sites_path, site))
     msg("info", f"Site directory '{site_path}' created successfully")
     dummy_core_path = temp_path(os.path.join("6G-Sandbox-Sites", ".dummy_site", "core.yaml"))
     site_core_path = os.path.join(site_path, "core.yaml")
     run_command(f"cp {dummy_core_path} {site_core_path}")
     msg("info", f"Site structure copied successfully from '{dummy_core_path}' to '{site_core_path}'")
     site_core = load_yaml(site_core_path, mode="rt", encoding="utf-8")
-    site_config = _update_site_config(site_core)
-    save_yaml(site_core_path, site_config)
+    current_config = _update_site_config(site_core)
+    # site_config = _new_components(current_config) TODO: Implement this function
+    save_yaml(site_core_path, current_config, mode="w", encoding="utf-8")
     msg("info", f"Site configuration updated successfully")
     site_token = _insert_site_token()
     msg("info", f"Token '{site_token}' generated successfully")
