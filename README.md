@@ -22,11 +22,6 @@ Python3 script that configures an OpenNebula cluster as a 6G-SANDBOX site.
 
 - An OpenNebula cluster with VMs internet access.
 - Python3 and pip3 packages installed in the OpenNebula Frontend VMs.
-- Ansible installed in the OpenNebula Frontend VMs.
-
-```bash
-apt install -y ansible-core
-```
 
 ## :rocket: Getting Stared
 
