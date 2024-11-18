@@ -13,7 +13,7 @@ Python3 script that configures an OpenNebula cluster as a 6G-SANDBOX site.
     - [Phase 1](#phase-1)
     - [Phase 2](#phase-2)
     - [Phase 3](#phase-3)
-    - [Phase 4 =\> Pending](#phase-4--pending)
+    - [Phase 4](#phase-4)
     - [Phase 5](#phase-5)
 
 </details>
@@ -22,6 +22,7 @@ Python3 script that configures an OpenNebula cluster as a 6G-SANDBOX site.
 
 - An OpenNebula cluster with VMs internet access.
 - Python3 and pip3 packages installed in the OpenNebula Frontend VMs.
+- Token for the 6G-Sandbox-Sites repository (privileges: **Contents** - **Read and write**). Specify the token in the `.env` file.
 
 ## :rocket: Getting Stared
 
@@ -66,33 +67,23 @@ python3 main.py
 
 ### Phase 1
 
-- Adding the 6GSandbox marketplace to OpenNebula if not present.
-- Refreshing the list of available appliances in the marketplace.
+- Create new 6G-SANDBOX sites in 6G-Sandbox-Sites repository.
 
 ### Phase 2
 
-- Downloading base required appliances: Ubuntu, OneKE, 6GSANDBOX-core. The user is able to select version and datastore for each one.
-
-#### Phase 2.1 <!-- omit in toc -->
-
-- Instantiation of the 6GSANDBOX-core appliance. The user will be prompted for the required parameters. Pending to add further healthchecks.
+- Adding the 6G-SANDBOX marketplace to OpenNebula if not present.
+- Refreshing the list of available appliances in the marketplace.
 
 ### Phase 3
+
+- Downloading base required appliances: Ubuntu, OneKE, 6GSANDBOX-core. The user is able to select version and datastore for each one.
+- Instantiation of the 6GSANDBOX-core appliance. The user will be prompted for the required parameters. Pending to add further healthchecks.
+
+### Phase 4
 
 - Donwloading and scanning the 6G Library repository for appliances.
 - Matching the found appliances with the ones present in the 6G-SANDBOX Marketplace.
 - Console dialog, asking the installer which component appliances  wants to import into the datastore. The appliances shown are the ones matching.
-
-### Phase 4 => Pending
-
-- Create a form with information included in the SITES repository
-  - ID of the networks
-  - ID of the images
-  - ID of the services
-- From a jinja template, generate the associated SITES file to be uploaded to private repo
-- Push the new site to github
-  - TBD: You have to encrypt the info of the sites so that they are not seen with each other to avoid security flaws. This is easy using Ansible encrypt/decrypt. This way the repository can be made public, and we avoid additional configuration in Jenkins to clone and push private repos.
-  - Each SITE must keep their master key to decrypt their file and configure it in their Jenkins
 
 ### Phase 5
 
