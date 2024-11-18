@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "toolkit-installer"
-version = "0.1.0"
+version = "v0.1.0"
 description = ""
 authors = ["Daniel Garcia <dgarcia@opennebula.io>", "Carlos Andreo <c.andreo@uma.es>"]
 package-mode = false
