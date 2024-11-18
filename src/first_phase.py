@@ -90,6 +90,6 @@ def first_phase() -> None:
     msg("info", f"Token saved successfully in '{token_path}'")
     run_command(f"ansible-vault encrypt {site_core_path} --vault-password-file {token_path}")
     msg("info", f"File '{site_core_path}' encrypted successfully")
-    git_add(sites_path, ".")
+    git_add(sites_path)
     git_commit(sites_path, f"Add site '{site}'")
     git_push(sites_path, site)
