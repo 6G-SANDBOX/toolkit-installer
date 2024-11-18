@@ -46,7 +46,10 @@ def git_add(path: str, *args: str) -> None:
     :param args: the files to add, ``str``
     """
     repo = get_repo(path)
-    repo.index.add(args)
+    if args:
+        repo.index.add(args)
+    else:
+        repo.git.add(".")
 
 def git_commit(path: str, message: str) -> None:
     """
