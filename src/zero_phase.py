@@ -18,11 +18,13 @@ def _generate_banner(message: str) -> None:
     print(ascii_banner)
 
 def _update_ubuntu_package() -> None:
+    msg("info", "[UBUNTU PACKAGE UPDATE]")
     res = run_command("apt update")
     if res["rc"] != 0:
         msg("error", "Could not update Ubuntu packages")
 
 def _install_ansible_core() -> None:
+    msg("info", "[ANSIBLE INSTALLATION]")
     res = run_command("apt install -y ansible-core")
     if res["rc"] != 0:
         msg("error", "Could not install ansible-core")
