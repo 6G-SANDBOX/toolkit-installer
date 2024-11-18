@@ -2,8 +2,9 @@ import pyfiglet
 
 from src.utils.dotenv import load_dotenv_file
 from src.utils.cli import run_command
-from src.utils.file import load_toml
+from src.utils.file import loads_toml
 from src.utils.logs import msg
+from src.utils.temp import create_temp_directory
 
 def _generate_banner(message: str) -> None:
     """
@@ -68,9 +69,10 @@ def zero_phase() -> None:
     """
     The zero phase of the 6G-SANDBOX deployment
     """
-    __version__ = load_toml("pyproject.toml", "rt", "utf-8")["tool"]["poetry"]["version"]
+    __version__ = loads_toml("pyproject.toml", "rt", "utf-8")["tool"]["poetry"]["version"]
     load_dotenv_file()
     _generate_banner(message="6G-SANDBOX TOOLKIT")
     _generate_banner(message=__version__)
     _check_user()
     check_one_health()
+    create_temp_directory()
