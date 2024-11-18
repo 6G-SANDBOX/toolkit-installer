@@ -57,6 +57,20 @@ def _update_site_config(site_core: str) -> dict:
             updated_data[new_key] = new_value
     return updated_data
 
+def _insert_site_token() -> str:
+    """
+    Insert the token for the site
+    
+    :return: the token for the site, ``str``
+    """
+    site_token = ask_text(prompt="Enter the token for the site (mandatory insert value):", default="")
+    if site_token == "":
+        while True:
+            site_token = ask_text(prompt="Token cannot be empty, enter the token:", default="")
+            if site_token != "":
+                break
+    return site_token
+
 def first_phase() -> None:
     """
     The first phase of the 6G-SANDBOX installation
@@ -69,19 +83,19 @@ def first_phase() -> None:
     msg("info", f"Site name: '{site}'")
     git_switch(sites_path, site)
     msg("info", f"Site branch '{site}' created successfully in local")
-    site_path = save_temp_directory(site)
+    site_path = os.path.join(sites_path, site)
     msg("info", f"Site directory '{site_path}' created successfully")
     dummy_core_path = temp_path(os.path.join("6G-Sandbox-Sites", ".dummy_site", "core.yaml"))
     site_core_path = os.path.join(site_path, "core.yaml")
     run_command(f"cp {dummy_core_path} {site_core_path}")
     msg("info", f"Site structure copied successfully from '{dummy_core_path}' to '{site_core_path}'")
-    site_core = load_yaml(site_core_path)
+    site_core = load_yaml(site_core_path, mode="rt", encoding="utf-8")
     site_config = _update_site_config(site_core)
     save_yaml(site_core_path, site_config)
     msg("info", f"Site configuration updated successfully")
-    sites_token = ask_text("Enter the token for the site:")
-    msg("info", f"Token '{sites_token}' generated successfully")
-    token_path = save_temp_file(data=sites_token, file_path="sites_token.txt", mode="w", encoding="utf-8")
+    site_token = _insert_site_token()
+    msg("info", f"Token '{site_token}' generated successfully")
+    token_path = save_temp_file(data=site_token, file_path="sites_token.txt", mode="w", encoding="utf-8")
     msg("info", f"Token saved successfully in '{token_path}'")
     run_command(f"ansible-vault encrypt {site_core_path} --vault-password-file {token_path}")
     msg("info", f"File '{site_core_path}' encrypted successfully")
