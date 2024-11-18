@@ -1,120 +1,88 @@
-from textwrap import dedent
-from time import sleep
+import os
 
-from src.zero_phase import check_one_health
-from src.utils.dotenv import get_env_var
 from src.utils.cli import run_command
-from src.utils.file import load_file, loads_json, save_file
+from src.utils.dotenv import get_env_var
+from src.utils.file import load_yaml, save_yaml
+from src.utils.git import git_branches, git_clone, git_switch, git_add, git_commit, git_push
+from src.utils.interactive import ask_text, ask_confirm
 from src.utils.logs import msg
-from src.utils.temp import save_temp_file
+from src.utils.temp import save_temp_file, save_temp_directory, temp_path
 
-def _find_marketplace_id(marketplace_name: str, marketplace_endpoint: str) -> str:
+def _create_site(sites_path: str) -> str:
     """
-    Check if the 6G-SANDBOX marketplace is already present in the OpenNebula installation
+    Create a new site
     
-    :param marketplace_name: the name of the marketplace, ``str``
-    :param marketplace_endpoint: the endpoint of the marketplace, ``str``
-    :return: the ID of the marketplace if it is present, ``str``
+    :param sites_path: the path to the sites repository, ``str``
+    :return: the name of the site, ``str``
     """
-    msg("info", "[6G-SANDBOX MARKETPLACE CHECK]")
-    res = run_command("onemarket list -j")
-    if res["rc"] != 0:
-        msg("error", "Could not list the marketplaces")
-    marketplaces = loads_json(data=res["stdout"])
-    marketplace_id = None
-    for marketplace in marketplaces["MARKETPLACE_POOL"]["MARKETPLACE"]:
-        if marketplace["NAME"] == marketplace_name and marketplace["TEMPLATE"]["ENDPOINT"] == marketplace_endpoint:
-            msg("info", "6G-SANDBOX marketplace already present with ID " + marketplace["ID"])
-            marketplace_id = marketplace["ID"]
+    site = ask_text("Enter the name of the site:")
+    sites = git_branches(sites_path)
+    while True:
+        if site in sites:
+            site = ask_text("Site already exists, enter a new name:")
+        else:
             break
-    return marketplace_id
+    return site
 
-def _add_sandbox_marketplace(marketplace_name: str, marketplace_endpoint: str) -> str:
+def _update_site_config(site_core: str) -> dict:
     """
-    Add the 6G-SANDBOX marketplace to the OpenNebula installation
+    Update the site configuration file
+
+    :param site_core: the path to the site, ``str``
+    :return: the updated site configuration, ``dict``
+    """
+    updated_data = {}
+    for key, value in site_core.items():
+        if isinstance(value, dict):
+            print(f"\nUpdating nested fields in '{key}':")
+            updated_data[key] = _update_site_config(value)
+        else:
+            new_value = ask_text(
+                f"Current value of '{key}' is '{value}' (or press Enter to use default value):",
+                default=str(value)
+            )
+            updated_data[key] = value if new_value == "" else new_value
     
-    :param marketplace_name: the name of the marketplace, ``str``
-    :param marketplace_endpoint: the endpoint of the marketplace, ``str``
-    :return: the ID of the marketplace, ``str``
-    """
-    marketplace_content = dedent(f"""
-        NAME = {marketplace_name}
-        DESCRIPTION = "6G-SANDBOX Appliance repository"
-        ENDPOINT = {marketplace_endpoint}
-        MARKET_MAD = one
-    """).strip()
-    marketplace_template_path = save_temp_file(data=marketplace_content, file_path="marketplace_template", mode="w", encoding="utf-8")
-    res = run_command(f"onemarket create {marketplace_template_path}")
-    if res["rc"] != 0:
-        msg("error", "The 6G-SANDBOX marketplace could not be registered. Please, review the marketplace_template file")
-    marketplace_id = res["stdout"].split()[1]
-    msg("info", f"6G-SANDBOX marketplace registered successfully with ID {marketplace_id}")
-    return marketplace_id
-
-def _is_marketplace_ready(marketplace_id: str) -> bool:
-    """
-    Check if the 6G-SANDBOX marketplace is ready to be used
-    
-    :param marketplace_id: the ID of the marketplace, ``str``
-    :return: whether the marketplace is ready, ``bool``
-    """
-    res = run_command(f"onemarket show -j {marketplace_id}")
-    if res["rc"] != 0:
-        msg("error", "Could not show the marketplace")
-    marketplace = loads_json(data=res["stdout"])
-    return marketplace["MARKETPLACE"]["MARKETPLACEAPPS"]
-
-def _set_marketplace_monitoring_interval(interval: int) -> int:
-    """
-    Set the monitoring interval of the marketplace
-    
-    :param interval: the interval in seconds, ``int``
-    :return: the old interval value, ``int``
-    """
-    oned_conf = load_file(file_path="/etc/one/oned.conf", mode="r", encoding="utf-8")
-    lines = oned_conf.splitlines(keepends=True)
-    for i, line in enumerate(lines):
-        if line.startswith("MONITORING_INTERVAL_MARKET"):
-            old_interval = line.split("=")[1].strip()
-            lines[i] = f"MONITORING_INTERVAL_MARKET = {interval}\n"
-            break
-    if old_interval is not None:
-        oned_conf = "".join(lines)
-        save_file(data=oned_conf, file_path="/etc/one/oned.conf", mode="w", encoding="utf-8")
-        msg("info", f"Marketplace monitoring interval set to interval {interval}")
-    return old_interval
-
-def _restart_oned() -> None:
-    """
-    Restart the OpenNebula daemon
-    """
-    res = run_command("systemctl restart opennebula")
-    if res["rc"] != 0:
-        msg("error", "Could not restart the OpenNebula daemon")
-    msg("info", "OpenNebula daemon restarted")
+    add_fields = ask_confirm("Do you want to add new components?", default=False)
+    if add_fields:
+        while True:
+            new_key = ask_text("Enter the name of the new field (or press Enter to stop):")
+            if not new_key:
+                break
+            new_value = ask_text(f"Enter the value for '{new_key}':")
+            if new_key in updated_data:
+                msg("error", f"Field '{new_key}' already exists")
+            updated_data[new_key] = new_value
+    return updated_data
 
 def first_phase() -> None:
     """
-    Run the first phase of the 6G-SANDBOX deployment
+    The first phase of the 6G-SANDBOX installation
     """
-    marketplace_name = get_env_var("OPENNEBULA_MARKETPLACE_NAME")
-    marketplace_endpoint = get_env_var("OPENNEBULA_MARKETPLACE_ENDPOINT")
-    marketplace_id = _find_marketplace_id(marketplace_name, marketplace_endpoint)
-    if not marketplace_id:
-        msg("info", "6G-SANDBOX marketplace not present, adding...")
-        marketplace_id = _add_sandbox_marketplace(marketplace_name, marketplace_endpoint)
-    
-    if not _is_marketplace_ready(marketplace_id):
-        msg("info", "The 6G-SANDBOX marketplace is not ready...")
-        msg("info", "Forcing fast marketplace monitoring...")
-        new_interval = 10
-        old_interval = _set_marketplace_monitoring_interval(interval=new_interval)
-        if old_interval != new_interval:
-            _restart_oned()
-            sleep(new_interval)
-            check_one_health()
-            sleep(15)
-            _ = _set_marketplace_monitoring_interval(interval=old_interval)
-            _restart_oned()
-            sleep(10)
-            check_one_health()
+    github_sites_https = get_env_var("GITHUB_SITES_HTTPS")
+    sites_path = save_temp_directory("6G-Sandbox-Sites")
+    git_clone(github_sites_https, sites_path)
+    msg("Repository 6G-Sandbox-Sites cloned successfully")
+    site = _create_site(sites_path)
+    msg(f"Site name: '{site}'")
+    git_switch(sites_path, site)
+    msg(f"Site branch '{site}' created successfully in local")
+    site_path = save_temp_directory(site)
+    msg(f"Site directory '{site_path}' created successfully")
+    dummy_core_path = temp_path(os.path.join("6G-Sandbox-Sites", ".dummy_site", "core.yaml"))
+    site_core_path = os.path.join(site_path, "core.yaml")
+    run_command(f"cp {dummy_core_path} {site_core_path}")
+    msg(f"Site structure copied successfully from '{dummy_core_path}' to '{site_core_path}'")
+    site_core = load_yaml(site_core_path)
+    site_config = _update_site_config(site_core)
+    save_yaml(site_core_path, site_config)
+    msg(f"Site configuration updated successfully")
+    sites_token = ask_text("Enter the token for the site:")
+    msg(f"Token '{sites_token}' generated successfully")
+    token_path = save_temp_file(data=sites_token, file_path="sites_token.txt", mode="w", encoding="utf-8")
+    msg(f"Token saved successfully in '{token_path}'")
+    run_command(f"ansible-vault encrypt {site_core_path} --vault-password-file {token_path}")
+    msg(f"File '{site_core_path}' encrypted successfully")
+    git_add(sites_path, ".")
+    git_commit(sites_path, f"Add site '{site}'")
+    git_push(sites_path, site)
