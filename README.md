@@ -102,3 +102,9 @@ python3 main.py
 
 - Launching a basic TN. A pipeline can be created in Jenkins, for the operator to enter and execute.
 - Validation and certification. Some testing.
+
+## Contributors <!-- omit in toc -->
+
+<a href="https://github.com/6G-SANDBOX/toolkit-installer/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=6G-SANDBOX/toolkit-installer" />
+</a>
