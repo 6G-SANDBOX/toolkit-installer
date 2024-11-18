@@ -1,8 +1,10 @@
+import os
+import re
 import pyfiglet
 
 from src.utils.dotenv import load_dotenv_file
 from src.utils.cli import run_command
-from src.utils.file import loads_toml
+from src.utils.file import load_file, loads_toml
 from src.utils.logs import msg
 from src.utils.temp import create_temp_directory
 
@@ -48,15 +50,12 @@ def check_one_health() -> None:
     if res["rc"] != 0:
         msg("error", f"OpenNebula CLI healthcheck failed. Command: '{command}'")
 
-    # Testing onegate health with curl
-    command = "cat /etc/one/oned.conf | grep 'ONEGATE_ENDPOINT ='" # Mejor entrar en el fichero y aplicar una expresión regular
-    res = run_command(command)
-    if res["rc"] != 0:
-        msg("error", f"Unable to run '{command}' command")
-    if not res["stdout"]:
-        msg("error", "ONEGATE_ENDPOINT not found in the OpenNebula configuration")
-    onegate_endpoint = res["stdout"].split('"')[1]
-    
+    oned_config_path = os.path.join("/etc", "one", "oned.conf")
+    data = load_file(file_path=oned_config_path, mode="rt", encoding="utf-8")
+    match = re.search(r"^\s*ONEGATE_ENDPOINT\s*=\s*\"([^\"]+)\"", data, re.MULTILINE)
+    if match is None:
+        msg("error", "Could not find ONEGATE_ENDPOINT in oned.conf")
+    onegate_endpoint = match.group(1)
     command = f"curl {onegate_endpoint}"
     res = run_command(command)
     if res["rc"] != 0:
