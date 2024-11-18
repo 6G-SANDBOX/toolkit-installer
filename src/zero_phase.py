@@ -16,7 +16,17 @@ def _generate_banner(message: str) -> None:
     """
     ascii_banner = pyfiglet.figlet_format(message)
     print(ascii_banner)
-    
+
+def _update_ubuntu_package() -> None:
+    res = run_command("apt update")
+    if res["rc"] != 0:
+        msg("error", "Could not update Ubuntu packages")
+
+def _install_ansible_core() -> None:
+    res = run_command("apt install -y ansible-core")
+    if res["rc"] != 0:
+        msg("error", "Could not install ansible-core")
+
 def _check_user() -> None:
     """
     Check if the script is being run as root
@@ -68,10 +78,12 @@ def zero_phase() -> None:
     """
     The zero phase of the 6G-SANDBOX deployment
     """
+    _update_ubuntu_package()
     __version__ = loads_toml("pyproject.toml", "rt", "utf-8")["tool"]["poetry"]["version"]
     load_dotenv_file()
     _generate_banner(message="6G-SANDBOX TOOLKIT")
     _generate_banner(message=__version__)
+    _install_ansible_core()
     _check_user()
     check_one_health()
     create_temp_directory()
