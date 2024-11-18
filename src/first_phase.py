@@ -35,6 +35,7 @@ def _update_site_config(site_core: str) -> dict:
     """
     updated_data = {}
     for key, value in site_core.items():
+        # FIX: differnte cases when is dict, bool and when is list indicate the format with example
         if isinstance(value, dict):
             print(f"\nUpdating nested fields in '{key}':")
             updated_data[key] = _update_site_config(value)
@@ -80,8 +81,8 @@ def first_phase() -> None:
     msg("info", f"Site structure copied successfully from '{dummy_core_path}' to '{site_core_path}'")
     site_core = load_yaml(site_core_path, mode="rt", encoding="utf-8")
     current_config = _update_site_config(site_core)
-    # site_config = _new_components(current_config) TODO: Implement this function
-    save_yaml(site_core_path, current_config, mode="w", encoding="utf-8")
+    # TODO: Implement the case when need add _new_components(current_config)
+    save_yaml(data=site_core_path, file_path=current_config)
     msg("info", f"Site configuration updated successfully")
     site_token = _insert_site_token()
     msg("info", f"Token '{site_token}' generated successfully")
