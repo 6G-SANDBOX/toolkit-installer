@@ -10,7 +10,7 @@ Python3 script that configures an OpenNebula cluster as a 6G-SANDBOX site.
   - [:rocket: Getting Stared](#rocket-getting-stared)
   - [:cyclone: Phases](#cyclone-phases)
     - [Phase 0](#phase-0)
-    - [Phase 1](#phase-1)
+    - [Phase 1 -\> PENDING](#phase-1---pending)
     - [Phase 2](#phase-2)
     - [Phase 3](#phase-3)
     - [Phase 4](#phase-4)
@@ -63,21 +63,24 @@ python3 main.py
 
 ### Phase 0
 
-- Checking if the OpenNebula CLI tools are installed.
+- Update ubuntu packages.
+- Check if ansible-core is installed.
+- Check if the script is being executed as root.
+- Check if the OpenNebula CLI tools are installed.
 
-### Phase 1
+### Phase 1 -> PENDING
 
 - Create new 6G-SANDBOX sites in 6G-Sandbox-Sites repository.
 
 ### Phase 2
 
-- Adding the 6G-SANDBOX marketplace to OpenNebula if not present.
-- Refreshing the list of available appliances in the marketplace.
+- Add the 6G-SANDBOX marketplace to OpenNebula if not present.
+- Refresh the list of available appliances in the marketplace.
 
 ### Phase 3
 
-- Downloading base required appliances: Ubuntu, OneKE, 6GSANDBOX-core. The user is able to select version and datastore for each one.
-- Instantiation of the 6GSANDBOX-core appliance. The user will be prompted for the required parameters. Pending to add further healthchecks.
+- Download base required appliances for the 6G-SANDBOX-core: Ubuntu and OneKE v1.2.9. The user is able to select version and datastore for each one.
+- Instantiate of the 6G-SANDBOX service. The user will be prompted for the required parameters. Pending to add further healthchecks.
 
 ### Phase 4
 
