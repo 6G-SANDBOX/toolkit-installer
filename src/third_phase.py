@@ -28,21 +28,17 @@ def third_phase() -> None:
     msg("info", "THIRD PHASE")
     default_sandbox_group = get_env_var("OPENNEBULA_SANDBOX_GROUP")
     sixg_sandbox_group = ask_text("Enter the name for the 6G-SANDBOX group:", default=default_sandbox_group, validate=True)
-    while True:
+    sixg_sandbox_group_data = get_group(group_name=sixg_sandbox_group)
+    while sixg_sandbox_group_data is not None:
+        sixg_sandbox_group = ask_text("Group already exists. Enter new name for the 6G-SANDBOX group:", default=default_sandbox_group, validate=True)
         sixg_sandbox_group_data = get_group(group_name=sixg_sandbox_group)
-        if sixg_sandbox_group_data:
-            sixg_sandbox_group = ask_text("Group already exists. Enter new name for the 6G-SANDBOX group:", default=default_sandbox_group, validate=True)
-        else:
-            break
     sixg_sandbox_group_id = create_group(group_name=sixg_sandbox_group)
     default_jenkins_user = get_env_var("OPENNEBULA_JENKINS_USER")
     jenkins_user = ask_text("Enter the username for the Jenkins user:", default=default_jenkins_user, validate=True)
-    while True:
+    jenkins_user_data = get_user(username=jenkins_user)
+    while jenkins_user_data is not None:
+        jenkins_user = ask_text("User already exists. Enter new username for the Jenkins user:", default=default_jenkins_user, validate=True)
         jenkins_user_data = get_user(username=jenkins_user)
-        if jenkins_user_data:
-            jenkins_user = ask_text("User already exists. Enter new username for the Jenkins user:", default=default_jenkins_user, validate=True)
-        else:
-            break
     jenkins_password = ask_password("Enter the password for the Jenkins user:", default="", validate=True)
     jenkins_user_id = create_user(username=jenkins_user, password=jenkins_password)
     assign_user_group(user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
