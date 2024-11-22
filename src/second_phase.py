@@ -14,9 +14,9 @@ def second_phase() -> None:
         sixg_sandbox_group_id = sixg_sandbox_group_data["GROUP"]["ID"]
     default_jenkins_user = get_env_var("OPENNEBULA_JENKINS_USER")
     jenkins_user = ask_text("Enter the username for the Jenkins user:", default=default_jenkins_user, validate=True)
-    jenkins_password = ask_password("Enter the password for the Jenkins user:", validate=True)
     jenkins_user_data = get_user(username=jenkins_user)
     if jenkins_user_data is None:
+        jenkins_password = ask_password("Enter the password for the Jenkins user:", validate=True)
         jenkins_user_id = create_user(username=jenkins_user, password=jenkins_password)
     else:
         jenkins_user_id = jenkins_user_data["USER"]["ID"]
