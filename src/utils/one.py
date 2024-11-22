@@ -191,7 +191,7 @@ def get_local_image(image_name: str) -> dict:
     :return: the details of the image, ``dict``
     """
     msg("info", f"[GET {image_name} IMAGE]")
-    res = run_command(f"oneimage show {image_name} -j")
+    res = run_command(f"oneimage show \"{image_name}\" -j")
     if res["rc"] != 0:
         return None
     return loads_json(data=res["stdout"])
