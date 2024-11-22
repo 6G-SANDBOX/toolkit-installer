@@ -39,7 +39,7 @@ def third_phase() -> None:
     while jenkins_user_data is not None:
         jenkins_user = ask_text("User already exists. Enter new username for the Jenkins user:", default=default_jenkins_user, validate=True)
         jenkins_user_data = get_user(username=jenkins_user)
-    jenkins_password = ask_password("Enter the password for the Jenkins user:", default="", validate=True)
+    jenkins_password = ask_password("Enter the password for the Jenkins user:", validate=True)
     jenkins_user_id = create_user(username=jenkins_user, password=jenkins_password)
     assign_user_group(user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
     # opennebula_marketplace = get_env_var("OPENNEBULA_PUBLIC_MARKETPLACE")

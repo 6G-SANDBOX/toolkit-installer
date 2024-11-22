@@ -49,11 +49,11 @@ def ask_confirm(prompt: str, default: bool = True) -> bool:
     """
     return questionary.confirm(prompt, default=default).ask()
 
-def ask_password(prompt: str) -> str:
+def ask_password(prompt: str, validate: bool = False) -> str:
     """
     Prompt the user to enter a password (hidden input)
 
     :param prompt: the question to display, ``str``
     :return: user input, ``str``
     """
-    return questionary.password(prompt).ask()
+    return questionary.password(prompt, validate=validate).ask()
