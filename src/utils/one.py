@@ -170,6 +170,32 @@ def assign_user_group(user_id, group_id) -> None:
     if res["rc"] != 0:
         msg("error", "Could not assign the user to the group")
 
+## TEMPLATE MANAGEMENT ##
+def get_local_templates() -> dict:
+    """
+    Get the list of local templates in OpenNebula
+    
+    :return: the list of templates, ``dict``
+    """
+    msg("info", "[GET LOCAL TEMPLATES]")
+    res = run_command("onetemplate list -j")
+    if res["rc"] != 0:
+        msg("error", "Could not list the templates")
+    return loads_json(data=res["stdout"])
+
+def get_local_template(template_name: str) -> dict:
+    """
+    Get the details of a local template in OpenNebula
+    
+    :param template_name: the name of the template, ``str``
+    :return: the details of the template, ``dict``
+    """
+    msg("info", f"[GET {template_name} TEMPLATE]")
+    res = run_command(f"onetemplate show \"{template_name}\" -j")
+    if res["rc"] != 0:
+        return None
+    return loads_json(data=res["stdout"])
+
 ## IMAGES MANAGEMENT ##
 def get_local_images() -> dict:
     """
@@ -183,27 +209,27 @@ def get_local_images() -> dict:
         msg("error", "Could not list the images")
     return loads_json(data=res["stdout"])
 
-def get_local_image(image_name: str) -> dict:
+def get_local_image(image_id: int) -> dict:
     """
     Get the details of a local image in OpenNebula
     
-    :param image_name: the name of the image, ``str``
+    :param image_id: the ID of the image, ``int``
     :return: the details of the image, ``dict``
     """
-    msg("info", f"[GET {image_name} IMAGE]")
-    res = run_command(f"oneimage show \"{image_name}\" -j")
+    msg("info", f"[GET {image_id} IMAGE]")
+    res = run_command(f"oneimage show \"{image_id}\" -j")
     if res["rc"] != 0:
         return None
     return loads_json(data=res["stdout"])
 
-def get_state_image(image_name: str) -> str:
+def get_state_image(image_id: str) -> str:
     """
     Get the status of a local image in OpenNebula
     
-    :param image_name: the name of the image, ``str``
+    :param image_id: the ID of the image, ``str``
     :return: the status of the image, ``str``
     """
-    image = get_local_image(image_name)
+    image = get_local_image(image_id)
     if image is None:
         return None
     return image["IMAGE"]["STATE"]
