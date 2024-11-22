@@ -80,6 +80,7 @@ def first_phase() -> None:
     """
     The first phase of the 6G-SANDBOX installation
     """
+    msg("info", "FIRST PHASE")
     github_sites_https = get_env_var("GITHUB_SITES_HTTPS")
     sites_path = save_temp_directory("6G-Sandbox-Sites")
     git_clone(github_sites_https, sites_path)
