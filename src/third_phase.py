@@ -1,7 +1,7 @@
 from src.utils.dotenv import get_env_var
 from src.utils.interactive import ask_text, ask_checkbox
 from src.utils.logs import msg
-from src.utils.one import get_onemarketplaces, create_group, create_user, assign_user_group
+from src.utils.one import get_onemarket, create_group, create_user, assign_user_group
 
 def _select_appliances(marketplace_name: str) -> None:
     """
@@ -9,7 +9,7 @@ def _select_appliances(marketplace_name: str) -> None:
     
     :param marketplace_name: the name of the marketplace, ``str``
     """
-    appliances = get_onemarketplaces()
+    appliances = get_onemarket()
     appliances_list = []
     for appliance in appliances["MARKETPLACEAPP_POOL"]["MARKETPLACEAPP"]:
         if appliances["MARKETPLACEAPP_POOL"]["MARKETPLACEAPP"]["MARKETPLACE"] == marketplace_name:

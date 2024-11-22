@@ -27,17 +27,6 @@ def get_users() -> dict:
         msg("error", "Could not list the users")
     return loads_json(data=res["stdout"])
 
-def get_onemarketplaces() -> dict:
-    """
-    Get the list of marketplaces in OpenNebula
-    
-    :return: the list of marketplaces, ``dict``
-    """
-    res = run_command("onemarketplace list -j")
-    if res["rc"] != 0:
-        msg("error", "Could not list the marketplaces")
-    return loads_json(data=res["stdout"])
-
 def get_vms() -> dict:
     """
     Get the list of VMs in OpenNebula
@@ -99,7 +88,6 @@ def check_one_health() -> None:
     Check the health of OpenNebula
     """
     msg("info", "[OPENNEBULA HEALTH CHECK]")
-    get_onemarketplaces()
     get_groups()
     get_users()
     get_vms()
