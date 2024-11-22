@@ -15,7 +15,7 @@ def _add_appliances_from_marketplace(markeplace_id: int, appliances: list, sixg_
     :param jenkins_user: the name of the Jenkins user, ``str``
     """
     for appliance_name in appliances:
-        if not get_local_image(appliance_name):
+        if get_local_image(appliance_name) is not None:
             msg("info", f"Appliance {appliance_name} not present, exporting...")
             onedatastores = get_onedatastores()
             datastore = ask_select("Select the datastore where you want to store the image", onedatastores)
@@ -35,7 +35,7 @@ def third_phase(sixg_sandbox_group: str, jenkins_user: str) -> None:
     marketplace_description = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_DESCRIPTION")
     marketplace_endpoint = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_ENDPOINT")
     marketplace = get_onemarket(marketplace_name=marketplace_name)
-    if not marketplace:
+    if marketplace is not None:
         msg("info", f"Marketplace {marketplace_name} not present, adding...")
         _ = add_marketplace(marketplace_name, marketplace_description, marketplace_endpoint)
         force_fast_marketplace_monitoring = get_env_var("FORCE_FAST_MARKETPLACE_MONITORING")
