@@ -1,126 +1,32 @@
-import os
-import re
-
-from textwrap import dedent
 from time import sleep
 
-from src.zero_phase import check_one_health
 from src.utils.dotenv import get_env_var
-from src.utils.cli import run_command
-from src.utils.file import load_file, loads_json, save_file
 from src.utils.logs import msg
-from src.utils.temp import save_temp_file
-
-def _find_marketplace_id(marketplace_name: str, marketplace_endpoint: str) -> str:
-    """
-    Check if the 6G-SANDBOX marketplace is already present in the OpenNebula installation
-    
-    :param marketplace_name: the name of the marketplace, ``str``
-    :param marketplace_endpoint: the endpoint of the marketplace, ``str``
-    :return: the ID of the marketplace if it is present, ``str``
-    """
-    msg("info", "[6G-SANDBOX MARKETPLACE CHECK]")
-    res = run_command("onemarket list -j")
-    if res["rc"] != 0:
-        msg("error", "Could not list the marketplaces")
-    marketplaces = loads_json(data=res["stdout"])
-    marketplace_id = None
-    for marketplace in marketplaces["MARKETPLACE_POOL"]["MARKETPLACE"]:
-        if marketplace["NAME"] == marketplace_name and marketplace["TEMPLATE"]["ENDPOINT"] == marketplace_endpoint:
-            msg("info", "6G-SANDBOX marketplace already present with ID " + marketplace["ID"])
-            marketplace_id = marketplace["ID"]
-            break
-    return marketplace_id
-
-def _add_sandbox_marketplace(marketplace_name: str, marketplace_endpoint: str) -> str:
-    """
-    Add the 6G-SANDBOX marketplace to the OpenNebula installation
-    
-    :param marketplace_name: the name of the marketplace, ``str``
-    :param marketplace_endpoint: the endpoint of the marketplace, ``str``
-    :return: the ID of the marketplace, ``str``
-    """
-    marketplace_content = dedent(f"""
-        NAME = {marketplace_name}
-        DESCRIPTION = "6G-SANDBOX Appliance repository"
-        ENDPOINT = {marketplace_endpoint}
-        MARKET_MAD = one
-    """).strip()
-    marketplace_template_path = save_temp_file(data=marketplace_content, file_path="marketplace_template", mode="w", encoding="utf-8")
-    res = run_command(f"onemarket create {marketplace_template_path}")
-    if res["rc"] != 0:
-        msg("error", "The 6G-SANDBOX marketplace could not be registered. Please, review the marketplace_template file")
-    marketplace_id = res["stdout"].split()[1]
-    msg("info", f"6G-SANDBOX marketplace registered successfully with ID {marketplace_id}")
-    return marketplace_id
-
-def _is_marketplace_ready(marketplace_id: str) -> bool:
-    """
-    Check if the 6G-SANDBOX marketplace is ready to be used
-    
-    :param marketplace_id: the ID of the marketplace, ``str``
-    :return: whether the marketplace is ready, ``bool``
-    """
-    res = run_command(f"onemarket show -j {marketplace_id}")
-    if res["rc"] != 0:
-        msg("error", "Could not show the marketplace")
-    marketplace = loads_json(data=res["stdout"])
-    return marketplace["MARKETPLACE"]["MARKETPLACEAPPS"]
-
-def _set_marketplace_monitoring_interval(interval: int) -> int:
-    """
-    Set the monitoring interval of the marketplace
-    
-    :param interval: the interval in seconds, ``int``
-    :return: the old interval, ``int``
-    """
-    oned_config_path = os.path.join("/etc", "one", "oned.conf")
-    oned_conf = load_file(file_path=oned_config_path, mode="rt", encoding="utf-8")
-    pattern = r"^\s*MONITORING_INTERVAL_MARKET\s*=\s*\"?(\d+)\"?"
-    match = re.search(pattern, oned_conf, re.MULTILINE)
-    if match is None:
-        msg("error", "Could not find MONITORING_INTERVAL_MARKET in oned.conf")
-    old_interval = int(match.group(1))
-    updated_conf = re.sub(pattern, f"MONITORING_INTERVAL_MARKET = {interval}", oned_conf, flags=re.MULTILINE)
-    if old_interval is not None:
-        save_file(data=updated_conf, file_path=oned_config_path, mode="w", encoding="utf-8")
-        msg("info", f"Marketplace monitoring interval set to interval {interval}")
-    return old_interval
-
-def _restart_oned() -> None:
-    """
-    Restart the OpenNebula daemon
-    """
-    res = run_command("systemctl restart opennebula")
-    if res["rc"] != 0:
-        msg("error", "Could not restart the OpenNebula daemon")
-    msg("info", "OpenNebula daemon restarted")
+from src.utils.one import get_onemarket, add_marketplace, get_marketplace_monitoring_interval, update_marketplace_monitoring_interval, restart_one, check_one_health
 
 def second_phase() -> None:
-    """
-    The second phase of the 6G-SANDBOX deployment
-    """
     msg("info", "SECOND PHASE")
-    marketplace_name = get_env_var("OPENNEBULA_6G_SANDBOX_MARKETPLACE_NAME")
-    marketplace_endpoint = get_env_var("OPENNEBULA_6G_SANDBOX_MARKETPLACE_ENDPOINT")
-    marketplace_id = _find_marketplace_id(marketplace_name, marketplace_endpoint)
-    if not marketplace_id:
-        msg("info", "6G-SANDBOX marketplace not present, adding...")
-        marketplace_id = _add_sandbox_marketplace(marketplace_name, marketplace_endpoint)
-
-    if not _is_marketplace_ready(marketplace_id):
-        msg("info", "The 6G-SANDBOX marketplace is not ready...")
+    marketplace_name = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_NAME")
+    marketplace_description = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_DESCRIPTION")
+    marketplace_endpoint = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_ENDPOINT")
+    marketplace = get_onemarket(marketplace_name=marketplace_name)
+    if not marketplace:
+        msg("info", f"Marketplace {marketplace_name} not present, adding...")
+        _ = add_marketplace(marketplace_name, marketplace_description, marketplace_endpoint)
         force_fast_marketplace_monitoring = get_env_var("FORCE_FAST_MARKETPLACE_MONITORING")
-        if force_fast_marketplace_monitoring == "true":
-            msg("info", "Forcing fast marketplace monitoring...")
-            marketplace_interval = get_env_var("OPENNEBULA_6G_SANDBOX_MARKETPLACE_INTERVAL")
-            old_interval =_set_marketplace_monitoring_interval(interval=marketplace_interval)
-            _restart_oned()
-            sleep(marketplace_interval)
-            check_one_health()
-            _set_marketplace_monitoring_interval(interval=old_interval)
-            _restart_oned()
-            check_one_health()
-        else:
+        if force_fast_marketplace_monitoring == "false":
             msg("info", "Please, wait 600s for the marketplace to be ready...")
             sleep(600)
+        else:
+            msg("info", "Forcing fast marketplace monitoring...")
+            marketplace_interval = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_INTERVAL")
+            old_interval = get_marketplace_monitoring_interval()
+            update_marketplace_monitoring_interval(interval=marketplace_interval)
+            restart_one()
+            sleep(marketplace_interval)
+            check_one_health()
+            update_marketplace_monitoring_interval(interval=old_interval)
+            restart_one()
+            check_one_health()
+    else:
+        msg("info", f"Marketplace {marketplace_name} already present")
