@@ -35,7 +35,7 @@ def third_phase(sixg_sandbox_group: str, jenkins_user: str) -> None:
     sixg_sandbox_marketplace_description = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_DESCRIPTION")
     sixg_sandbox_marketplace_endpoint = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_ENDPOINT")
     sixg_sandbox_marketplace = get_onemarket(marketplace_name=sixg_sandbox_marketplace_name)
-    if sixg_sandbox_marketplace is not None:
+    if sixg_sandbox_marketplace is None:
         msg("info", f"Marketplace {sixg_sandbox_marketplace_name} not present, adding...")
         sixg_sandbox_marketplace_id = add_marketplace(sixg_sandbox_marketplace_name, sixg_sandbox_marketplace_description, sixg_sandbox_marketplace_endpoint)
         force_fast_marketplace_monitoring = get_env_var("FORCE_FAST_MARKETPLACE_MONITORING")
