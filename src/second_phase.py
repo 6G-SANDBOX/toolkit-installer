@@ -98,8 +98,9 @@ def second_phase() -> None:
     """
     The second phase of the 6G-SANDBOX deployment
     """
-    marketplace_name = get_env_var("OPENNEBULA_MARKETPLACE_NAME")
-    marketplace_endpoint = get_env_var("OPENNEBULA_MARKETPLACE_ENDPOINT")
+    marketplace_name = get_env_var("OPENNEBULA_6G_SANDBOX_MARKETPLACE_NAME")
+    marketplace_endpoint = get_env_var("OPENNEBULA_6G_SANDBOX_MARKETPLACE_ENDPOINT")
+    marketplace_interval = get_env_var("OPENNEBULA_6G_SANDBOX_MARKETPLACE_INTERVAL")
     marketplace_id = _find_marketplace_id(marketplace_name, marketplace_endpoint)
     if not marketplace_id:
         msg("info", "6G-SANDBOX marketplace not present, adding...")
@@ -108,8 +109,8 @@ def second_phase() -> None:
     if not _is_marketplace_ready(marketplace_id):
         msg("info", "The 6G-SANDBOX marketplace is not ready...")
         msg("info", "Forcing fast marketplace monitoring...")
-        new_interval = 10
-        _set_marketplace_monitoring_interval(interval=new_interval)
+        _set_marketplace_monitoring_interval(interval=marketplace_interval)
         _restart_oned()
-        sleep(new_interval)
+        sleep(marketplace_interval)
         check_one_health()
+        # FIX: me recomiendas cambiar el intervalo de la marketplace de nuevo?
