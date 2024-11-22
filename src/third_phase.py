@@ -61,8 +61,9 @@ def third_phase(sixg_sandbox_group: str, jenkins_user: str) -> None:
     opennebula_public_marketplace_id = get_onemarket(marketplace_name=opennebula_public_marketplace)["MARKETPLACE"]["ID"]
     opennebula_public_marketplace_appliances = get_appliances_marketplace(marketplace_id=opennebula_public_marketplace_id)
     opennebula_public_appliances_selected = ask_checkbox("Select the appliances you want to import from the OpenNebula Public Marketplace", opennebula_public_marketplace_appliances)
-    _add_appliances_from_marketplace(marketplace_id=opennebula_public_marketplace_id, appliances=opennebula_public_appliances_selected, sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user)
+    if opennebula_public_appliances_selected:
+        _add_appliances_from_marketplace(marketplace_id=opennebula_public_marketplace_id, appliances=opennebula_public_appliances_selected, sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user)
     sixg_sandbox_marketplace_appliances = get_appliances_marketplace(marketplace_id=sixg_sandbox_marketplace_id)
     sixg_sandbox_appliances_selected = ask_checkbox("Select the appliances you want to import from the 6G-SANDBOX Marketplace", sixg_sandbox_marketplace_appliances)
-    _add_appliances_from_marketplace(markeplace_id=sixg_sandbox_marketplace_id, appliances=sixg_sandbox_appliances_selected, sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user)
-    
+    if sixg_sandbox_appliances_selected:
+        _add_appliances_from_marketplace(markeplace_id=sixg_sandbox_marketplace_id, appliances=sixg_sandbox_appliances_selected, sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user)
