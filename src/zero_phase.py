@@ -62,7 +62,7 @@ def check_one_health() -> None:
     if res["rc"] != 0:
         msg("error", f"OpenNebula CLI healthcheck failed. Command: '{command}'")
 
-    command = "onemarketplace list"
+    command = "onemarket list"
     res = run_command(command)
     if res["rc"] != 0:
         msg("error", f"OpenNebula CLI healthcheck failed. Command: '{command}'")
