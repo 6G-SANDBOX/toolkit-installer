@@ -1,3 +1,4 @@
+import os
 import pyfiglet
 
 from src.utils.dotenv import load_dotenv_file, get_env_var
@@ -23,7 +24,8 @@ def check_user() -> None:
 
 def zero_phase() -> None:
     msg("info", "ZERO PHASE")
-    __version__ = loads_toml("pyproject.toml", "rt", "utf-8")["tool"]["poetry"]["version"]
+    pyproject_toml = os.path.join(os.getcwd(), "pyproject.toml")
+    __version__ = loads_toml(pyproject_toml, "rt", "utf-8")["tool"]["poetry"]["version"]
     load_dotenv_file()
     banner_message = get_env_var("BANNER_MESSAGE")
     _generate_banner(message=banner_message)
