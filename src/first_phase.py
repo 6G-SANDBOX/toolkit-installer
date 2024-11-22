@@ -15,15 +15,10 @@ def _create_site(sites_path: str) -> str:
     :param sites_path: the path to the sites repository, ``str``
     :return: the name of the site, ``str``
     """
-    site = ask_text(prompt="Enter the name of the site (mandatory insert value):", default="")
+    site = ask_text(prompt="Enter the name of the site:", default="", mandatory=True)
     sites = git_branches(sites_path)
-    while True:
-        if site in sites:
-            site = ask_text(prompt="Site already exists, enter a new name:", default="")
-        elif site == "":
-            site = ask_text(prompt="Site name cannot be empty, enter a new name:", default="")
-        else:
-            break
+    if site in sites:
+        site = ask_text(prompt="Site already exists, enter a new name:", default="", mandatory=True)
     return site
 
 def _update_site_config(site_core: str) -> dict:
@@ -79,13 +74,7 @@ def _insert_sites_token() -> str:
     
     :return: the token for the site, ``str``
     """
-    sites_token = ask_text(prompt="Enter the token for the site (mandatory insert value):", default="")
-    if sites_token == "":
-        while True:
-            sites_token = ask_text(prompt="Token cannot be empty, enter the token:", default="")
-            if sites_token != "":
-                break
-    return sites_token
+    return ask_text(prompt="Enter the token for the site (mandatory insert value):", default="", mandatory=True)
 
 def first_phase() -> None:
     """

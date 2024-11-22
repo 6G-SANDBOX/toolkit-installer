@@ -2,14 +2,21 @@ import questionary
 
 from typing import List, Optional
 
-def ask_text(prompt: str, default: Optional[str] = None) -> str:
+def ask_text(prompt: str, default: Optional[str] = None, mandatory: bool = False) -> str:
     """
-    Prompt the user for text input
+    Prompt the user for text input with an optional mandatory flag
 
     :param prompt: the question to display, ``str``
     :param default: default value if the user presses Enter, ``Optional[str]``
+    :param mandatory: if True, input is required, ``bool``
     :return: user input, ``str``
     """
+    if mandatory:
+        return questionary.text(
+            prompt,
+            default=default,
+            validate=lambda text: bool(text.strip()) or "This field is required"
+        ).ask()
     return questionary.text(prompt, default=default).ask()
 
 def ask_select(prompt: str, choices: List[str]) -> str:
