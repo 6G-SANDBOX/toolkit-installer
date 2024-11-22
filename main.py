@@ -13,10 +13,10 @@ try:
     first_phase()
     
     # PHASE 2
-    second_phase()
+    sixg_sandbox_group, jenkins_user = second_phase()
     
     # PHASE 3
-    third_phase()
+    third_phase(sixg_sandbox_group, jenkins_user)
     
     # PHASE 4
     fourth_phase()
