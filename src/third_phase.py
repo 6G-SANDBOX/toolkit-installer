@@ -26,7 +26,7 @@ def third_phase() -> None:
     The third phase of the 6G-SANDBOX deployment
     """
     msg("info", "THIRD PHASE")
-    default_sixg_sandbox_group = get_env_var("OPENNEBULA_6G_SANDBOX_GROUP")
+    default_sixg_sandbox_group = get_env_var("OPENNEBULA_SANDBOX_GROUP")
     sixg_sandbox_group = ask_text("Enter the name for the 6G-SANDBOX group:", default=default_sixg_sandbox_group, validate=True)
     sixg_sandbox_group_id = create_group(group_name=sixg_sandbox_group)
     default_jenkins_user = get_env_var("OPENNEBULA_JENKINS_USER")
