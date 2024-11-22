@@ -254,7 +254,7 @@ def get_onemarket(marketplace_name: str) -> dict:
     :return: the details of the market, ``dict``
     """
     msg("info", f"[GET {marketplace_name} MARKETPLACE]")
-    res = run_command(f"onemarket show {marketplace_name} -j")
+    res = run_command(f"onemarket show \"{marketplace_name}\" -j")
     if res["rc"] != 0:
         return None
     return loads_json(data=res["stdout"])
