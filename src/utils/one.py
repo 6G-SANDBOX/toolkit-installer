@@ -204,6 +204,8 @@ def get_state_image(image_name: str) -> str:
     :return: the status of the image, ``str``
     """
     image = get_local_image(image_name)
+    if image is None:
+        return None
     return image["IMAGE"]["STATE"]
 
 def chown_image(image_id: int, user_id: int, group_id: int) -> None:
