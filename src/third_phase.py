@@ -1,7 +1,7 @@
 from src.utils.dotenv import get_env_var
-from src.utils.interactive import ask_text, ask_checkbox
+from src.utils.interactive import ask_text, ask_checkbox, ask_password
 from src.utils.logs import msg
-from src.utils.one import get_onemarket, create_group, create_user, assign_user_group
+from src.utils.one import get_onemarkets, create_group, create_user, assign_user_group
 
 def _select_appliances(marketplace_name: str) -> None:
     """
@@ -9,7 +9,7 @@ def _select_appliances(marketplace_name: str) -> None:
     
     :param marketplace_name: the name of the marketplace, ``str``
     """
-    appliances = get_onemarket()
+    appliances = get_onemarkets()
     appliances_list = []
     for appliance in appliances["MARKETPLACEAPP_POOL"]["MARKETPLACEAPP"]:
         if appliances["MARKETPLACEAPP_POOL"]["MARKETPLACEAPP"]["MARKETPLACE"] == marketplace_name:
@@ -31,10 +31,10 @@ def third_phase() -> None:
     sixg_sandbox_group_id = create_group(group_name=sixg_sandbox_group)
     default_jenkins_user = get_env_var("OPENNEBULA_JENKINS_USER")
     jenkins_user = ask_text("Enter the username for the Jenkins user:", default=default_jenkins_user, validate=True)
-    jenkins_password = ask_text("Enter the password for the Jenkins user:", default="", validate=True)
+    jenkins_password = ask_password("Enter the password for the Jenkins user:", default="", validate=True)
     jenkins_user_id = create_user(username=jenkins_user, password=jenkins_password)
     assign_user_group(user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
-    # opennebula_marketplace = get_env_var("OPENNEBULA_MARKETPLACE")
+    # opennebula_marketplace = get_env_var("OPENNEBULA_PUBLIC_MARKETPLACE")
     # sixg_sandbox_marketplace = get_env_var("OPENNEBULA_6G_SANDBOX_MARKETPLACE_NAME")
-    # _select_appliances(opennebula_marketplace)
+    # _select_appliances(OPENNEBULA_PUBLIC_MARKETPLACE)
     # _select_appliances(sixg_sandbox_marketplace)
