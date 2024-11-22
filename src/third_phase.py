@@ -1,48 +1,69 @@
+from time import sleep
+
 from src.utils.dotenv import get_env_var
-from src.utils.interactive import ask_text, ask_checkbox, ask_password
 from src.utils.logs import msg
-from src.utils.one import get_onemarkets, get_group, create_group, get_user, create_user, assign_user_group
+from src.utils.interactive import ask_select, ask_checkbox
+from src.utils.one import get_onemarket, get_user, get_group, add_marketplace, get_marketplace_monitoring_interval, update_marketplace_monitoring_interval, restart_one, check_one_health, get_appliances_marketplace, get_local_image, get_onedatastores, get_onedatastore, export_image, get_state_image, chown_image, chown_template
 
-def _select_appliances(marketplace_name: str) -> None:
+def _add_appliances_from_marketplace(markeplace_id: int, appliances: list, sixg_sandbox_group: str, jenkins_user: str) -> None:
     """
-    Select the appliances from the marketplace
-    
-    :param marketplace_name: the name of the marketplace, ``str``
-    """
-    appliances = get_onemarkets()
-    appliances_list = []
-    for appliance in appliances["MARKETPLACEAPP_POOL"]["MARKETPLACEAPP"]:
-        if appliances["MARKETPLACEAPP_POOL"]["MARKETPLACEAPP"]["MARKETPLACE"] == marketplace_name:
-            appliances_list.append(appliance["NAME"])
-    selected_appliances = ask_checkbox("Select the appliances to deploy:", choices=appliances_list)
-    # TODO: esperar a que los appliances estén disponibles
-    # wait_for_image
-    # TODO: asignar el appliance al usuario de Jenkins y al grupo de 6G-SANDBOX
-    # onetemplate chown 
-    # pueda usar la vnet default al usuario de Jenkins y al grupo de 6G-SANDBOX
+    Add appliances from a marketplace to the local OpenNebula
 
-def third_phase() -> None:
+    :param markeplace_id: the ID of the marketplace, ``int``
+    :param appliances: the list of appliances to add, ``list``
+    :param sixg_sandbox_group: the name of the 6G-SANDBOX group, ``str``
+    :param jenkins_user: the name of the Jenkins user, ``str``
     """
-    The third phase of the 6G-SANDBOX deployment
-    """
+    for appliance_name in appliances:
+        if not get_local_image(appliance_name):
+            msg("info", f"Appliance {appliance_name} not present, exporting...")
+            onedatastores = get_onedatastores()
+            datastore = ask_select("Select the datastore where you want to store the image", onedatastores)
+            datastore_id = get_onedatastore(datastore)["DATASTORE"]["ID"]
+            image_id, template_id = export_image(marketplace_id=markeplace_id, appliance_name=appliance_name, datastore_id=datastore_id)
+            while get_state_image(appliance_name) != "1":
+                msg("info", "Please, wait 10s for the image to be ready...")
+                sleep(10)
+            jenkins_user_id = get_user(username=jenkins_user)["USER"]["ID"]
+            sixg_sandbox_group_id = get_group(group_name=sixg_sandbox_group)["GROUP"]["ID"]
+            chown_image(image_id=image_id, user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
+            chown_template(template_id=template_id, user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
+
+def third_phase(sixg_sandbox_group: str, jenkins_user: str) -> None:
     msg("info", "THIRD PHASE")
-    default_sandbox_group = get_env_var("OPENNEBULA_SANDBOX_GROUP")
-    sixg_sandbox_group = ask_text("Enter the name for the 6G-SANDBOX group:", default=default_sandbox_group, validate=True)
-    sixg_sandbox_group_data = get_group(group_name=sixg_sandbox_group)
-    while sixg_sandbox_group_data is not None:
-        sixg_sandbox_group = ask_text("Group already exists. Enter new name for the 6G-SANDBOX group:", default=default_sandbox_group, validate=True)
-        sixg_sandbox_group_data = get_group(group_name=sixg_sandbox_group)
-    sixg_sandbox_group_id = create_group(group_name=sixg_sandbox_group)
-    default_jenkins_user = get_env_var("OPENNEBULA_JENKINS_USER")
-    jenkins_user = ask_text("Enter the username for the Jenkins user:", default=default_jenkins_user, validate=True)
-    jenkins_user_data = get_user(username=jenkins_user)
-    while jenkins_user_data is not None:
-        jenkins_user = ask_text("User already exists. Enter new username for the Jenkins user:", default=default_jenkins_user, validate=True)
-        jenkins_user_data = get_user(username=jenkins_user)
-    jenkins_password = ask_password("Enter the password for the Jenkins user:", validate=True)
-    jenkins_user_id = create_user(username=jenkins_user, password=jenkins_password)
-    assign_user_group(user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
-    # opennebula_marketplace = get_env_var("OPENNEBULA_PUBLIC_MARKETPLACE")
-    # sixg_sandbox_marketplace = get_env_var("OPENNEBULA_6G_SANDBOX_MARKETPLACE_NAME")
-    # _select_appliances(OPENNEBULA_PUBLIC_MARKETPLACE)
-    # _select_appliances(sixg_sandbox_marketplace)
+    marketplace_name = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_NAME")
+    marketplace_description = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_DESCRIPTION")
+    marketplace_endpoint = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_ENDPOINT")
+    marketplace = get_onemarket(marketplace_name=marketplace_name)
+    if not marketplace:
+        msg("info", f"Marketplace {marketplace_name} not present, adding...")
+        _ = add_marketplace(marketplace_name, marketplace_description, marketplace_endpoint)
+        force_fast_marketplace_monitoring = get_env_var("FORCE_FAST_MARKETPLACE_MONITORING")
+        if force_fast_marketplace_monitoring == "false":
+            msg("info", "Please, wait 600s for the marketplace to be ready...")
+            sleep(600)
+        else:
+            msg("info", "Forcing fast marketplace monitoring...")
+            marketplace_interval = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_INTERVAL")
+            old_interval = get_marketplace_monitoring_interval()
+            update_marketplace_monitoring_interval(interval=marketplace_interval)
+            restart_one()
+            sleep(marketplace_interval)
+            check_one_health()
+            update_marketplace_monitoring_interval(interval=old_interval)
+            restart_one()
+            check_one_health()
+    else:
+        msg("info", f"Marketplace {marketplace_name} already present")
+
+    opennebula_public_marketplace = get_env_var("OPENNEBULA_PUBLIC_MARKETPLACE")
+    sixg_sandbox_marketplace = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_NAME")
+    opennebula_public_marketplace_id = get_onemarket(marketplace_name=opennebula_public_marketplace)["MARKETPLACE"]["ID"]
+    sixg_sandbox_marketplace_id = get_onemarket(marketplace_name=sixg_sandbox_marketplace)["MARKETPLACE"]["ID"]
+    opennebula_public_marketplace_appliances = get_appliances_marketplace(marketplace_id=opennebula_public_marketplace_id)
+    opennebula_public_appliances_selected = ask_checkbox("Select the appliances you want to import from the OpenNebula Public Marketplace", opennebula_public_marketplace_appliances)
+    _add_appliances_from_marketplace(marketplace_id=opennebula_public_marketplace_id, appliances=opennebula_public_appliances_selected, sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user)
+    sixg_sandbox_marketplace_appliances = get_appliances_marketplace(marketplace_id=sixg_sandbox_marketplace_id)
+    sixg_sandbox_appliances_selected = ask_checkbox("Select the appliances you want to import from the 6G-SANDBOX Marketplace", sixg_sandbox_marketplace_appliances)
+    _add_appliances_from_marketplace(markeplace_id=sixg_sandbox_marketplace_id, appliances=sixg_sandbox_appliances_selected, sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user)
+    
