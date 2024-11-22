@@ -307,11 +307,11 @@ def update_marketplace_monitoring_interval(interval: int) -> None:
     msg("info", f"Marketplace monitoring interval set to interval {interval}")
 
 ## APPLIANCE MANAGEMENT ##
-def get_appliances_oneadmin() -> list:
+def get_appliances_oneadmin() -> dict:
     """
     Get the appliances from the oneadmin user in OpenNebula
         
-    :return: the appliances, ``list``
+    :return: the appliances, ``dict``
     """
     msg("info", "[GET APPLIANCES FROM ONEADMIN USER]")
     oneadmin_id = int(get_user(username="oneadmin")["USER"]["ID"])
