@@ -21,6 +21,7 @@ def _add_appliances_from_marketplace(sixg_sandbox_group: str, jenkins_user: str,
             datastore = ask_select("Select the datastore where you want to store the image", onedatastores)
             datastore_id = get_onedatastore(datastore)["DATASTORE"]["ID"]
             image_id, template_id = export_image(marketplace_id=marketplace_id, appliance_name=appliance_name, datastore_id=datastore_id)
+            sleep(5)
             while get_state_image(appliance_name) != "1":
                 msg("info", "Please, wait 10s for the image to be ready...")
                 sleep(10)
@@ -67,3 +68,4 @@ def third_phase(sixg_sandbox_group: str, jenkins_user: str) -> None:
     sixg_sandbox_appliances_selected = ask_checkbox("Select the appliances you want to import from the 6G-SANDBOX Marketplace", sixg_sandbox_marketplace_appliances)
     if sixg_sandbox_appliances_selected:
         _add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_id=sixg_sandbox_marketplace_id, appliances=sixg_sandbox_appliances_selected)
+    # Añadir los apliances de los componentes que se han añadido al repositorio de sites
