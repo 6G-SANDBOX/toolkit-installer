@@ -1,6 +1,6 @@
 import pyfiglet
 
-from src.utils.dotenv import load_dotenv_file
+from src.utils.dotenv import load_dotenv_file, get_env_var
 from src.utils.cli import run_command
 from src.utils.file import loads_toml
 from src.utils.logs import msg
@@ -38,17 +38,15 @@ def _check_user() -> None:
         msg("error", "Could not run woami command for user checking")
     if res["stdout"] != "root":
         stdout = res["stdout"]
-        msg("error", f"Current user: {stdout}. Please, run this script as root. The script requires root acces in order to modify /etc/one/oned.conf configuration file.")
+        msg("error", f"Current user: {stdout}. Please, run this script as root. The script requires root acces in order to modify /etc/one/oned.conf configuration file")
 
 def zero_phase() -> None:
-    """
-    The zero phase of the 6G-SANDBOX deployment
-    """
     msg("info", "ZERO PHASE")
     _update_ubuntu_package()
     __version__ = loads_toml("pyproject.toml", "rt", "utf-8")["tool"]["poetry"]["version"]
     load_dotenv_file()
-    _generate_banner(message="6G-SANDBOX TOOLKIT")
+    banner_message = get_env_var("BANNER_MESSAGE")
+    _generate_banner(message=banner_message)
     _generate_banner(message=__version__)
     _install_ansible_core()
     _check_user()
