@@ -63,28 +63,19 @@ def _update_site_config(site_core: str) -> dict:
         else:
             new_value = ask_text(
                 f"Current value of '{key}' is '{value}' (or press Enter to use default value):",
-                default=str(value)
+                default=str(value),
+                validate=True
             )
             updated_data[key] = value if new_value == "" else new_value
     return updated_data
 
-def _insert_sites_token() -> str:
-    """
-    Insert the token for the site
-    
-    :return: the token for the site, ``str``
-    """
-    return ask_text(prompt="Enter the token for the site (mandatory insert value):", default="", validate=True)
-
 def first_phase() -> None:
-    """
-    The first phase of the 6G-SANDBOX installation
-    """
     msg("info", "FIRST PHASE")
     github_sites_https = get_env_var("GITHUB_SITES_HTTPS")
-    sites_path = save_temp_directory("6G-Sandbox-Sites")
+    sites_directory = get_env_var("SITES_DIRECTORY")
+    sites_path = save_temp_directory(sites_directory)
     git_clone(github_sites_https, sites_path)
-    msg("info", "Repository 6G-Sandbox-Sites cloned successfully")
+    msg("info", f"Repository {sites_directory} cloned successfully")
     site = _create_site(sites_path)
     msg("info", f"Site name: '{site}'")
     git_switch(sites_path, site)
@@ -100,7 +91,7 @@ def first_phase() -> None:
     # TODO: Implement the case when need add _new_components(current_config)
     save_yaml(data=current_config, file_path=site_core_path)
     msg("info", f"Site configuration updated successfully")
-    sites_token = _insert_sites_token()
+    sites_token = ask_text(prompt="Enter the token for the site (mandatory insert value):", default="", validate=True)
     msg("info", f"Token '{sites_token}' generated successfully")
     token_path = save_temp_file(data=sites_token, file_path="sites_token.txt", mode="w", encoding="utf-8")
     msg("info", f"Token saved successfully in '{token_path}'")
