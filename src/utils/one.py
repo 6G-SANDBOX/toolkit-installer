@@ -314,7 +314,7 @@ def get_appliances_oneadmin() -> list:
     :return: the appliances, ``list``
     """
     msg("info", "[GET APPLIANCES FROM ONEADMIN USER]")
-    oneadmin_id = get_user(username="oneadmin")["USER"]["ID"]
+    oneadmin_id = int(get_user(username="oneadmin")["USER"]["ID"])
     res = run_command(f"onemarketapp list {oneadmin_id} -j")
     if res["rc"] != 0:
         return None

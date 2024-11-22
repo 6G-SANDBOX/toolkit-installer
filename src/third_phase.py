@@ -24,7 +24,7 @@ def _add_appliances_from_marketplace(markeplace_id: int, appliances: list, sixg_
             while get_state_image(appliance_name) != "1":
                 msg("info", "Please, wait 10s for the image to be ready...")
                 sleep(10)
-            jenkins_user_id = get_user(username=jenkins_user)["USER"]["ID"]
+            jenkins_user_id = int(get_user(username=jenkins_user)["USER"]["ID"])
             sixg_sandbox_group_id = get_group(group_name=sixg_sandbox_group)["GROUP"]["ID"]
             chown_image(image_id=image_id, user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
             chown_template(template_id=template_id, user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
