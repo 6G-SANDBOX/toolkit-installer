@@ -28,6 +28,7 @@ def get_vms() -> dict:
         msg("error", "Could not list the VMs")
     return loads_json(data=res["stdout"])
 
+## DATASTORE MANAGEMENT ##
 def get_onedatastores() -> dict:
     """
     Get the list of datastores in OpenNebula
@@ -38,6 +39,20 @@ def get_onedatastores() -> dict:
     res = run_command("onedatastore list -j")
     if res["rc"] != 0:
         msg("error", "Could not list the datastores")
+    onedatastores = loads_json(data=res["stdout"])
+    return [datastore["NAME"] for datastore in onedatastores["DATASTORE_POOL"]["DATASTORE"]]
+
+def get_onedatastore(datastore_name: str) -> dict:
+    """
+    Get the details of a datastore in OpenNebula
+    
+    :param datastore_name: the name of the datastore, ``str``
+    :return: the details of the datastore, ``dict``
+    """
+    msg("info", f"[GET {datastore_name} DATASTORE]")
+    res = run_command(f"onedatastore show {datastore_name} -j")
+    if res["rc"] != 0:
+        return None
     return loads_json(data=res["stdout"])
 
 def get_oneflows() -> dict:
@@ -155,12 +170,75 @@ def assign_user_group(user_id, group_id) -> None:
     if res["rc"] != 0:
         msg("error", "Could not assign the user to the group")
 
+## IMAGES MANAGEMENT ##
+def get_local_images() -> dict:
+    """
+    Get the list of local images in OpenNebula
+    
+    :return: the list of images, ``dict``
+    """
+    msg("info", "[GET LOCAL IMAGES]")
+    res = run_command("oneimage list -j")
+    if res["rc"] != 0:
+        msg("error", "Could not list the images")
+    return loads_json(data=res["stdout"])
+
+def get_local_image(image_name: str) -> dict:
+    """
+    Get the details of a local image in OpenNebula
+    
+    :param image_name: the name of the image, ``str``
+    :return: the details of the image, ``dict``
+    """
+    msg("info", f"[GET {image_name} IMAGE]")
+    res = run_command(f"oneimage show {image_name} -j")
+    if res["rc"] != 0:
+        return None
+    return loads_json(data=res["stdout"])
+
+def get_state_image(image_name: str) -> str:
+    """
+    Get the status of a local image in OpenNebula
+    
+    :param image_name: the name of the image, ``str``
+    :return: the status of the image, ``str``
+    """
+    image = get_local_image(image_name)
+    return image["IMAGE"]["STATE"]
+
+def chown_image(image_id: int, user_id: int, group_id: int) -> None:
+    """
+    Change the owner of an image in OpenNebula
+    
+    :param image_id: the ID of the image, ``int``
+    :param user_id: the ID of the user, ``int``
+    :param group_id: the ID of the group, ``int``
+    """
+    msg("info", f"[CHANGE OWNER OF IMAGE {image_id}]")
+    res = run_command(f"oneimage chown {image_id} {user_id} {group_id}")
+    if res["rc"] != 0:
+        msg("error", "Could not change the owner of the image")
+        
+## TEMPLATE MANAGEMENT ##
+def chown_template(template_id: int, user_id: int, group_id: int) -> None:
+    """
+    Change the owner of a template in OpenNebula
+    
+    :param template_id: the ID of the template, ``int``
+    :param user_id: the ID of the user, ``int``
+    :param group_id: the ID of the group, ``int``
+    """
+    msg("info", f"[CHANGE OWNER OF TEMPLATE {template_id}]")
+    res = run_command(f"onetemplate chown {template_id} {user_id} {group_id}")
+    if res["rc"] != 0:
+        msg("error", "Could not change the owner of the template")
+
 ## MARKETPLACE MANAGEMENT ##
 def get_onemarkets() -> dict:
     """
     Get the list of market in OpenNebula
     
-    :return: the list of market, ``dict``
+    :return: the list of marketplaces, ``dict``
     """
     msg("info", "[GET MARKETPLACES]")
     res = run_command("onemarket list -j")
@@ -170,7 +248,7 @@ def get_onemarkets() -> dict:
 
 def get_onemarket(marketplace_name: str) -> dict:
     """
-    Get the details of a market in OpenNebula
+    Get the details of a marketplace in OpenNebula
     
     :param marketplace_name: the name of the market, ``str``
     :return: the details of the market, ``dict``
@@ -178,12 +256,8 @@ def get_onemarket(marketplace_name: str) -> dict:
     msg("info", f"[GET {marketplace_name} MARKETPLACE]")
     res = run_command(f"onemarket show {marketplace_name} -j")
     if res["rc"] != 0:
-        msg("error", f"Could not show the {marketplace_name} market")
+        return None
     return loads_json(data=res["stdout"])
-
-def get_appliances_marketplace(name: str) -> dict:
-    # TODO: implement this function
-    pass
 
 def add_marketplace(marketplace_name: str, marketplace_descriptrion: str, marketplace_endpoint: str) -> int:
     """
@@ -231,6 +305,37 @@ def update_marketplace_monitoring_interval(interval: int) -> None:
     updated_conf = re.sub(pattern, f"MONITORING_INTERVAL_MARKET = {interval}", oned_conf, flags=re.MULTILINE)
     save_file(data=updated_conf, file_path=oned_conf_path, mode="w", encoding="utf-8")
     msg("info", f"Marketplace monitoring interval set to interval {interval}")
+
+## APPLIANCE MANAGEMENT ##
+def get_appliances_marketplace(marketplace_id: int) -> list:
+    """
+    Get the appliances from a marketplace in OpenNebula
+    
+    :param marketplace_id: the id of the market, ``int``
+    :return: the appliances, ``list``
+    """
+    msg("info", f"[GET APPLIANCES FROM {marketplace_id} MARKETPLACE]")
+    res = run_command(f"onemarketapp list {marketplace_id} -j")
+    if res["rc"] != 0:
+        return None
+    data = loads_json(data=res["stdout"])
+    return [app["NAME"] for app in data["MARKETPLACEAPP_POOL"]["MARKETPLACEAPP"]]
+
+def export_image(marketplace_id: int, appliance_name: str, datastore_id: int) -> None:
+    """
+    Export an image from OpenNebula
+    
+    :param marketplace_id: the id of the market, ``int``
+    :param appliance_name: the name of the image, ``str``
+    :param datastore_id: the datastore where the image is stored, ``int``
+    """
+    msg("info", f"[EXPORT {appliance_name} IMAGE]")
+    res = run_command(f"onemarketapp export {marketplace_id} {appliance_name} -d {datastore_id} -j")
+    if res["rc"] != 0:
+        msg("error", "Could not export the image")
+    image_id = re.search(r"IMAGE\s+ID:\s*(\d+)", res["stdout"]).group(1)
+    template_id = re.search(r"VMTEMPLATE\s+ID:\s*(\d+)", res["stdout"]).group(1)
+    return image_id, template_id
 
 ## SERVICE MANAGEMENT ##
 def restart_one() -> None:
