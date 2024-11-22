@@ -67,11 +67,12 @@ def _is_marketplace_ready(marketplace_id: str) -> bool:
     marketplace = loads_json(data=res["stdout"])
     return marketplace["MARKETPLACE"]["MARKETPLACEAPPS"]
 
-def _set_marketplace_monitoring_interval(interval: int) -> None:
+def _set_marketplace_monitoring_interval(interval: int) -> int:
     """
     Set the monitoring interval of the marketplace
     
     :param interval: the interval in seconds, ``int``
+    :return: the old interval, ``int``
     """
     oned_config_path = os.path.join("/etc", "one", "oned.conf")
     oned_conf = load_file(file_path=oned_config_path, mode="rt", encoding="utf-8")
@@ -79,11 +80,12 @@ def _set_marketplace_monitoring_interval(interval: int) -> None:
     match = re.search(pattern, oned_conf, re.MULTILINE)
     if match is None:
         msg("error", "Could not find MONITORING_INTERVAL_MARKET in oned.conf")
-    old_interval = match.group(1)
+    old_interval = int(match.group(1))
     updated_conf = re.sub(pattern, f"MONITORING_INTERVAL_MARKET = {interval}", oned_conf, flags=re.MULTILINE)
     if old_interval is not None:
         save_file(data=updated_conf, file_path=oned_config_path, mode="w", encoding="utf-8")
         msg("info", f"Marketplace monitoring interval set to interval {interval}")
+    return old_interval
 
 def _restart_oned() -> None:
     """
@@ -98,19 +100,27 @@ def second_phase() -> None:
     """
     The second phase of the 6G-SANDBOX deployment
     """
+    msg("info", "SECOND PHASE")
     marketplace_name = get_env_var("OPENNEBULA_6G_SANDBOX_MARKETPLACE_NAME")
     marketplace_endpoint = get_env_var("OPENNEBULA_6G_SANDBOX_MARKETPLACE_ENDPOINT")
-    marketplace_interval = get_env_var("OPENNEBULA_6G_SANDBOX_MARKETPLACE_INTERVAL")
     marketplace_id = _find_marketplace_id(marketplace_name, marketplace_endpoint)
     if not marketplace_id:
         msg("info", "6G-SANDBOX marketplace not present, adding...")
         marketplace_id = _add_sandbox_marketplace(marketplace_name, marketplace_endpoint)
-    
+
     if not _is_marketplace_ready(marketplace_id):
         msg("info", "The 6G-SANDBOX marketplace is not ready...")
-        msg("info", "Forcing fast marketplace monitoring...")
-        _set_marketplace_monitoring_interval(interval=marketplace_interval)
-        _restart_oned()
-        sleep(marketplace_interval)
-        check_one_health()
-        # FIX: me recomiendas cambiar el intervalo de la marketplace de nuevo?
+        force_fast_marketplace_monitoring = get_env_var("FORCE_FAST_MARKETPLACE_MONITORING")
+        if force_fast_marketplace_monitoring == "true":
+            msg("info", "Forcing fast marketplace monitoring...")
+            marketplace_interval = get_env_var("OPENNEBULA_6G_SANDBOX_MARKETPLACE_INTERVAL")
+            old_interval =_set_marketplace_monitoring_interval(interval=marketplace_interval)
+            _restart_oned()
+            sleep(marketplace_interval)
+            check_one_health()
+            _set_marketplace_monitoring_interval(interval=old_interval)
+            _restart_oned()
+            check_one_health()
+        else:
+            msg("info", "Please, wait 600s for the marketplace to be ready...")
+            sleep(600)
