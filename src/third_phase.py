@@ -44,7 +44,7 @@ def third_phase(sixg_sandbox_group: str, jenkins_user: str) -> None:
             sleep(600)
         else:
             msg("info", "Forcing fast marketplace monitoring...")
-            marketplace_interval = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_INTERVAL")
+            marketplace_interval = int(get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_INTERVAL"))
             old_interval = get_marketplace_monitoring_interval()
             update_marketplace_monitoring_interval(interval=marketplace_interval)
             restart_one()
