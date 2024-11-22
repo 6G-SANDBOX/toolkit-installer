@@ -1,32 +1,25 @@
-from time import sleep
-
 from src.utils.dotenv import get_env_var
+from src.utils.interactive import ask_text, ask_password
 from src.utils.logs import msg
-from src.utils.one import get_onemarket, add_marketplace, get_marketplace_monitoring_interval, update_marketplace_monitoring_interval, restart_one, check_one_health
+from src.utils.one import get_group, create_group, get_user, create_user, assign_user_group
 
 def second_phase() -> None:
     msg("info", "SECOND PHASE")
-    marketplace_name = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_NAME")
-    marketplace_description = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_DESCRIPTION")
-    marketplace_endpoint = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_ENDPOINT")
-    marketplace = get_onemarket(marketplace_name=marketplace_name)
-    if not marketplace:
-        msg("info", f"Marketplace {marketplace_name} not present, adding...")
-        _ = add_marketplace(marketplace_name, marketplace_description, marketplace_endpoint)
-        force_fast_marketplace_monitoring = get_env_var("FORCE_FAST_MARKETPLACE_MONITORING")
-        if force_fast_marketplace_monitoring == "false":
-            msg("info", "Please, wait 600s for the marketplace to be ready...")
-            sleep(600)
-        else:
-            msg("info", "Forcing fast marketplace monitoring...")
-            marketplace_interval = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_INTERVAL")
-            old_interval = get_marketplace_monitoring_interval()
-            update_marketplace_monitoring_interval(interval=marketplace_interval)
-            restart_one()
-            sleep(marketplace_interval)
-            check_one_health()
-            update_marketplace_monitoring_interval(interval=old_interval)
-            restart_one()
-            check_one_health()
-    else:
-        msg("info", f"Marketplace {marketplace_name} already present")
+    default_sandbox_group = get_env_var("OPENNEBULA_SANDBOX_GROUP")
+    sixg_sandbox_group = ask_text("Enter the name for the 6G-SANDBOX group:", default=default_sandbox_group, validate=True)
+    sixg_sandbox_group_data = get_group(group_name=sixg_sandbox_group)
+    while not sixg_sandbox_group_data:
+        sixg_sandbox_group = ask_text("Group already exists. Enter new name for the 6G-SANDBOX group:", default=default_sandbox_group, validate=True)
+        sixg_sandbox_group_data = get_group(group_name=sixg_sandbox_group)
+    sixg_sandbox_group_id = create_group(group_name=sixg_sandbox_group)
+    default_jenkins_user = get_env_var("OPENNEBULA_JENKINS_USER")
+    jenkins_user = ask_text("Enter the username for the Jenkins user:", default=default_jenkins_user, validate=True)
+    jenkins_user_data = get_user(username=jenkins_user)
+    while not jenkins_user_data:
+        jenkins_user = ask_text("User already exists. Enter new username for the Jenkins user:", default=default_jenkins_user, validate=True)
+        jenkins_user_data = get_user(username=jenkins_user)
+    jenkins_password = ask_password("Enter the password for the Jenkins user:", validate=True)
+    jenkins_user_id = create_user(username=jenkins_user, password=jenkins_password)
+    assign_user_group(user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
+    
+    return sixg_sandbox_group, jenkins_user
