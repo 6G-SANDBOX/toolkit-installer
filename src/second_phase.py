@@ -1,3 +1,6 @@
+import os
+import re
+
 from textwrap import dedent
 from time import sleep
 
@@ -64,24 +67,22 @@ def _is_marketplace_ready(marketplace_id: str) -> bool:
     marketplace = loads_json(data=res["stdout"])
     return marketplace["MARKETPLACE"]["MARKETPLACEAPPS"]
 
-def _set_marketplace_monitoring_interval(interval: int) -> int:
+def _set_marketplace_monitoring_interval(interval: int) -> None:
     """
     Set the monitoring interval of the marketplace
     
     :param interval: the interval in seconds, ``int``
-    :return: the old interval value, ``int``
     """
-    oned_conf = load_file(file_path="/etc/one/oned.conf", mode="rt", encoding="utf-8", as_lines=True)
-    lines = oned_conf.splitlines(keepends=True)
-    for i, line in enumerate(lines):
-        if line.startswith("MONITORING_INTERVAL_MARKET"):
-            old_interval = int(line.split('=')[1].strip())
-            lines[i] = f"MONITORING_INTERVAL_MARKET    = {interval}\n"
-            break
+    oned_config_path = os.path.join("/etc", "one", "oned.conf")
+    oned_conf = load_file(file_path=oned_config_path, mode="rt", encoding="utf-8")
+    match = re.search(r"^\s*MONITORING_INTERVAL_MARKET\s*=\s*\"([^\"]+)\"", oned_conf, re.MULTILINE)
+    if match is None:
+        msg("error", "Could not find MONITORING_INTERVAL_MARKET in oned.conf")
+    old_interval = match.group(1)
+    updated_conf = re.sub(r"^\s*MONITORING_INTERVAL_MARKET\s*=\s*\"([^\"]+)\"", f"MONITORING_INTERVAL_MARKET = {interval}", oned_conf, flags=re.MULTILINE)
     if old_interval is not None:
-        save_file(data=oned_conf, file_path="/etc/one/oned.conf", mode="w", encoding="utf-8", as_lines=True)
+        save_file(data=updated_conf, file_path=oned_config_path, mode="w", encoding="utf-8")
         msg("info", f"Marketplace monitoring interval set to interval {interval}")
-    return old_interval
 
 def _restart_oned() -> None:
     """
@@ -107,13 +108,7 @@ def second_phase() -> None:
         msg("info", "The 6G-SANDBOX marketplace is not ready...")
         msg("info", "Forcing fast marketplace monitoring...")
         new_interval = 10
-        old_interval = _set_marketplace_monitoring_interval(interval=new_interval)
-        if old_interval != new_interval:
-            _restart_oned()
-            sleep(new_interval)
-            check_one_health()
-            sleep(15)
-            _ = _set_marketplace_monitoring_interval(interval=old_interval)
-            _restart_oned()
-            sleep(10)
-            check_one_health()
+        _set_marketplace_monitoring_interval(interval=new_interval)
+        _restart_oned()
+        sleep(new_interval)
+        check_one_health()

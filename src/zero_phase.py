@@ -63,8 +63,8 @@ def check_one_health() -> None:
         msg("error", f"OpenNebula CLI healthcheck failed. Command: '{command}'")
 
     oned_config_path = os.path.join("/etc", "one", "oned.conf")
-    data = load_file(file_path=oned_config_path, mode="rt", encoding="utf-8")
-    match = re.search(r"^\s*ONEGATE_ENDPOINT\s*=\s*\"([^\"]+)\"", data, re.MULTILINE)
+    oned_conf = load_file(file_path=oned_config_path, mode="rt", encoding="utf-8")
+    match = re.search(r"^\s*ONEGATE_ENDPOINT\s*=\s*\"([^\"]+)\"", oned_conf, re.MULTILINE)
     if match is None:
         msg("error", "Could not find ONEGATE_ENDPOINT in oned.conf")
     onegate_endpoint = match.group(1)
