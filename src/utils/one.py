@@ -253,6 +253,6 @@ def check_one_health() -> None:
     get_vms()
     get_onedatastores()
     get_oneflows()
-    get_onemarket()
+    get_onemarkets()
     get_onegate()
     msg("info", "OpenNebula is healthy")
