@@ -343,7 +343,7 @@ def export_image(marketplace_id: int, appliance_name: str, datastore_id: int) ->
     :param datastore_id: the datastore where the image is stored, ``int``
     """
     msg("info", f"[EXPORT {appliance_name} IMAGE]")
-    res = run_command(f"onemarketapp export {marketplace_id} \"{appliance_name}\" -d {datastore_id} -j")
+    res = run_command(f"onemarketapp export {marketplace_id} \"{appliance_name}\" -d {datastore_id}")
     if res["rc"] != 0:
         msg("error", "Could not export the image")
     image_id = re.search(r"IMAGE\s+ID:\s*(\d+)", res["stdout"]).group(1)
