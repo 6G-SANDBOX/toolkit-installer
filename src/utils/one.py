@@ -307,19 +307,31 @@ def update_marketplace_monitoring_interval(interval: int) -> None:
     msg("info", f"Marketplace monitoring interval set to interval {interval}")
 
 ## APPLIANCE MANAGEMENT ##
-def get_appliances_marketplace(marketplace_id: int) -> list:
+def get_appliances_oneadmin() -> list:
+    """
+    Get the appliances from the oneadmin user in OpenNebula
+        
+    :return: the appliances, ``list``
+    """
+    msg("info", "[GET APPLIANCES FROM ONEADMIN USER]")
+    oneadmin_id = get_user(username="oneadmin")["USER"]["ID"]
+    res = run_command(f"onemarketapp list {oneadmin_id} -j")
+    if res["rc"] != 0:
+        return None
+    return loads_json(data=res["stdout"])
+
+def get_appliances_marketplace(marketplace_id: str) -> list:
     """
     Get the appliances from a marketplace in OpenNebula
     
-    :param marketplace_id: the id of the market, ``int``
+    :param marketplace_id: the ID of the market, ``str``
     :return: the appliances, ``list``
     """
     msg("info", f"[GET APPLIANCES FROM {marketplace_id} MARKETPLACE]")
-    res = run_command(f"onemarketapp list {marketplace_id} -j")
-    if res["rc"] != 0:
+    oneadmin_appliances = get_appliances_oneadmin()
+    if oneadmin_appliances is None:
         return None
-    data = loads_json(data=res["stdout"])
-    return [app["NAME"] for app in data["MARKETPLACEAPP_POOL"]["MARKETPLACEAPP"]]
+    return [app["NAME"] for app in oneadmin_appliances if app["MARKETPLACEAPP"]["MARKETPLACE_ID"] == marketplace_id]
 
 def export_image(marketplace_id: int, appliance_name: str, datastore_id: int) -> None:
     """

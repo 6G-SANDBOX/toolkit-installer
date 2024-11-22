@@ -48,7 +48,7 @@ def third_phase(sixg_sandbox_group: str, jenkins_user: str) -> None:
             old_interval = get_marketplace_monitoring_interval()
             update_marketplace_monitoring_interval(interval=marketplace_interval)
             restart_one()
-            sleep(marketplace_interval)
+            sleep(marketplace_interval+5)
             check_one_health()
             update_marketplace_monitoring_interval(interval=old_interval)
             restart_one()
