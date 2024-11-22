@@ -15,7 +15,7 @@ def _add_appliances_from_marketplace(sixg_sandbox_group: str, jenkins_user: str,
     :param appliances: the list of appliances to add, ``list``
     """
     for appliance_name in appliances:
-        if get_local_image(appliance_name) is not None:
+        if get_local_image(appliance_name) is None:
             msg("info", f"Appliance {appliance_name} not present, exporting...")
             onedatastores = get_onedatastores()
             datastore = ask_select("Select the datastore where you want to store the image", onedatastores)
