@@ -1,11 +1,11 @@
 import pyfiglet
 
 from src.utils.dotenv import load_dotenv_file, get_env_var
-from src.utils.cli import run_command
 from src.utils.file import loads_toml
 from src.utils.logs import msg
 from src.utils.one import check_one_health
 from src.utils.temp import create_temp_directory
+from src.utils.ubuntu import update_ubuntu_package, install_ansible_core, get_user
 
 def _generate_banner(message: str) -> None:
     """
@@ -16,39 +16,20 @@ def _generate_banner(message: str) -> None:
     ascii_banner = pyfiglet.figlet_format(message)
     print(ascii_banner)
 
-def _update_ubuntu_package() -> None:
-    msg("info", "[UBUNTU PACKAGE UPDATE]")
-    res = run_command("apt update")
-    if res["rc"] != 0:
-        msg("error", "Could not update Ubuntu packages")
-
-def _install_ansible_core() -> None:
-    msg("info", "[ANSIBLE INSTALLATION]")
-    res = run_command("apt install -y ansible-core")
-    if res["rc"] != 0:
-        msg("error", "Could not install ansible-core")
-
-def _check_user() -> None:
-    """
-    Check if the script is being run as root
-    """
-    msg("info", "[USER CHECK]")
-    res = run_command("whoami")
-    if res["rc"] != 0:
-        msg("error", "Could not run woami command for user checking")
-    if res["stdout"] != "root":
-        stdout = res["stdout"]
-        msg("error", f"Current user: {stdout}. Please, run this script as root. The script requires root acces in order to modify /etc/one/oned.conf configuration file")
+def check_user() -> None:
+    user = get_user()
+    if user != "root":
+        msg("error", "This script must be run as root")
 
 def zero_phase() -> None:
     msg("info", "ZERO PHASE")
-    _update_ubuntu_package()
     __version__ = loads_toml("pyproject.toml", "rt", "utf-8")["tool"]["poetry"]["version"]
     load_dotenv_file()
     banner_message = get_env_var("BANNER_MESSAGE")
     _generate_banner(message=banner_message)
     _generate_banner(message=__version__)
-    _install_ansible_core()
-    _check_user()
+    update_ubuntu_package()
+    install_ansible_core()
+    check_user()
     check_one_health()
     create_temp_directory()
