@@ -66,6 +66,19 @@ def get_onegate() -> dict:
         msg("error", f"OpenNebula CLI healthcheck failed. Command: '{command}'")
 
 ## USER MANAGEMENT ##
+def get_group(group_name: str) -> dict:
+    """
+    Get the details of a group in OpenNebula
+    
+    :param group_name: the name of the group, ``str``
+    :return: the details of the group, ``dict``
+    """
+    msg("info", f"[GET {group_name} GROUP]")
+    res = run_command(f"onegroup show {group_name} -j")
+    if res["rc"] != 0:
+        return None
+    return loads_json(data=res["stdout"])
+
 def get_groups() -> dict:
     """
     Get the list of groups in OpenNebula
@@ -78,31 +91,6 @@ def get_groups() -> dict:
         msg("error", "Could not list the groups")
     return loads_json(data=res["stdout"])
 
-def get_users() -> dict:
-    """
-    Get the list of users in OpenNebula
-    
-    :return: the list of users, ``dict``
-    """
-    msg("info", "[GET USERS]")
-    res = run_command("oneuser list -j")
-    if res["rc"] != 0:
-        msg("error", "Could not list the users")
-    return loads_json(data=res["stdout"])
-
-def get_group(group_name: str) -> dict:
-    """
-    Get the details of a group in OpenNebula
-    
-    :param group_name: the name of the group, ``str``
-    :return: the details of the group, ``dict``
-    """
-    msg("info", f"[GET {group_name} GROUP]")
-    res = run_command(f"onegroup show {group_name} -j")
-    if res["rc"] != 0:
-        msg("error", f"Could not show the {group_name} group")
-    return loads_json(data=res["stdout"])
-
 def get_user(username: str) -> dict:
     """
     Get the details of a user in OpenNebula
@@ -113,7 +101,19 @@ def get_user(username: str) -> dict:
     msg("info", f"[GET {username} USER]")
     res = run_command(f"oneuser show {username} -j")
     if res["rc"] != 0:
-        msg("error", f"Could not show the {username} user")
+        return None
+    return loads_json(data=res["stdout"])
+
+def get_users() -> dict:
+    """
+    Get the list of users in OpenNebula
+    
+    :return: the list of users, ``dict``
+    """
+    msg("info", "[GET USERS]")
+    res = run_command("oneuser list -j")
+    if res["rc"] != 0:
+        msg("error", "Could not list the users")
     return loads_json(data=res["stdout"])
 
 def create_group(group_name: str) -> int:
