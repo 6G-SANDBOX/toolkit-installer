@@ -33,6 +33,8 @@ def loads_json(data: str) -> dict:
     :param data: the JSON data to be loaded, ``str``
     :return: the JSON data loaded, ``dict``
     """
+    if data is None or data == "":
+        return None
     return json.loads(data)
 
 def loads_toml(file_path: str, mode: str, encoding: str) -> dict:
