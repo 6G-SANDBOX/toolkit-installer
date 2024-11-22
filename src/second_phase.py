@@ -75,11 +75,12 @@ def _set_marketplace_monitoring_interval(interval: int) -> None:
     """
     oned_config_path = os.path.join("/etc", "one", "oned.conf")
     oned_conf = load_file(file_path=oned_config_path, mode="rt", encoding="utf-8")
-    match = re.search(r"^\s*MONITORING_INTERVAL_MARKET\s*=\s*\"([^\"]+)\"", oned_conf, re.MULTILINE)
+    pattern = r"^\s*MONITORING_INTERVAL_MARKET\s*=\s*\"?(\d+)\"?"
+    match = re.search(pattern, oned_conf, re.MULTILINE)
     if match is None:
         msg("error", "Could not find MONITORING_INTERVAL_MARKET in oned.conf")
     old_interval = match.group(1)
-    updated_conf = re.sub(r"^\s*MONITORING_INTERVAL_MARKET\s*=\s*\"([^\"]+)\"", f"MONITORING_INTERVAL_MARKET = {interval}", oned_conf, flags=re.MULTILINE)
+    updated_conf = re.sub(pattern, f"MONITORING_INTERVAL_MARKET = {interval}", oned_conf, flags=re.MULTILINE)
     if old_interval is not None:
         save_file(data=updated_conf, file_path=oned_config_path, mode="w", encoding="utf-8")
         msg("info", f"Marketplace monitoring interval set to interval {interval}")
