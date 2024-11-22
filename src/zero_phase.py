@@ -62,6 +62,11 @@ def check_one_health() -> None:
     if res["rc"] != 0:
         msg("error", f"OpenNebula CLI healthcheck failed. Command: '{command}'")
 
+    command = "onemarketplace list"
+    res = run_command(command)
+    if res["rc"] != 0:
+        msg("error", f"OpenNebula CLI healthcheck failed. Command: '{command}'")
+
     oned_config_path = os.path.join("/etc", "one", "oned.conf")
     oned_conf = load_file(file_path=oned_config_path, mode="rt", encoding="utf-8")
     match = re.search(r"^\s*ONEGATE_ENDPOINT\s*=\s*\"([^\"]+)\"", oned_conf, re.MULTILINE)
@@ -73,13 +78,13 @@ def check_one_health() -> None:
     if res["rc"] != 0:
         msg("error", f"OpenNebula CLI healthcheck failed. Command: '{command}'")
 
-    # CHANGE: pending to add futher health checks
     msg("info", "OpenNebula is healthy")
 
 def zero_phase() -> None:
     """
     The zero phase of the 6G-SANDBOX deployment
     """
+    msg("info", "ZERO PHASE")
     _update_ubuntu_package()
     __version__ = loads_toml("pyproject.toml", "rt", "utf-8")["tool"]["poetry"]["version"]
     load_dotenv_file()
