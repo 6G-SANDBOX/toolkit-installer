@@ -11,6 +11,7 @@ def get_groups() -> dict:
     
     :return: the list of groups, ``dict``
     """
+    msg("info", "[GET GROUPS]")
     res = run_command("onegroup list -j")
     if res["rc"] != 0:
         msg("error", "Could not list the groups")
@@ -22,6 +23,7 @@ def get_users() -> dict:
     
     :return: the list of users, ``dict``
     """
+    msg("info", "[GET USERS]")
     res = run_command("oneuser list -j")
     if res["rc"] != 0:
         msg("error", "Could not list the users")
@@ -33,6 +35,7 @@ def get_vms() -> dict:
     
     :return: the list of VMs, ``dict``
     """
+    msg("info", "[GET VMS]")
     res = run_command("onevm list -j")
     if res["rc"] != 0:
         msg("error", "Could not list the VMs")
@@ -44,6 +47,7 @@ def get_onedatastores() -> dict:
     
     :return: the list of datastores, ``dict``
     """
+    msg("info", "[GET DATASTORES]")
     res = run_command("onedatastore list -j")
     if res["rc"] != 0:
         msg("error", "Could not list the datastores")
@@ -55,6 +59,8 @@ def get_oneflows() -> dict:
     
     :return: the list of flows, ``dict``
     """
+    
+    msg("info", "[GET FLOWS]")
     res = run_command("oneflow list -j")
     if res["rc"] != 0:
         msg("error", "Could not list the flows")
@@ -66,6 +72,7 @@ def get_onemarket() -> dict:
     
     :return: the list of market, ``dict``
     """
+    msg("info", "[GET MARKETPLACES]")
     res = run_command("onemarket list -j")
     if res["rc"] != 0:
         msg("error", "Could not list the market")
