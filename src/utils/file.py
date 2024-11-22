@@ -2,17 +2,18 @@ import json
 import yaml
 import tomlkit
 
-def load_file(file_path: str, mode: str, encoding: str) -> str:
+def load_file(file_path: str, mode: str, encoding: str, as_lines: bool = False) -> str:
     """
-    Load the content from a file
+    Load the content from a file as a string or a list of lines.
     
     :param file_path: the path to the file to be loaded (e.g. txt, markdown), ``str``
     :param mode: the mode in which the file is opened (e.g. rt, rb), ``str``
     :param encoding: the file encoding (e.g. utf-8), ``str``
-    :return: the data loaded from the file, ``str``
+    :param as_lines: if True, returns a list of lines. Otherwise, returns a single string, ``bool``
+    :return: the data loaded from the file, ``str`` or ``list[str]``
     """
     with open(file_path, mode=mode, encoding=encoding) as file:
-        return file.read()
+        return file.readlines() if as_lines else file.read()
 
 def load_yaml(file_path: str, mode: str, encoding: str) -> dict:
     """
@@ -47,7 +48,7 @@ def loads_toml(file_path: str, mode: str, encoding: str) -> dict:
     with open(file_path, mode=mode, encoding=encoding) as toml_file:
         return tomlkit.loads(toml_file.read())
 
-def save_file(data, file_path: str, mode: str, encoding: str) -> None:
+def save_file(data, file_path: str, mode: str, encoding: str, as_lines: bool = False) -> None:
     """
     Save the given data to a file
     
@@ -55,9 +56,10 @@ def save_file(data, file_path: str, mode: str, encoding: str) -> None:
     :param file_path: the path to the file to be saved, ``str``
     :param mode: the mode in which the file is opened (e.g. wt, wb), ``str``
     :param encoding: the file encoding (e.g. utf-8), ``str``
+    :param as_lines: if True, returns a list of lines. Otherwise, returns a single string, ``bool``
     """
     with open(file_path, mode=mode, encoding=encoding) as file:
-        file.write(data)
+        file.writelines(data) if as_lines else file.write(data)
 
 def save_yaml(data, file_path: str) -> None:
     """
