@@ -420,7 +420,7 @@ def get_appliances_marketplace(marketplace_id: str) -> list:
     oneadmin_appliances = get_appliances_oneadmin()
     if oneadmin_appliances is None:
         return None
-    return [f"{appliance["NAME"]} - {appliance["TYPE"]}" for appliance in oneadmin_appliances["MARKETPLACEAPP_POOL"]["MARKETPLACEAPP"] if appliance["MARKETPLACE_ID"] == marketplace_id]
+    return [f"{appliance['NAME']} - {appliance['TYPE']}" for appliance in oneadmin_appliances["MARKETPLACEAPP_POOL"]["MARKETPLACEAPP"] if appliance["MARKETPLACE_ID"] == marketplace_id]
     
 def export_image(marketplace_id: int, appliance_name: str, datastore_id: int) -> None:
     """
