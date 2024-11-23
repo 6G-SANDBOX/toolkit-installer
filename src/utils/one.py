@@ -8,6 +8,7 @@ from src.utils.file import load_file, loads_json, save_file
 from src.utils.logs import msg
 from src.utils.temp import save_temp_file
 
+## CONFIG MANAGEMENT ##
 def get_oned_conf_path() -> str:
     """
     Get the path to the oned.conf file
@@ -55,6 +56,18 @@ def get_onedatastore(datastore_name: str) -> dict:
         return None
     return loads_json(data=res["stdout"])
 
+def get_onedatastore_id(datastore_name: str) -> int:
+    """
+    Get the ID of a datastore in OpenNebula
+    
+    :param datastore_name: the name of the datastore, ``str``
+    :return: the ID of the datastore, ``int``
+    """
+    datastore = get_onedatastore(datastore_name)
+    if datastore is None:
+        return None
+    return int(datastore["DATASTORE"]["ID"])
+
 def get_oneflows() -> dict:
     """
     Get the list of flows in OpenNebula
@@ -94,6 +107,18 @@ def get_group(group_name: str) -> dict:
         return None
     return loads_json(data=res["stdout"])
 
+def get_group_id(group_name: str) -> int:
+    """
+    Get the ID of a group in OpenNebula
+    
+    :param group_name: the name of the group, ``str``
+    :return: the ID of the group, ``int``
+    """
+    group = get_group(group_name)
+    if group is None:
+        return None
+    return int(group["GROUP"]["ID"])
+
 def get_groups() -> dict:
     """
     Get the list of groups in OpenNebula
@@ -118,6 +143,18 @@ def get_user(username: str) -> dict:
     if res["rc"] != 0:
         return None
     return loads_json(data=res["stdout"])
+
+def get_user_id(username: str) -> int:
+    """
+    Get the ID of a user in OpenNebula
+    
+    :param username: the name of the user, ``str``
+    :return: the ID of the user, ``int``
+    """
+    user = get_user(username)
+    if user is None:
+        return None
+    return int(user["USER"]["ID"])
 
 def get_users() -> dict:
     """
@@ -209,27 +246,27 @@ def get_local_images() -> dict:
         msg("error", "Could not list the images")
     return loads_json(data=res["stdout"])
 
-def get_local_image(image_id: int) -> dict:
+def get_local_image(image_name: str) -> dict:
     """
     Get the details of a local image in OpenNebula
     
-    :param image_id: the ID of the image, ``int``
+    :param image_name: the name of the image, ``str``
     :return: the details of the image, ``dict``
     """
-    msg("info", f"[GET {image_id} IMAGE]")
-    res = run_command(f"oneimage show \"{image_id}\" -j")
+    msg("info", f"[GET {image_name} IMAGE]")
+    res = run_command(f"oneimage show \"{image_name}\" -j")
     if res["rc"] != 0:
         return None
     return loads_json(data=res["stdout"])
 
-def get_state_image(image_id: str) -> str:
+def get_state_image(image_name: str) -> str:
     """
     Get the status of a local image in OpenNebula
     
-    :param image_id: the ID of the image, ``str``
+    :param image_name: the name of the image, ``str``
     :return: the status of the image, ``str``
     """
-    image = get_local_image(image_id)
+    image = get_local_image(image_name)
     if image is None:
         return None
     return image["IMAGE"]["STATE"]
@@ -246,7 +283,19 @@ def chown_image(image_id: int, user_id: int, group_id: int) -> None:
     res = run_command(f"oneimage chown {image_id} {user_id} {group_id}")
     if res["rc"] != 0:
         msg("error", "Could not change the owner of the image")
-        
+
+def rename_image(image_id: int, new_name: str) -> None:
+    """
+    Rename an image in OpenNebula
+    
+    :param image_id: the ID of the image, ``int``
+    :param new_name: the new name of the image, ``str``
+    """
+    msg("info", f"[RENAME IMAGE {image_id}]")
+    res = run_command(f"oneimage rename {image_id} \"{new_name}\"")
+    if res["rc"] != 0:
+        msg("error", "Could not rename the image")
+
 ## TEMPLATE MANAGEMENT ##
 def chown_template(template_id: int, user_id: int, group_id: int) -> None:
     """
@@ -286,6 +335,18 @@ def get_onemarket(marketplace_name: str) -> dict:
     if res["rc"] != 0:
         return None
     return loads_json(data=res["stdout"])
+
+def get_onemarket_id(marketplace_name: str) -> int:
+    """
+    Get the ID of a marketplace in OpenNebula
+    
+    :param marketplace_name: the name of the market, ``str``
+    :return: the ID of the market, ``int``
+    """
+    marketplace = get_onemarket(marketplace_name)
+    if marketplace is None:
+        return None
+    return int(marketplace["MARKETPLACE"]["ID"])
 
 def add_marketplace(marketplace_name: str, marketplace_descriptrion: str, marketplace_endpoint: str) -> int:
     """
@@ -353,15 +414,14 @@ def get_appliances_marketplace(marketplace_id: str) -> list:
     Get the appliances from a marketplace in OpenNebula
     
     :param marketplace_id: the ID of the market, ``str``
-    :return: the appliances, ``list``
+    :return: format name - type of appliances, ``list``
     """
     msg("info", f"[GET APPLIANCES FROM {marketplace_id} MARKETPLACE]")
     oneadmin_appliances = get_appliances_oneadmin()
     if oneadmin_appliances is None:
         return None
-    appliances = oneadmin_appliances["MARKETPLACEAPP_POOL"]["MARKETPLACEAPP"]
-    return [appliance["NAME"] for appliance in appliances if appliance["MARKETPLACE_ID"] == marketplace_id]
-
+    return [f"{appliance["NAME"]} - {appliance["TYPE"]}" for appliance in oneadmin_appliances["MARKETPLACEAPP_POOL"]["MARKETPLACEAPP"] if appliance["MARKETPLACE_ID"] == marketplace_id]
+    
 def export_image(marketplace_id: int, appliance_name: str, datastore_id: int) -> None:
     """
     Export an image from OpenNebula
