@@ -17,6 +17,19 @@ def get_oned_conf_path() -> str:
     """
     return os.path.join("/etc", "one", "oned.conf")
 
+def get_onegate() -> dict:
+    oned_conf_path = get_oned_conf_path()
+    oned_conf = load_file(file_path=oned_conf_path, mode="rt", encoding="utf-8")
+    match = re.search(r"^\s*ONEGATE_ENDPOINT\s*=\s*\"([^\"]+)\"", oned_conf, re.MULTILINE)
+    if match is None:
+        msg("error", "Could not find ONEGATE_ENDPOINT in oned.conf")
+    onegate_endpoint = match.group(1)
+    command = f"curl {onegate_endpoint}"
+    res = run_command(command)
+    if res["rc"] != 0:
+        msg("error", f"OpenNebula CLI healthcheck failed. Command: '{command}'")
+
+## VM MANAGEMENT ##
 def get_vms() -> dict:
     """
     Get the list of VMs in OpenNebula
@@ -68,30 +81,18 @@ def get_onedatastore_id(datastore_name: str) -> int:
         return None
     return int(datastore["DATASTORE"]["ID"])
 
+## SERVICE MANAGEMENT ##
 def get_oneflows() -> dict:
     """
-    Get the list of flows in OpenNebula
+    Get the list of services in OpenNebula
     
-    :return: the list of flows, ``dict``
+    :return: the list of services, ``dict``
     """
-    
-    msg("info", "[GET FLOWS]")
+    msg("info", "[GET SERVICES]")
     res = run_command("oneflow list -j")
     if res["rc"] != 0:
-        msg("error", "Could not list the flows")
+        return None
     return loads_json(data=res["stdout"])
-
-def get_onegate() -> dict:
-    oned_conf_path = get_oned_conf_path()
-    oned_conf = load_file(file_path=oned_conf_path, mode="rt", encoding="utf-8")
-    match = re.search(r"^\s*ONEGATE_ENDPOINT\s*=\s*\"([^\"]+)\"", oned_conf, re.MULTILINE)
-    if match is None:
-        msg("error", "Could not find ONEGATE_ENDPOINT in oned.conf")
-    onegate_endpoint = match.group(1)
-    command = f"curl {onegate_endpoint}"
-    res = run_command(command)
-    if res["rc"] != 0:
-        msg("error", f"OpenNebula CLI healthcheck failed. Command: '{command}'")
 
 ## USER MANAGEMENT ##
 def get_group(group_name: str) -> dict:
@@ -208,7 +209,7 @@ def assign_user_group(user_id, group_id) -> None:
         msg("error", "Could not assign the user to the group")
 
 ## TEMPLATE MANAGEMENT ##
-def get_local_templates() -> dict:
+def get_templates() -> dict:
     """
     Get the list of local templates in OpenNebula
     
@@ -220,7 +221,7 @@ def get_local_templates() -> dict:
         msg("error", "Could not list the templates")
     return loads_json(data=res["stdout"])
 
-def get_local_template(template_name: str) -> dict:
+def get_template(template_name: str) -> dict:
     """
     Get the details of a local template in OpenNebula
     
@@ -234,7 +235,7 @@ def get_local_template(template_name: str) -> dict:
     return loads_json(data=res["stdout"])
 
 ## IMAGES MANAGEMENT ##
-def get_local_images() -> dict:
+def get_images() -> dict:
     """
     Get the list of local images in OpenNebula
     
@@ -246,7 +247,7 @@ def get_local_images() -> dict:
         msg("error", "Could not list the images")
     return loads_json(data=res["stdout"])
 
-def get_local_image(image_name: str) -> dict:
+def get_image(image_name: str) -> dict:
     """
     Get the details of a local image in OpenNebula
     
@@ -266,7 +267,7 @@ def get_state_image(image_name: str) -> str:
     :param image_name: the name of the image, ``str``
     :return: the status of the image, ``str``
     """
-    image = get_local_image(image_name)
+    image = get_image(image_name)
     if image is None:
         return None
     return image["IMAGE"]["STATE"]
@@ -396,6 +397,20 @@ def update_marketplace_monitoring_interval(interval: int) -> None:
     msg("info", f"Marketplace monitoring interval set to interval {interval}")
 
 ## APPLIANCE MANAGEMENT ##
+def get_type_appliance(appliance_name: str) -> str:
+    """
+    Get the type of an appliance in OpenNebula
+    
+    :param appliance_name: the name of the appliance, ``str``
+    :return: the type of the appliance, ``str``
+    """
+    msg("info", f"[GET TYPE OF {appliance_name} APPLIANCE]")
+    # TODO: implement, similar to switch
+    # res = run_command(f"oneimage show {appliance_name} -x")
+    # if res["rc"] != 0:
+    #     return None
+    # return res["stdout"]
+
 def get_appliances_oneadmin() -> dict:
     """
     Get the appliances from the oneadmin user in OpenNebula
@@ -403,7 +418,7 @@ def get_appliances_oneadmin() -> dict:
     :return: the appliances, ``dict``
     """
     msg("info", "[GET APPLIANCES FROM ONEADMIN USER]")
-    oneadmin_id = int(get_user(username="oneadmin")["USER"]["ID"])
+    oneadmin_id = get_user_id("oneadmin")
     res = run_command(f"onemarketapp list {oneadmin_id} -j")
     if res["rc"] != 0:
         return None
@@ -420,20 +435,28 @@ def get_appliances_marketplace(marketplace_id: str) -> list:
     oneadmin_appliances = get_appliances_oneadmin()
     if oneadmin_appliances is None:
         return None
-    return [f"{appliance['NAME']} - {appliance['TYPE']}" for appliance in oneadmin_appliances["MARKETPLACEAPP_POOL"]["MARKETPLACEAPP"] if appliance["MARKETPLACE_ID"] == marketplace_id]
+    appliances = oneadmin_appliances["MARKETPLACEAPP_POOL"]["MARKETPLACEAPP"]
+    res = []
+    for appliance in appliances:
+        if appliance["MARKETPLACE_ID"] == marketplace_id:
+            appliance_name = appliance["NAME"]
+            appliance_type = appliance["TYPE"]
+            appliance_name_type = f"{appliance_name} - {appliance_type}"
+            res.append(appliance_name_type)
+    return res
     
-def export_image(marketplace_id: int, appliance_name: str, datastore_id: int) -> None:
+def export_appliance(marketplace_id: int, appliance_name: str, datastore_id: int) -> None:
     """
-    Export an image from OpenNebula
+    Export an appliance from OpenNebula
     
     :param marketplace_id: the id of the market, ``int``
-    :param appliance_name: the name of the image, ``str``
-    :param datastore_id: the datastore where the image is stored, ``int``
+    :param appliance_name: the name of the appliance, ``str``
+    :param datastore_id: the datastore where the appliance is stored, ``int``
     """
-    msg("info", f"[EXPORT {appliance_name} IMAGE]")
+    msg("info", f"[EXPORT {appliance_name} APPLIANCE]")
     res = run_command(f"onemarketapp export {marketplace_id} \"{appliance_name}\" -d {datastore_id}")
     if res["rc"] != 0:
-        msg("error", "Could not export the image")
+        msg("error", "Could not export the appliance")
     image_id = re.search(r"IMAGE\s+ID:\s*(\d+)", res["stdout"]).group(1)
     template_id = re.search(r"VMTEMPLATE\s+ID:\s*(\d+)", res["stdout"]).group(1)
     return image_id, template_id
