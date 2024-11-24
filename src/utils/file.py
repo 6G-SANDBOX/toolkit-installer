@@ -1,6 +1,9 @@
+import os
 import json
 import yaml
 import tomlkit
+
+from dotenv import load_dotenv
 
 def load_file(file_path: str, mode: str, encoding: str) -> str:
     """
@@ -48,6 +51,21 @@ def loads_toml(file_path: str, mode: str, encoding: str) -> dict:
     """
     with open(file_path, mode=mode, encoding=encoding) as toml_file:
         return tomlkit.loads(toml_file.read())
+
+def load_dotenv_file() -> None:
+    """
+    Load the .env file in the current working directory
+    """
+    load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
+
+def get_env_var(var_name: str) -> str:
+    """
+    Get the value of an environment variable
+    
+    :param var_name: the name of the environment variable, ``str``
+    :return: the value of the environment variable, ``str``
+    """
+    return os.getenv(var_name)
 
 def save_file(data, file_path: str, mode: str, encoding: str) -> None:
     """

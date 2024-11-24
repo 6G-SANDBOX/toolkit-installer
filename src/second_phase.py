@@ -1,4 +1,4 @@
-from src.utils.dotenv import get_env_var
+from src.utils.file import get_env_var
 from src.utils.interactive import ask_text, ask_password
 from src.utils.logs import msg
 from src.utils.one import get_group, get_group_id, create_group, get_user, get_user_id, create_user, assign_user_group

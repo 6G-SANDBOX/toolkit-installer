@@ -1,8 +1,7 @@
 import os
 import pyfiglet
 
-from src.utils.dotenv import load_dotenv_file, get_env_var
-from src.utils.file import loads_toml
+from src.utils.file import loads_toml, load_dotenv_file, get_env_var
 from src.utils.logs import msg
 from src.utils.one import check_one_health
 from src.utils.temp import create_temp_directory
@@ -23,13 +22,13 @@ def check_user() -> None:
         msg("error", "This script must be run as root")
 
 def zero_phase() -> None:
-    msg("info", "ZERO PHASE")
     pyproject_toml = os.path.join(os.getcwd(), "pyproject.toml")
     __version__ = loads_toml(pyproject_toml, "rt", "utf-8")["tool"]["poetry"]["version"]
     load_dotenv_file()
     banner_message = get_env_var("BANNER_MESSAGE")
     _generate_banner(message=banner_message)
     _generate_banner(message=__version__)
+    msg("info", "ZERO PHASE")
     update_ubuntu_package()
     install_ansible_core()
     check_user()

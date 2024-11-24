@@ -2,9 +2,8 @@ import os
 import requests
 
 from src.utils.cli import run_command
-from src.utils.dotenv import get_env_var
 from src.utils.git import git_clone
-from src.utils.file import loads_json
+from src.utils.file import loads_json, get_env_var
 from src.utils.logs import msg
 from src.utils.parser import encode_base64
 from src.utils.temp import load_temp_file, save_temp_directory, temp_path
@@ -96,7 +95,7 @@ def _extract_trial_network(github_tnlcm_https: str) -> str:
     :return: the trial network path, ``str``
     """
     git_clone(github_tnlcm_https, save_temp_directory("tnlcm"))
-    return temp_path(os.path.join("tnlcm", "tn_template_lib", "07_descriptor.yaml"))
+    return temp_path(os.path.join("tnlcm", "tn_template_lib", "ueransim_split.yaml"))
 
 def _create_trial_network(tnlcm_url: str, site: str, access_token: str, trial_network_path: str) -> str:
     """
