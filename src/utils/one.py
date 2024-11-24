@@ -42,6 +42,19 @@ def get_vms() -> dict:
         msg("error", "Could not list the VMs")
     return loads_json(data=res["stdout"])
 
+def get_vm(vm_name: str) -> dict:
+    """
+    Get the details of a VM in OpenNebula
+    
+    :param vm_name: the name of the VM, ``str``
+    :return: the details of the VM, ``dict``
+    """
+    msg("info", f"[GET {vm_name} VM]")
+    res = run_command(f"onevm show {vm_name} -j")
+    if res["rc"] != 0:
+        return None
+    return loads_json(data=res["stdout"])
+
 ## DATASTORE MANAGEMENT ##
 def get_onedatastores() -> dict:
     """
@@ -90,6 +103,19 @@ def get_oneflows() -> dict:
     """
     msg("info", "[GET SERVICES]")
     res = run_command("oneflow list -j")
+    if res["rc"] != 0:
+        return None
+    return loads_json(data=res["stdout"])
+
+def get_oneflow_template(oneflow_name: str) -> dict:
+    """
+    Get the details of a service in OpenNebula
+    
+    :param oneflow_name: the name of the service, ``str``
+    :return: the details of the service, ``dict``
+    """
+    msg("info", f"[GET {oneflow_name} SERVICE]")
+    res = run_command(f"oneflow-template show {oneflow_name} -j")
     if res["rc"] != 0:
         return None
     return loads_json(data=res["stdout"])
@@ -397,23 +423,48 @@ def update_marketplace_monitoring_interval(interval: int) -> None:
     msg("info", f"Marketplace monitoring interval set to interval {interval}")
 
 ## APPLIANCE MANAGEMENT ##
-def get_type_appliance(appliance_name: str) -> str:
+def get_appliance(appliance_name: str, marketplace_id: int) -> dict:
+    """
+    Get the details of an appliance in OpenNebula
+    
+    :param appliance_name: the name of the appliance, ``str``
+    :param marketplace_id: the ID of the marketplace, ``int``
+    :return: the details of the appliance, ``dict``
+    """
+    msg("info", f"[GET {appliance_name} APPLIANCE]")
+    res = run_command(f"onemarketapp show {appliance_name} -j")
+    if res["rc"] != 0:
+        return None
+    appliance = loads_json(data=res["stdout"])
+    if appliance["MARKETPLACEAPP"]["MARKETPLACE_ID"] != marketplace_id:
+        return None
+    return appliance
+
+def get_type_appliance(appliance_name: str, marketplace_id: int) -> str:
     """
     Get the type of an appliance in OpenNebula
     
     :param appliance_name: the name of the appliance, ``str``
+    :param marketplace_id: the ID of the marketplace, ``int``
     :return: the type of the appliance, ``str``
     """
     msg("info", f"[GET TYPE OF {appliance_name} APPLIANCE]")
-    # TODO: implement, similar to switch
-    # res = run_command(f"oneimage show {appliance_name} -x")
-    # if res["rc"] != 0:
-    #     return None
-    # return res["stdout"]
+    appliance = get_appliance(appliance_name, marketplace_id)
+    if appliance is None:
+        return None
+    appliance_type = appliance["MARKETPLACEAPP"]["TYPE"]
+    if appliance_type == "1":
+        return "IMAGE"
+    elif appliance_type == "2":
+        return "VM"
+    elif appliance_type == "3":
+        return "SERVICE"
+    else:
+        msg("error", "Appliance type not recognized")
 
 def get_appliances_oneadmin() -> dict:
     """
-    Get the appliances from the oneadmin user in OpenNebula
+    Get the appliances of oneadmin user in OpenNebula
         
     :return: the appliances, ``dict``
     """
@@ -429,21 +480,14 @@ def get_appliances_marketplace(marketplace_id: str) -> list:
     Get the appliances from a marketplace in OpenNebula
     
     :param marketplace_id: the ID of the market, ``str``
-    :return: format name - type of appliances, ``list``
+    :return: list of appliances, ``list``
     """
     msg("info", f"[GET APPLIANCES FROM {marketplace_id} MARKETPLACE]")
     oneadmin_appliances = get_appliances_oneadmin()
     if oneadmin_appliances is None:
         return None
     appliances = oneadmin_appliances["MARKETPLACEAPP_POOL"]["MARKETPLACEAPP"]
-    res = []
-    for appliance in appliances:
-        if appliance["MARKETPLACE_ID"] == marketplace_id:
-            appliance_name = appliance["NAME"]
-            appliance_type = appliance["TYPE"]
-            appliance_name_type = f"{appliance_name} - {appliance_type}"
-            res.append(appliance_name_type)
-    return res
+    return [appliance["NAME"] for appliance in appliances if appliance["MARKETPLACE_ID"] == marketplace_id]
     
 def export_appliance(marketplace_id: int, appliance_name: str, datastore_id: int) -> None:
     """
