@@ -475,11 +475,11 @@ def get_appliances_oneadmin() -> dict:
         return None
     return loads_json(data=res["stdout"])
 
-def get_appliances_marketplace(marketplace_id: str) -> list:
+def get_appliances_marketplace(marketplace_id: int) -> list:
     """
     Get the appliances from a marketplace in OpenNebula
     
-    :param marketplace_id: the ID of the market, ``str``
+    :param marketplace_id: the ID of the market, ``int``
     :return: list of appliances, ``list``
     """
     msg("info", f"[GET APPLIANCES FROM {marketplace_id} MARKETPLACE]")
@@ -487,7 +487,7 @@ def get_appliances_marketplace(marketplace_id: str) -> list:
     if oneadmin_appliances is None:
         return None
     appliances = oneadmin_appliances["MARKETPLACEAPP_POOL"]["MARKETPLACEAPP"]
-    return [appliance["NAME"] for appliance in appliances if appliance["MARKETPLACE_ID"] == marketplace_id]
+    return [appliance["NAME"] for appliance in appliances if appliance["MARKETPLACE_ID"] == str(marketplace_id)]
     
 def export_appliance(marketplace_id: int, appliance_name: str, datastore_id: int) -> None:
     """
