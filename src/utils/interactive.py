@@ -54,6 +54,7 @@ def ask_password(prompt: str, validate: bool = False) -> str:
     Prompt the user to enter a password (hidden input)
 
     :param prompt: the question to display, ``str``
+    :param validate: if True, input is required, ``bool``
     :return: user input, ``str``
     """
     if validate:
