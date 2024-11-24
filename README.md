@@ -9,12 +9,12 @@ Python3 script that configures an OpenNebula cluster as a 6G-SANDBOX site.
   - [:white\_check\_mark: Requirements](#white_check_mark-requirements)
   - [:rocket: Getting Stared](#rocket-getting-stared)
   - [:cyclone: Phases](#cyclone-phases)
-    - [Phase 0](#phase-0)
-    - [Phase 1 -\> PENDING](#phase-1---pending)
-    - [Phase 2](#phase-2)
-    - [Phase 3](#phase-3)
-    - [Phase 4](#phase-4)
-    - [Phase 5](#phase-5)
+    - [Zero phase](#zero-phase)
+    - [First phase](#first-phase)
+    - [Second phase](#second-phase)
+    - [Third phase](#third-phase)
+    - [Fourth phase](#fourth-phase)
+    - [Fifth phase](#fifth-phase)
 
 </details>
 
@@ -61,37 +61,44 @@ python3 main.py
 
 ## :cyclone: Phases
 
-### Phase 0
+### Zero phase
 
 - Update ubuntu packages.
 - Check if ansible-core is installed.
 - Check if the script is being executed as root.
 - Check if the OpenNebula CLI tools are installed.
 
-### Phase 1 -> PENDING
+### First phase
 
+- Integrate with 6G-SANDBOX-Sites repository.
 - Create new 6G-SANDBOX sites in 6G-Sandbox-Sites repository.
 
-### Phase 2
+### Second phase
 
-- Add the 6G-SANDBOX marketplace to OpenNebula if not present.
+- Create 6G-SANDBOX group.
+- Create jenkins-master user.
+
+### Third phase
+
+- Add the 6G-SANDBOX marketplace to OpenNebula.
 - Refresh the list of available appliances in the marketplace.
+- Download required appliances from the OpenNebula Public marketplace:
+  - Ubuntu 22.04
+  - Service oneKE 1.29
+- Download required appliances from the 6G-SANDBOX marketplace:
+  - Service 6G-Sandbox Toolkit
+  - NTP
+  - UERAMSIM
 
-### Phase 3
+### Fourth phase
 
-- Download base required appliances for the 6G-SANDBOX-core: Ubuntu and OneKE v1.2.9. The user is able to select version and datastore for each one.
-- Instantiate of the 6G-SANDBOX service. The user will be prompted for the required parameters. Pending to add further healthchecks.
+- Integrate with 6G-Library repository.
+- Download appliance from components selected in 6G-Sandbox-Sites repository using 6G-Library repository.
 
-### Phase 4
+### Fifth phase
 
-- Donwloading and scanning the 6G Library repository for appliances.
-- Matching the found appliances with the ones present in the 6G-SANDBOX Marketplace.
-- Console dialog, asking the installer which component appliances  wants to import into the datastore. The appliances shown are the ones matching.
-
-### Phase 5
-
-- Launching a basic TN. A pipeline can be created in Jenkins, for the operator to enter and execute.
-- Validation and certification. Some testing.
+- Integrate with TNLCM repository.
+- Launch an end-to-end trial network.
 
 ## Contributors <!-- omit in toc -->
 
