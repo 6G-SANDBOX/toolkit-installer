@@ -29,7 +29,6 @@ def _update_site_config(site_core: str) -> dict:
     """
     updated_data = {}
     for key, value in site_core.items():
-        # FIX: different cases when is dict, bool and when is list indicate the format with example
         if isinstance(value, dict):
             print(f"\nUpdating nested fields in '{key}':")
             updated_data[key] = _update_site_config(value)
@@ -40,25 +39,12 @@ def _update_site_config(site_core: str) -> dict:
             )
             updated_data[key] = new_value
         elif isinstance(value, list):
-            pass
-            # print(f"\nUpdating list fields in '{key}':")
-            # updated_data[key] = []
-            # for i, item in enumerate(value):
-            #     if isinstance(item, dict):
-            #         print(f"\nUpdating nested fields in '{key}[{i}]':")
-            #         updated_data[key].append(_update_site_config(item))
-            #     elif isinstance(item, bool):
-            #         new_value = ask_confirm(
-            #             f"Current value of '{key}[{i}]' is '{item}' (or press Enter to use default value):",
-            #             default=item
-            #         )
-            #         updated_data[key].append(new_value)
-            #     else:
-            #         new_value = ask_text(
-            #             f"Current value of '{key}[{i}]' is '{item}' (or press Enter to use default value):",
-            #             default=str(item)
-            #         )
-            #         updated_data[key].append(item if new_value == "" else new_value)
+            new_value = ask_text(
+                f"Current value of '{key}' is '{value}'. Format the list with commas. For example: 0,1,2 (or press Enter to use default value):",
+                default=str(value),
+                validate=True
+            )
+            updated_data[key] = value if new_value == "" else new_value.split(",")
         else:
             new_value = ask_text(
                 f"Current value of '{key}' is '{value}' (or press Enter to use default value):",
