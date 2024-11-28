@@ -3,7 +3,7 @@ from time import sleep
 from src.utils.file import get_env_var
 from src.utils.logs import msg
 from src.utils.interactive import ask_select, ask_checkbox
-from src.utils.one import get_onemarket, get_template, get_appliance_id, get_onemarket_id, get_oneflow_template, get_type_appliance, rename_image, get_onedatastore_id, add_marketplace, get_marketplace_monitoring_interval, update_marketplace_monitoring_interval, restart_one, check_one_health, get_appliances_marketplace, get_image, get_onedatastores, export_appliance, get_state_image, chown_image, chown_template
+from src.utils.one import get_onemarket, get_template, chown_oneflow, get_appliance_id, get_onemarket_id, get_oneflow_template, get_type_appliance, rename_image, get_onedatastore_id, add_marketplace, get_marketplace_monitoring_interval, update_marketplace_monitoring_interval, restart_one, check_one_health, get_appliances_marketplace, get_image, get_onedatastores, export_appliance, get_state_image, chown_image, chown_template
 
 def _add_appliances_from_marketplace(sixg_sandbox_group_id: int, jenkins_user_id: int, marketplace_id: int, appliances: list) -> None:
     """
@@ -39,8 +39,6 @@ def _add_appliances_from_marketplace(sixg_sandbox_group_id: int, jenkins_user_id
                 datastore_id = get_onedatastore_id(datastore)
                 image_ids, template_id, _ = export_appliance(appliance_id=appliance_id, appliance_name=appliance_name, datastore_id=datastore_id)
                 sleep(10)
-                print(image_ids)
-                print(template_id)
                 for i, image_id in enumerate(image_ids):
                     rename_image(image_id=image_id, new_name=f"{appliance_name}-{i}")
                 for i, image_id in enumerate(image_ids):
@@ -56,9 +54,19 @@ def _add_appliances_from_marketplace(sixg_sandbox_group_id: int, jenkins_user_id
                 onedatastores = get_onedatastores()
                 datastore = ask_select(prompt="Select the datastore where you want to store the image", choices=onedatastores)
                 datastore_id = get_onedatastore_id(datastore)
-                appliance_id = export_appliance(appliance_id=appliance_id, appliance_name=appliance_name, datastore_id=datastore_id)
+                image_ids, template_ids, service_id = export_appliance(appliance_id=appliance_id, appliance_name=appliance_name, datastore_id=datastore_id)
                 sleep(10)
-                # TODO
+                for i, image_id in enumerate(image_ids):
+                    rename_image(image_id=image_id, new_name=f"{appliance_name}-{i}")
+                for i, image_id in enumerate(image_ids):
+                    while get_state_image(f"{appliance_name}-{i}") != "1":
+                        msg("info", "Please, wait 10s for the image to be ready...")
+                        sleep(10)
+                for i, image_id in enumerate(image_ids):
+                    chown_image(image_id=image_id, user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
+                for i, template_id in enumerate(template_ids):
+                    chown_template(template_id=template_id, user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
+                chown_oneflow(service_id=service_id, user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
 
 def third_phase(sixg_sandbox_group_id: int, jenkins_user_id: int) -> None:
     msg("info", "THIRD PHASE")

@@ -120,6 +120,19 @@ def get_oneflow_template(oneflow_name: str) -> dict:
         return None
     return loads_json(data=res["stdout"])
 
+def chown_oneflow(service_id: int, user_id: int, group_id: int) -> None:
+    """
+    Change the owner of an image in OpenNebula
+    
+    :param service_id: the ID of the service, ``int``
+    :param user_id: the ID of the user, ``int``
+    :param group_id: the ID of the group, ``int``
+    """
+    msg("info", f"[CHANGE OWNER OF IMAGE {service_id}]")
+    res = run_command(f"oneflow-template chown {service_id} {user_id} {group_id}")
+    if res["rc"] != 0:
+        msg("error", "Could not change the owner of the image")
+
 ## USER MANAGEMENT ##
 def get_group(group_name: str) -> dict:
     """
