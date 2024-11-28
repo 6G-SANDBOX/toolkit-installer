@@ -115,7 +115,7 @@ def get_oneflow_template(oneflow_name: str) -> dict:
     :return: the details of the service, ``dict``
     """
     msg("info", f"[GET {oneflow_name} SERVICE]")
-    res = run_command(f"oneflow-template show {oneflow_name} -j")
+    res = run_command(f"oneflow-template show \"{oneflow_name}\" -j")
     if res["rc"] != 0:
         return None
     return loads_json(data=res["stdout"])
@@ -514,9 +514,15 @@ def export_appliance(appliance_id: int, appliance_name: str, datastore_id: int) 
     res = run_command(f"onemarketapp export {appliance_id} \"{appliance_name}\" -d {datastore_id}")
     if res["rc"] != 0:
         msg("error", "Could not export the appliance")
-    image_id = re.search(r"IMAGE\s+ID:\s*(\d+)", res["stdout"]).group(1)
-    template_id = re.search(r"VMTEMPLATE\s+ID:\s*(\d+)", res["stdout"]).group(1)
-    return image_id, template_id
+    data = res["stdout"]
+    image_ids = [int(id_) for id_ in re.findall(r"ID:\s*(\d+)", re.search(r"IMAGE\s*\n((?:\s*ID:\s*\d+\s*\n?)*)", data).group(1))]
+    template_ids = [int(id_) for id_ in re.findall(r"ID:\s*(\d+)", re.search(r"VMTEMPLATE\s*\n((?:\s*ID:\s*\d+\s*\n?)*)", data).group(1))]
+    match = re.search(r"SERVICE_TEMPLATE\s*\n(?:\s*ID:\s*(\d+))+", data)
+    if match:
+        service_id = int(match.group(1))
+    else:
+        service_id = None
+    return image_ids, template_ids, service_id
 
 ## SERVICE MANAGEMENT ##
 def restart_one() -> None:
