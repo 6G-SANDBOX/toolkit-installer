@@ -10,7 +10,7 @@ try:
     zero_phase()
     
     # PHASE 1
-    first_phase()
+    site = first_phase()
     
     # PHASE 2
     sixg_sandbox_group_id, jenkins_user_id = second_phase()
@@ -19,10 +19,10 @@ try:
     third_phase(sixg_sandbox_group_id, jenkins_user_id)
     
     # PHASE 4
-    fourth_phase()
+    fourth_phase(site)
     
     # PHASE 5
-    fifth_phase()
+    # fifth_phase()
 
 except Exception as e:
     print(f"An error occurred: {e}")

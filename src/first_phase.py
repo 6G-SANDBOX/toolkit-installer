@@ -54,7 +54,7 @@ def _update_site_config(site_core: str) -> dict:
             updated_data[key] = value if new_value == "" else new_value
     return updated_data
 
-def first_phase() -> None:
+def first_phase() -> str:
     msg("info", "FIRST PHASE")
     github_sites_https = get_env_var("GITHUB_SITES_HTTPS")
     sites_directory = get_env_var("SITES_DIRECTORY")
@@ -73,7 +73,6 @@ def first_phase() -> None:
     msg("info", f"Site structure copied successfully from '{dummy_core_path}' to '{site_core_path}'")
     site_core = load_yaml(site_core_path, mode="rt", encoding="utf-8")
     current_config = _update_site_config(site_core)
-    # TODO: Implement the case when need add _new_components(current_config)
     save_yaml(data=current_config, file_path=site_core_path)
     msg("info", f"Site configuration updated successfully")
     sites_token = ask_text(prompt="Enter the token for the site (mandatory insert value):", default="", validate=True)
@@ -85,3 +84,4 @@ def first_phase() -> None:
     git_add(sites_path)
     git_commit(sites_path, f"Add site '{site}'")
     git_push(sites_path, site)
+    return site
