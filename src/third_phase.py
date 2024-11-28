@@ -3,7 +3,7 @@ from time import sleep
 from src.utils.file import get_env_var
 from src.utils.logs import msg
 from src.utils.interactive import ask_select, ask_checkbox
-from src.utils.one import get_onemarket, get_onemarket_id, get_oneflow_template, get_type_appliance, rename_image, get_onedatastore_id, add_marketplace, get_marketplace_monitoring_interval, update_marketplace_monitoring_interval, restart_one, check_one_health, get_appliances_marketplace, get_image, get_onedatastores, export_appliance, get_state_image, chown_image, chown_template
+from src.utils.one import get_onemarket, get_appliance_id, get_onemarket_id, get_oneflow_template, get_type_appliance, rename_image, get_onedatastore_id, add_marketplace, get_marketplace_monitoring_interval, update_marketplace_monitoring_interval, restart_one, check_one_health, get_appliances_marketplace, get_image, get_onedatastores, export_appliance, get_state_image, chown_image, chown_template
 
 def _add_appliances_from_marketplace(sixg_sandbox_group_id: int, jenkins_user_id: int, marketplace_id: int, appliances: list) -> None:
     """
@@ -15,6 +15,7 @@ def _add_appliances_from_marketplace(sixg_sandbox_group_id: int, jenkins_user_id
     :param appliances: the list of appliances to add, ``list``
     """
     for appliance_name in appliances:
+        appliance_id = get_appliance_id(appliance_name=appliance_name, marketplace_id=marketplace_id)
         appliance_type = get_type_appliance(appliance_name=appliance_name, marketplace_id=marketplace_id)
         if appliance_type == "IMAGE":
             if get_image(appliance_name) is None:
@@ -22,7 +23,7 @@ def _add_appliances_from_marketplace(sixg_sandbox_group_id: int, jenkins_user_id
                 onedatastores = get_onedatastores()
                 datastore = ask_select(prompt="Select the datastore where you want to store the image", choices=onedatastores)
                 datastore_id = get_onedatastore_id(datastore)
-                image_id, template_id = export_appliance(marketplace_id=marketplace_id, appliance_name=appliance_name, datastore_id=datastore_id)
+                image_id, template_id = export_appliance(appliance_id=appliance_id, appliance_name=appliance_name, datastore_id=datastore_id)
                 sleep(10)
                 while get_state_image(appliance_name) != "1":
                     msg("info", "Please, wait 10s for the image to be ready...")
@@ -40,7 +41,7 @@ def _add_appliances_from_marketplace(sixg_sandbox_group_id: int, jenkins_user_id
                 onedatastores = get_onedatastores()
                 datastore = ask_select(prompt="Select the datastore where you want to store the image", choices=onedatastores)
                 datastore_id = get_onedatastore_id(datastore)
-                appliance_id = export_appliance(marketplace_id=marketplace_id, appliance_name=appliance_name, datastore_id=datastore_id)
+                appliance_id = export_appliance(appliance_id=appliance_id, appliance_name=appliance_name, datastore_id=datastore_id)
                 sleep(10)
                 while get_oneflow_template(appliance_name) is None:
                     msg("info", "Please, wait 10s for the service to be ready...")

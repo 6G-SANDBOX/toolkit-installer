@@ -432,13 +432,26 @@ def get_appliance(appliance_name: str, marketplace_id: int) -> dict:
     :return: the details of the appliance, ``dict``
     """
     msg("info", f"[GET {appliance_name} APPLIANCE]")
-    res = run_command(f"onemarketapp show {appliance_name} -j")
+    res = run_command(f"onemarketapp show \"{appliance_name}\" -j")
     if res["rc"] != 0:
         return None
     appliance = loads_json(data=res["stdout"])
-    if appliance["MARKETPLACEAPP"]["MARKETPLACE_ID"] != marketplace_id:
+    if appliance["MARKETPLACEAPP"]["MARKETPLACE_ID"] != str(marketplace_id):
         return None
     return appliance
+
+def get_appliance_id(appliance_name: str, marketplace_id: int) -> int:
+    """
+    Get the ID of an appliance in OpenNebula
+    
+    :param appliance_name: the name of the appliance, ``str``
+    :param marketplace_id: the ID of the marketplace, ``int``
+    :return: the ID of the appliance, ``int``
+    """
+    appliance = get_appliance(appliance_name, marketplace_id)
+    if appliance is None:
+        return None
+    return int(appliance["MARKETPLACEAPP"]["ID"])
 
 def get_type_appliance(appliance_name: str, marketplace_id: int) -> str:
     """
@@ -489,16 +502,16 @@ def get_appliances_marketplace(marketplace_id: int) -> list:
     appliances = oneadmin_appliances["MARKETPLACEAPP_POOL"]["MARKETPLACEAPP"]
     return [appliance["NAME"] for appliance in appliances if appliance["MARKETPLACE_ID"] == str(marketplace_id)]
     
-def export_appliance(marketplace_id: int, appliance_name: str, datastore_id: int) -> None:
+def export_appliance(appliance_id: int, appliance_name: str, datastore_id: int) -> None:
     """
     Export an appliance from OpenNebula
     
-    :param marketplace_id: the id of the market, ``int``
+    :param appliance_id: the id of the appliance, ``int``
     :param appliance_name: the name of the appliance, ``str``
     :param datastore_id: the datastore where the appliance is stored, ``int``
     """
     msg("info", f"[EXPORT {appliance_name} APPLIANCE]")
-    res = run_command(f"onemarketapp export {marketplace_id} \"{appliance_name}\" -d {datastore_id}")
+    res = run_command(f"onemarketapp export {appliance_id} \"{appliance_name}\" -d {datastore_id}")
     if res["rc"] != 0:
         msg("error", "Could not export the appliance")
     image_id = re.search(r"IMAGE\s+ID:\s*(\d+)", res["stdout"]).group(1)
