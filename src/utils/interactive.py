@@ -58,7 +58,7 @@ def ask_password(prompt: str, validate: bool = False) -> str:
     :return: user input, ``str``
     """
     if validate:
-        return questionary.text(
+        return questionary.password(
             prompt,
             validate=lambda text: bool(text.strip()) or "This field is required"
         ).ask()

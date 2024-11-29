@@ -19,7 +19,7 @@ def get_oned_conf_path() -> str:
     """
     return os.path.join("/etc", "one", "oned.conf")
 
-def get_onegate() -> dict:
+def get_onegate_endpoint() -> dict:
     oned_conf_path = get_oned_conf_path()
     oned_conf = load_file(file_path=oned_conf_path, mode="rt", encoding="utf-8")
     match = re.search(r"^\s*ONEGATE_ENDPOINT\s*=\s*\"([^\"]+)\"", oned_conf, re.MULTILINE)
@@ -30,6 +30,56 @@ def get_onegate() -> dict:
     res = run_command(command)
     if res["rc"] != 0:
         msg("error", f"OpenNebula CLI healthcheck failed. Command: '{command}'")
+    return onegate_endpoint
+
+## NETWORKS MANAGEMENT ##
+def get_vnets() -> dict:
+    """
+    Get the list of VNets in OpenNebula
+    
+    :return: the list of VNets, ``dict``
+    """
+    msg("info", "[GET VNETS]")
+    res = run_command("onevnet list -j")
+    if res["rc"] != 0:
+        return None
+    return loads_json(data=res["stdout"])
+
+def get_vnets_names() -> list:
+    """
+    Get the names of the VNets in OpenNebula
+    
+    :return: the names of the VNets, ``list``
+    """
+    vnets = get_vnets()
+    if vnets is None:
+        return None
+    return [vnet["NAME"] for vnet in vnets["VNET_POOL"]["VNET"]]
+
+def get_vnet(vnet_name: str) -> dict:
+    """
+    Get the details of a VNet in OpenNebula
+    
+    :param vnet_name: the name of the VNet, ``str``
+    :return: the details of the VNet, ``dict``
+    """
+    msg("info", f"[GET {vnet_name} VNET]")
+    res = run_command(f"onevnet show \"{vnet_name}\" -j")
+    if res["rc"] != 0:
+        return None
+    return loads_json(data=res["stdout"])
+
+def get_vnet_id(vnet_name: str) -> int:
+    """
+    Get the ID of a VNet in OpenNebula
+    
+    :param vnet_name: the name of the VNet, ``str``
+    :return: the ID of the VNet, ``int``
+    """
+    vnet = get_vnet(vnet_name)
+    if vnet is None:
+        return None
+    return int(vnet["VNET"]["ID"])
 
 ## VM MANAGEMENT ##
 def get_vms() -> dict:
@@ -52,10 +102,23 @@ def get_vm(vm_name: str) -> dict:
     :return: the details of the VM, ``dict``
     """
     msg("info", f"[GET {vm_name} VM]")
-    res = run_command(f"onevm show {vm_name} -j")
+    res = run_command(f"onevm show \"{vm_name}\" -j")
     if res["rc"] != 0:
         return None
     return loads_json(data=res["stdout"])
+
+def chown_vm(vm_id: int, user_id: int, group_id: int) -> None:
+    """
+    Change the owner of a VM in OpenNebula
+    
+    :param vm_id: the ID of the VM, ``int``
+    :param user_id: the ID of the user, ``int``
+    :param group_id: the ID of the group, ``int``
+    """
+    msg("info", f"[CHANGE OWNER OF VM {vm_id}]")
+    res = run_command(f"onevm chown {vm_id} {user_id} {group_id}")
+    if res["rc"] != 0:
+        msg("error", "Could not change the owner of the VM")
 
 ## DATASTORE MANAGEMENT ##
 def get_onedatastores() -> dict:
@@ -79,7 +142,7 @@ def get_onedatastore(datastore_name: str) -> dict:
     :return: the details of the datastore, ``dict``
     """
     msg("info", f"[GET {datastore_name} DATASTORE]")
-    res = run_command(f"onedatastore show {datastore_name} -j")
+    res = run_command(f"onedatastore show \"{datastore_name}\" -j")
     if res["rc"] != 0:
         return None
     return loads_json(data=res["stdout"])
@@ -96,7 +159,7 @@ def get_onedatastore_id(datastore_name: str) -> int:
         return None
     return int(datastore["DATASTORE"]["ID"])
 
-## SERVICE MANAGEMENT ##
+## ONEFLOW MANAGEMENT ##
 def get_oneflows() -> dict:
     """
     Get the list of services in OpenNebula
@@ -109,6 +172,57 @@ def get_oneflows() -> dict:
         return None
     return loads_json(data=res["stdout"])
 
+def get_oneflow(oneflow_name: str) -> dict:
+    """
+    Get the details of a service in OpenNebula
+    
+    :param oneflow_name: the name of the service, ``str``
+    :return: the details of the service, ``dict``
+    """
+    msg("info", f"[GET {oneflow_name} SERVICE]")
+    res = run_command(f"oneflow show \"{oneflow_name}\" -j")
+    if res["rc"] != 0:
+        return None
+    return loads_json(data=res["stdout"])
+
+def get_oneflow_roles(oneflow_name: str) -> dict:
+    """
+    Get the roles of a service in OpenNebula
+    
+    :param oneflow_name: the name of the service, ``str``
+    :return: the roles of the service, ``dict``
+    """
+    oneflow = get_oneflow(oneflow_name)
+    if oneflow is None:
+        return None
+    return oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]["roles"]
+
+def rename_oneflow(oneflow_id: int, new_name: str) -> None:
+    """
+    Rename a service in OpenNebula
+    
+    :param oneflow_id: the ID of the service, ``int``
+    :param new_name: the new name of the service, ``str``
+    """
+    msg("info", f"[RENAME SERVICE {oneflow_id}]")
+    res = run_command(f"oneflow rename {oneflow_id} \"{new_name}\"")
+    if res["rc"] != 0:
+        msg("error", "Could not rename the service")
+
+def chown_oneflow(oneflow_id: int, user_id: int, group_id: int) -> None:
+    """
+    Change the owner of a service in OpenNebula
+    
+    :param oneflow_id: the ID of the service, ``int``
+    :param user_id: the ID of the user, ``int``
+    :param group_id: the ID of the group, ``int``
+    """
+    msg("info", f"[CHANGE OWNER OF SERVICE {oneflow_id}]")
+    res = run_command(f"oneflow chown {oneflow_id} {user_id} {group_id}")
+    if res["rc"] != 0:
+        msg("error", "Could not change the owner of the service")
+
+## ONEFLOW TEMPLATE MANAGEMENT ##
 def get_oneflow_template(oneflow_name: str) -> dict:
     """
     Get the details of a service in OpenNebula
@@ -122,7 +236,44 @@ def get_oneflow_template(oneflow_name: str) -> dict:
         return None
     return loads_json(data=res["stdout"])
 
-def chown_oneflow(service_id: int, user_id: int, group_id: int) -> None:
+def get_oneflow_template_id(oneflow_name: str) -> int:
+    """
+    Get the ID of a service in OpenNebula
+    
+    :param oneflow_name: the name of the service, ``str``
+    :return: the ID of the service, ``int``
+    """
+    oneflow = get_oneflow_template(oneflow_name)
+    if oneflow is None:
+        return None
+    return int(oneflow["DOCUMENT"]["ID"])
+
+def get_oneflow_template_custom_attrs(oneflow_name: str) -> dict:
+    """
+    Get the custom_attrs of a service in OpenNebula
+    
+    :param oneflow_name: the name of the service, ``str``
+    :return: the custom_attrs of the service, ``dict``
+    """
+    oneflow = get_oneflow_template(oneflow_name)
+    if oneflow is None:
+        return None
+    return oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]["custom_attrs"]
+
+def instantiate_oneflow_template(oneflow_template_name: str, file_path: str) -> None:
+    """
+    Instantiate a service in OpenNebula
+    
+    :param oneflow_template_id: the ID of the service, ``int``
+    :param file_path: the path to the file with params, ``str``
+    """
+    msg("info", f"[INSTANTIATE SERVICE {oneflow_template_name}]")
+    res = run_command(f"oneflow-template instantiate \"{oneflow_template_name}\" < {file_path}")
+    if res["rc"] != 0:
+        msg("error", "Could not instantiate the service")
+    return int(re.search(r"ID:\s*(\d+)", res["stdout"]).group(1))
+
+def chown_oneflow_template(service_id: int, user_id: int, group_id: int) -> None:
     """
     Change the owner of an image in OpenNebula
     
@@ -144,7 +295,7 @@ def get_group(group_name: str) -> dict:
     :return: the details of the group, ``dict``
     """
     msg("info", f"[GET {group_name} GROUP]")
-    res = run_command(f"onegroup show {group_name} -j")
+    res = run_command(f"onegroup show \"{group_name}\" -j")
     if res["rc"] != 0:
         return None
     return loads_json(data=res["stdout"])
@@ -173,7 +324,7 @@ def get_groups() -> dict:
         msg("error", "Could not list the groups")
     return loads_json(data=res["stdout"])
 
-def get_user(username: str) -> dict:
+def get_username(username: str) -> dict:
     """
     Get the details of a user in OpenNebula
     
@@ -181,19 +332,19 @@ def get_user(username: str) -> dict:
     :return: the details of the user, ``dict``
     """
     msg("info", f"[GET {username} USER]")
-    res = run_command(f"oneuser show {username} -j")
+    res = run_command(f"oneuser show \"{username}\" -j")
     if res["rc"] != 0:
         return None
     return loads_json(data=res["stdout"])
 
-def get_user_id(username: str) -> int:
+def get_username_id(username: str) -> int:
     """
     Get the ID of a user in OpenNebula
     
     :param username: the name of the user, ``str``
     :return: the ID of the user, ``int``
     """
-    user = get_user(username)
+    user = get_username(username=username)
     if user is None:
         return None
     return int(user["USER"]["ID"])
@@ -232,7 +383,7 @@ def create_user(username: str, password: str) -> int:
     :return: the ID of the user, ``int``
     """
     msg("info", f"[CREATE {username} USER]")
-    res = run_command(f"oneuser create {username} {password}")
+    res = run_command(f"oneuser create \"{username}\" \"{password}\"")
     if res["rc"] != 0:
         msg("error", "User could not be registered")
     return re.search(r"ID:\s*(\d+)", res["stdout"]).group(1)
@@ -248,6 +399,18 @@ def assign_user_group(user_id, group_id) -> None:
     res = run_command(f"oneuser chgrp {user_id} {group_id}")
     if res["rc"] != 0:
         msg("error", "Could not assign the user to the group")
+
+def chauth_ssh_key(username: str, ssh_key_path: str) -> None:
+    """
+    Update the SSH key of a user in OpenNebula
+    
+    :param username: the name of the user, ``int``
+    :param ssh_key_path: the path with SSH key, ``str``
+    """
+    msg("info", f"[UPDATE SSH KEY OF USER {username}]")
+    res = run_command(f"oneuser chauth \"{username}\" --ssh --key \"{ssh_key_path}\"")
+    if res["rc"] != 0:
+        msg("error", "Could not update the SSH key")
 
 ## TEMPLATE MANAGEMENT ##
 def get_templates() -> dict:
@@ -497,7 +660,7 @@ def get_appliances_oneadmin() -> dict:
     :return: the appliances, ``dict``
     """
     msg("info", "[GET APPLIANCES FROM ONEADMIN USER]")
-    oneadmin_id = get_user_id("oneadmin")
+    oneadmin_id = get_username_id(username="oneadmin")
     res = run_command(f"onemarketapp list {oneadmin_id} -j")
     if res["rc"] != 0:
         return None
@@ -600,7 +763,7 @@ def add_appliances_from_marketplace(sixg_sandbox_group_id: int, jenkins_user_id:
                     chown_image(image_id=image_id, user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
                 for i, template_id in enumerate(template_ids):
                     chown_template(template_id=template_id, user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
-                chown_oneflow(service_id=service_id, user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
+                chown_oneflow_template(service_id=service_id, user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
 
 ## SERVICE MANAGEMENT ##
 def restart_one() -> None:
@@ -624,5 +787,5 @@ def check_one_health() -> None:
     get_onedatastores()
     get_oneflows()
     get_onemarkets()
-    get_onegate()
+    get_onegate_endpoint()
     msg("info", "OpenNebula is healthy")

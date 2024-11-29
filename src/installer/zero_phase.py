@@ -5,7 +5,7 @@ from src.utils.file import loads_toml, load_dotenv_file, get_env_var
 from src.utils.logs import msg
 from src.utils.one import check_one_health
 from src.utils.temp import create_temp_directory
-from src.utils.ubuntu import update_ubuntu_package, install_ansible_core, get_user
+from src.utils.ubuntu import update_ubuntu_package, get_user
 
 def _generate_banner(message: str) -> None:
     """
@@ -29,8 +29,7 @@ def zero_phase() -> None:
     _generate_banner(message=banner_message)
     _generate_banner(message=__version__)
     msg("info", "ZERO PHASE")
-    update_ubuntu_package()
-    install_ansible_core()
+    # update_ubuntu_package()
     check_user()
     check_one_health()
     create_temp_directory()

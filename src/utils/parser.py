@@ -32,13 +32,13 @@ def ansible_encrypt(data: str, token_path: str) -> None:
     vault = VaultLib([(DEFAULT_VAULT_ID_MATCH, VaultSecret(secret))])
     return vault.encrypt(data)
 
-def ansible_decrypt(encrypted_data: str, token_path: str) -> None:
+def ansible_decrypt(encrypted_data: str, password: str) -> None:
     """
     Decrypt a file using Ansible Vault
 
     :param encrypted_data: the data to be decrypted, ``str``
     :param token_path: the path to the token file, ``str``
     """
-    secret = token_path.encode("utf-8")
+    secret = password.encode("utf-8")
     vault = VaultLib([(DEFAULT_VAULT_ID_MATCH, VaultSecret(secret))])
     return vault.decrypt(encrypted_data)

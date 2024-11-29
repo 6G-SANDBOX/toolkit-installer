@@ -59,6 +59,8 @@ def second_phase() -> str:
     github_sites_https = get_env_var("GITHUB_SITES_HTTPS")
     sites_directory = get_env_var("SITES_DIRECTORY")
     sites_path = save_temp_directory(sites_directory)
+    github_sites_token = ask_text(prompt="Enter the token for the GitHub sites repository:", default="", validate=True)
+    github_sites_https = github_sites_https.replace("https://", f"https://{github_sites_token}@")
     git_clone(github_sites_https, sites_path)
     msg("info", f"Repository {sites_directory} cloned successfully")
     site = _create_site(sites_path)
@@ -76,9 +78,9 @@ def second_phase() -> str:
     current_config = _update_site_config(site_core)
     save_yaml(data=current_config, file_path=site_core_path)
     msg("info", f"Site configuration updated successfully")
-    sites_token = ask_text(prompt="Enter the token for the site (mandatory insert value):", default="", validate=True)
+    sites_token = ask_text(prompt="Enter the token for the site:", default="", validate=True)
     msg("info", f"Token '{sites_token}' generated successfully")
-    token_path = save_temp_file(data=sites_token, file_path="sites_token.txt", mode="w", encoding="utf-8")
+    token_path = save_temp_file(data=sites_token, file_path="sites_token", mode="w", encoding="utf-8")
     msg("info", f"Token saved successfully in '{token_path}'")
     # TODO: use ansible_encrypt in src-utils-parser.py
     run_command(f"ansible-vault encrypt {site_core_path} --vault-password-file {token_path}")
@@ -86,4 +88,4 @@ def second_phase() -> str:
     git_add(sites_path)
     git_commit(sites_path, f"Add site '{site}'")
     git_push(sites_path, site)
-    return site_core_path, token_path
+    return site_core_path, sites_token
