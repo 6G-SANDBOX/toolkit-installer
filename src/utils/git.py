@@ -9,6 +9,17 @@ def get_repo(path: str) -> Repo:
     """
     return Repo(path)
 
+def git_branch(path: str, branch_name: str) -> str:
+    """
+    Get the current branch of the repository
+
+    :param path: the path to the repository, ``str``
+    :param branch_name: the name of the branch, ``str``
+    :return: the current branch, ``str``
+    """
+    repo = get_repo(path)
+    repo.create_head(branch_name)
+
 def git_branches(path: str) -> list[str]:
     """
     Get the branches of the repository
@@ -36,7 +47,7 @@ def git_switch(path: str, branch: str) -> None:
     :param branch: the branch to switch to, ``str``
     """
     repo = get_repo(path)
-    repo.git.switch("-c", branch)
+    repo.git.switch(branch)
 
 def git_add(path: str, *args: str) -> None:
     """
