@@ -7,12 +7,6 @@ def update_ubuntu_package() -> None:
     if res["rc"] != 0:
         msg("error", "Could not update Ubuntu packages")
 
-def install_ansible_core() -> None:
-    msg("info", "[ANSIBLE INSTALLATION]")
-    res = run_command("apt install -y ansible-core")
-    if res["rc"] != 0:
-        msg("error", "Could not install ansible-core")
-
 def get_user() -> dict:
     res = run_command("whoami")
     if res["rc"] != 0:
