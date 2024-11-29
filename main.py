@@ -10,16 +10,16 @@ try:
     zero_phase()
     
     # PHASE 1
-    site = first_phase()
+    sixg_sandbox_group_id, jenkins_user_id = first_phase()
     
     # PHASE 2
-    sixg_sandbox_group_id, jenkins_user_id = second_phase()
+    site_core_path, token_path = second_phase()
     
     # PHASE 3
-    third_phase(sixg_sandbox_group_id, jenkins_user_id)
+    third_phase(sixg_sandbox_group_id, jenkins_user_id, site_core_path, token_path)
     
     # PHASE 4
-    fourth_phase(site)
+    # fourth_phase()
     
     # PHASE 5
     # fifth_phase()
