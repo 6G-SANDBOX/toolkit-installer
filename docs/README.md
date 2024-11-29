@@ -1,8 +1,8 @@
 <a name="readme-top"></a>
 
-# 6G-SANDBOX TOOLKIT INSTALLER <!-- omit in toc -->
-
 <div align="center">
+
+  # 6G-SANDBOX TOOLKIT INSTALLER <!-- omit in toc -->
 
   [![Contributors][contributors-shield]][contributors-url]
   [![Forks][forks-shield]][forks-url]
