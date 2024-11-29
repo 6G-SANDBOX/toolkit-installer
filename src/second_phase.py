@@ -3,7 +3,7 @@ from time import sleep
 from src.utils.file import get_env_var
 from src.utils.interactive import ask_text, ask_password, ask_confirm, ask_select
 from src.utils.logs import msg
-from src.utils.one import get_vm, get_group_id, get_onegate_endpoint, chauth_ssh_key, get_oneflow_template_custom_attrs, instantiate_oneflow_template, get_vnets_names, get_vnet_id, chown_oneflow, get_username_id, get_oneflow_roles, chown_vm
+from src.utils.one import add_appliances_from_marketplace, get_onemarket, add_marketplace, get_marketplace_monitoring_interval, update_marketplace_monitoring_interval, restart_one, check_one_health, get_vm, get_onegate_endpoint, chauth_ssh_key, get_oneflow_template_networks, get_oneflow_template_custom_attrs, instantiate_oneflow_template, get_vnets_names, get_vnet_id, chown_oneflow, get_oneflow_roles, chown_vm
 from src.utils.temp import load_temp_file, save_temp_json_file, temp_path, save_temp_file
 
 def _parse_custom_attr(attr_string: str) -> dict:
@@ -26,18 +26,17 @@ def _parse_custom_attr(attr_string: str) -> dict:
     
     return result
 
-def _generate_custom_attrs_values(custom_attrs: dict, jenkins_user: str, sites_token: str) -> dict:
+def _generate_custom_attrs_values(custom_attrs: dict, jenkins_user: str) -> dict:
     """
     Generate the custom attributes values from the custom attributes
     
     :param custom_attrs: the custom attributes, ``dict``
     :param jenkins_user: the Jenkins user, ``str``
-    :param token_path: the sites token path, ``str``
     :return: the custom attributes values, ``dict``
     """
     params = {}
     for custom_attr_key, custom_attr_value in custom_attrs.items():
-        if custom_attr_key != "oneapp_jenkins_opennebula_username" and custom_attr_key != "oneapp_jenkins_opennebula_password" and custom_attr_key != "oneapp_jenkins_sites_token" and custom_attr_key != "oneapp_jenkins_opennebula_endpoint" and custom_attr_key != "oneapp_jenkins_opennebula_endpoint" and custom_attr_key != "oneapp_jenkins_opennebula_flow_endpoint":
+        if custom_attr_key != "oneapp_jenkins_opennebula_username" and custom_attr_key != "oneapp_jenkins_opennebula_password" and custom_attr_key != "oneapp_jenkins_opennebula_endpoint" and custom_attr_key != "oneapp_jenkins_opennebula_endpoint" and custom_attr_key != "oneapp_jenkins_opennebula_flow_endpoint":
             parser_custom_attr = _parse_custom_attr(custom_attr_value)
             field_type = parser_custom_attr["field_type"]
             input_type = parser_custom_attr["input_type"]
@@ -65,47 +64,78 @@ def _generate_custom_attrs_values(custom_attrs: dict, jenkins_user: str, sites_t
                 params[custom_attr_key] = load_temp_file(file_path=jenkins_user, mode="rt", encoding="utf-8")
             elif custom_attr_key == "oneapp_jenkins_opennebula_endpoint":
                 onegate_endpoint = get_onegate_endpoint()
-                onegate_endpoint = onegate_endpoint.split(":")[0]
+                onegate_endpoint = ":".join(onegate_endpoint.split(":")[:2])
                 params[custom_attr_key] = f"{onegate_endpoint}:2633/RPC2"
-            elif custom_attr_key == "oneapp_jenkins_opennebula_flow_endpoint":
-                onegate_endpoint = get_onegate_endpoint()
-                onegate_endpoint = onegate_endpoint.split(":")[0]
-                params[custom_attr_key] = f"{onegate_endpoint}:2474"
             else:
-                params[custom_attr_key] = sites_token
+                onegate_endpoint = get_onegate_endpoint()
+                onegate_endpoint = ":".join(onegate_endpoint.split(":")[:2])
+                params[custom_attr_key] = f"{onegate_endpoint}:2474"
     return params
 
-def _generate_networks_values() -> dict:
+def _generate_networks_values(networks: dict) -> dict:
     """
     Generate the networks values
     
+    :param networks: the networks, ``dict``
     :return: the networks values, ``dict``
     """
     params = []
-    vnets = get_vnets_names()
-    vnet = ask_select(prompt="Select the network", choices=vnets)
-    vnet_id = get_vnet_id(vnet_name=vnet)
-    vnet_dict = {"id": str(vnet_id)}
-    public_dict = {"Public": vnet_dict}
-    params.append(public_dict)
+    for custom_attr_key, custom_attr_value in networks.items():
+        parser_custom_attr = _parse_custom_attr(custom_attr_value)
+        _ = parser_custom_attr["field_type"]
+        _ = parser_custom_attr["input_type"]
+        description = parser_custom_attr["description"]
+        default_value = parser_custom_attr["default_value"]
+        vnets = get_vnets_names()
+        vnet = ask_select(prompt=description, choices=vnets)
+        vnet_id = get_vnet_id(vnet_name=vnet)
+        vnet_dict = {default_value: str(vnet_id)}
+        public_dict = {custom_attr_key: vnet_dict}
+        params.append(public_dict)
     return params
 
-def fourth_phase(sixg_sandbox_group: str, jenkins_user: str, sites_token: str) -> None:
-    msg("info", "FOURTH PHASE")
+def second_phase(sixg_sandbox_group: str, jenkins_user: str) -> tuple:
+    msg("info", "SECOND PHASE")
+    sixg_sandbox_marketplace_name = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_NAME")
+    sixg_sandbox_marketplace_description = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_DESCRIPTION")
+    sixg_sandbox_marketplace_endpoint = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_ENDPOINT")
+    sixg_sandbox_marketplace = get_onemarket(marketplace_name=sixg_sandbox_marketplace_name)
+    if sixg_sandbox_marketplace is None:
+        msg("info", f"Marketplace {sixg_sandbox_marketplace_name} not present, adding...")
+        _ = add_marketplace(sixg_sandbox_marketplace_name, sixg_sandbox_marketplace_description, sixg_sandbox_marketplace_endpoint)
+        force_fast_marketplace_monitoring = get_env_var("FORCE_FAST_MARKETPLACE_MONITORING")
+        if force_fast_marketplace_monitoring == "false":
+            msg("info", "Please, wait 600s for the marketplace to be ready...")
+            sleep(600)
+        else:
+            msg("info", "Forcing fast marketplace monitoring...")
+            marketplace_interval = int(get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_INTERVAL"))
+            old_interval = get_marketplace_monitoring_interval()
+            update_marketplace_monitoring_interval(interval=marketplace_interval)
+            restart_one()
+            sleep(marketplace_interval+5)
+            check_one_health()
+            update_marketplace_monitoring_interval(interval=old_interval)
+            restart_one()
+            check_one_health()
+    else:
+        msg("info", f"Marketplace {sixg_sandbox_marketplace_name} already present")
+    appliances = []
     toolkit_service = get_env_var("OPENNEBULA_TOOLKIT_SERVICE")
-    custom_attrs = get_oneflow_template_custom_attrs(toolkit_service)
+    appliances.append(toolkit_service)
+    add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=sixg_sandbox_marketplace, appliances=appliances)
     params = {}
-    custom_attrs_values = _generate_custom_attrs_values(custom_attrs, jenkins_user, sites_token)
+    custom_attrs = get_oneflow_template_custom_attrs(toolkit_service)
+    custom_attrs_values = _generate_custom_attrs_values(custom_attrs, jenkins_user)
+    sites_token = custom_attrs_values["oneapp_jenkins_sites_token"]
     params["custom_attrs_values"] = custom_attrs_values
-    networks_values = _generate_networks_values()
+    networks = get_oneflow_template_networks(toolkit_service)
+    networks_values = _generate_networks_values(networks)
     params["networks_values"] = networks_values
     params_path = save_temp_json_file(data=params, file_path="toolkit_service_params.json", mode="wt", encoding="utf-8")
-    # params_path = temp_path("toolkit_service_params.json")
     toolkit_service_id = instantiate_oneflow_template(toolkit_service, params_path)
     sleep(10)
-    sixg_sandbox_group_id = get_group_id(group_name=sixg_sandbox_group)
-    jenkins_user_id = get_username_id(username=jenkins_user)
-    chown_oneflow(oneflow_id=toolkit_service_id, group_id=sixg_sandbox_group_id, user_id=jenkins_user_id)
+    chown_oneflow(oneflow_id=toolkit_service_id, username=jenkins_user, group_name=sixg_sandbox_group)
     roles = get_oneflow_roles(oneflow_name=toolkit_service)
     for role in roles:
         while role["state"] != 1:
@@ -116,4 +146,5 @@ def fourth_phase(sixg_sandbox_group: str, jenkins_user: str, sites_token: str) -
             ssh_key_path = save_temp_file(data=jenkins_ssh_key, file_path="jenkins_ssh_key", mode="wt", encoding="utf-8")
             chauth_ssh_key(username=jenkins_user, ssh_key_path=ssh_key_path)
         vm_id = role["nodes"][0]["vm_info"]["VM"]["ID"]
-        chown_vm(vm_id=vm_id, group_id=sixg_sandbox_group_id, user_id=jenkins_user_id)
+        chown_vm(vm_id=vm_id, username=jenkins_user, group_name=sixg_sandbox_group)
+    return sites_token

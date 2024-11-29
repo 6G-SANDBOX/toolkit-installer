@@ -154,27 +154,22 @@ def _destroy_trial_network(tnlcm_url, tn_id, access_token):
     if res.status_code != 200:
         msg("error", res["message"])
 
-def fifth_phase(site: str, toolkit_service_id: str) -> None:
-    """
-    The fifth phase of the 6G-SANDBOX deployment
-    
-    :param site: the site where the deployment is being executed, ``str``
-    :param toolkit_service_id: the toolkit service ID, ``str``
-    """
-    msg("info", "[TNLCM RUN TRIAL NETWORK]")
-    tnlcm_appliance_id = _extract_tnlcm_appliance_id(toolkit_service_id)
-    msg("info", f"TNLCM appliance ID: {tnlcm_appliance_id}")
-    tnlcm_ip = _extract_tnclm_ip(tnlcm_appliance_id)
-    msg("info", f"TNLCM IP: {tnlcm_ip}")
-    tnlcm_port = get_env_var("TNLCM_PORT")
-    tnlcm_url = f"http://{tnlcm_ip}:{tnlcm_port}"
-    tnlcm_admin_username, tnlcm_admin_password = _extract_tnlcm_admin_user(tnlcm_appliance_id)
-    access_token = _login_tnlcm(tnlcm_url, tnlcm_admin_username, tnlcm_admin_password)
-    github_tnlcm_https = get_env_var("GITHUB_TNLCM_HTTPS")
-    trial_network_path = _extract_trial_network(github_tnlcm_https)
-    tn_id = _create_trial_network(tnlcm_url, site, access_token, trial_network_path)
-    msg("info", f"Trial network created with ID {tn_id}")
-    _deploy_trial_network(tnlcm_url, tn_id, access_token)
-    msg("info", "Trial network deployed")
-    _destroy_trial_network(tnlcm_url, tn_id, access_token)
-    msg("info", "Trial network destroyed")
+def fifth_phase(site: str) -> None:
+    msg("info", "FIFTH PHASE")
+    # msg("info", "[TNLCM RUN TRIAL NETWORK]")
+    # tnlcm_appliance_id = _extract_tnlcm_appliance_id(toolkit_service_id)
+    # msg("info", f"TNLCM appliance ID: {tnlcm_appliance_id}")
+    # tnlcm_ip = _extract_tnclm_ip(tnlcm_appliance_id)
+    # msg("info", f"TNLCM IP: {tnlcm_ip}")
+    # tnlcm_port = get_env_var("TNLCM_PORT")
+    # tnlcm_url = f"http://{tnlcm_ip}:{tnlcm_port}"
+    # tnlcm_admin_username, tnlcm_admin_password = _extract_tnlcm_admin_user(tnlcm_appliance_id)
+    # access_token = _login_tnlcm(tnlcm_url, tnlcm_admin_username, tnlcm_admin_password)
+    # github_tnlcm_https = get_env_var("GITHUB_TNLCM_HTTPS")
+    # trial_network_path = _extract_trial_network(github_tnlcm_https)
+    # tn_id = _create_trial_network(tnlcm_url, site, access_token, trial_network_path)
+    # msg("info", f"Trial network created with ID {tn_id}")
+    # _deploy_trial_network(tnlcm_url, tn_id, access_token)
+    # msg("info", "Trial network deployed")
+    # _destroy_trial_network(tnlcm_url, tn_id, access_token)
+    # msg("info", "Trial network destroyed")
