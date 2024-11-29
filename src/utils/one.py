@@ -107,16 +107,16 @@ def get_vm(vm_name: str) -> dict:
         return None
     return loads_json(data=res["stdout"])
 
-def chown_vm(vm_id: int, user_id: int, group_id: int) -> None:
+def chown_vm(vm_id: int, username: str, group_name: str) -> None:
     """
     Change the owner of a VM in OpenNebula
     
     :param vm_id: the ID of the VM, ``int``
-    :param user_id: the ID of the user, ``int``
-    :param group_id: the ID of the group, ``int``
+    :param username: the name of the user, ``str``
+    :param group_name: the name of the group, ``str``
     """
     msg("info", f"[CHANGE OWNER OF VM {vm_id}]")
-    res = run_command(f"onevm chown {vm_id} {user_id} {group_id}")
+    res = run_command(f"onevm chown {vm_id} \"{username}\" \"{group_name}\"")
     if res["rc"] != 0:
         msg("error", "Could not change the owner of the VM")
 
@@ -209,16 +209,16 @@ def rename_oneflow(oneflow_id: int, new_name: str) -> None:
     if res["rc"] != 0:
         msg("error", "Could not rename the service")
 
-def chown_oneflow(oneflow_id: int, user_id: int, group_id: int) -> None:
+def chown_oneflow(oneflow_id: int, username: str, group_name: str) -> None:
     """
     Change the owner of a service in OpenNebula
     
     :param oneflow_id: the ID of the service, ``int``
-    :param user_id: the ID of the user, ``int``
-    :param group_id: the ID of the group, ``int``
+    :param user_id: the name of the user, ``str``
+    :param group_id: the ID of the group, ``str``
     """
     msg("info", f"[CHANGE OWNER OF SERVICE {oneflow_id}]")
-    res = run_command(f"oneflow chown {oneflow_id} {user_id} {group_id}")
+    res = run_command(f"oneflow chown {oneflow_id} \"{username}\" \"{group_name}\"")
     if res["rc"] != 0:
         msg("error", "Could not change the owner of the service")
 
@@ -260,6 +260,18 @@ def get_oneflow_template_custom_attrs(oneflow_name: str) -> dict:
         return None
     return oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]["custom_attrs"]
 
+def get_oneflow_template_networks(oneflow_name: str) -> dict:
+    """
+    Get the networks of a service in OpenNebula
+    
+    :param oneflow_name: the name of the service, ``str``
+    :return: the networks of the service, ``dict``
+    """
+    oneflow = get_oneflow_template(oneflow_name)
+    if oneflow is None:
+        return None
+    return oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]["networks"]
+
 def instantiate_oneflow_template(oneflow_template_name: str, file_path: str) -> None:
     """
     Instantiate a service in OpenNebula
@@ -273,16 +285,16 @@ def instantiate_oneflow_template(oneflow_template_name: str, file_path: str) -> 
         msg("error", "Could not instantiate the service")
     return int(re.search(r"ID:\s*(\d+)", res["stdout"]).group(1))
 
-def chown_oneflow_template(service_id: int, user_id: int, group_id: int) -> None:
+def chown_oneflow_template(service_id: int, username: str, group_name: str) -> None:
     """
     Change the owner of an image in OpenNebula
     
     :param service_id: the ID of the service, ``int``
-    :param user_id: the ID of the user, ``int``
-    :param group_id: the ID of the group, ``int``
+    :param username: the name of the user, ``str``
+    :param group_name: the name of the group, ``str``
     """
     msg("info", f"[CHANGE OWNER OF IMAGE {service_id}]")
-    res = run_command(f"oneflow-template chown {service_id} {user_id} {group_id}")
+    res = run_command(f"oneflow-template chown {service_id} \"{username}\" \"{group_name}\"")
     if res["rc"] != 0:
         msg("error", "Could not change the owner of the image")
 
@@ -388,15 +400,15 @@ def create_user(username: str, password: str) -> int:
         msg("error", "User could not be registered")
     return re.search(r"ID:\s*(\d+)", res["stdout"]).group(1)
 
-def assign_user_group(user_id, group_id) -> None:
+def assign_user_group(username: str, group_name: str) -> None:
     """
     Assign the user to group
     
-    :param user_id: the ID of the user, ``int``
-    :param group_id: the ID of the group, ``int``
+    :param username: the name of the user, ``str``
+    :param group_name: the name of the group, ``str``
     """
     msg("info", "[ASSIGN USER TO GROUP]")
-    res = run_command(f"oneuser chgrp {user_id} {group_id}")
+    res = run_command(f"oneuser chgrp \"{username}\" \"{group_name}\"")
     if res["rc"] != 0:
         msg("error", "Could not assign the user to the group")
 
@@ -476,16 +488,16 @@ def get_state_image(image_name: str) -> str:
         return None
     return image["IMAGE"]["STATE"]
 
-def chown_image(image_id: int, user_id: int, group_id: int) -> None:
+def chown_image(image_id: int, username: str, group_name: str) -> None:
     """
     Change the owner of an image in OpenNebula
     
     :param image_id: the ID of the image, ``int``
-    :param user_id: the ID of the user, ``int``
-    :param group_id: the ID of the group, ``int``
+    :param username: the name of the user, ``str``
+    :param group_name: the name of the group, ``str``
     """
     msg("info", f"[CHANGE OWNER OF IMAGE {image_id}]")
-    res = run_command(f"oneimage chown {image_id} {user_id} {group_id}")
+    res = run_command(f"oneimage chown {image_id} \"{username}\" \"{group_name}\"")
     if res["rc"] != 0:
         msg("error", "Could not change the owner of the image")
 
@@ -502,16 +514,16 @@ def rename_image(image_id: int, new_name: str) -> None:
         msg("error", "Could not rename the image")
 
 ## TEMPLATE MANAGEMENT ##
-def chown_template(template_id: int, user_id: int, group_id: int) -> None:
+def chown_template(template_id: int, username: str, group_name: str) -> None:
     """
     Change the owner of a template in OpenNebula
     
     :param template_id: the ID of the template, ``int``
-    :param user_id: the ID of the user, ``int``
-    :param group_id: the ID of the group, ``int``
+    :param username: the name of the user, ``str``
+    :param group_name: the name of the group, ``str``
     """
     msg("info", f"[CHANGE OWNER OF TEMPLATE {template_id}]")
-    res = run_command(f"onetemplate chown {template_id} {user_id} {group_id}")
+    res = run_command(f"onetemplate chown {template_id} \"{username}\" \"{group_name}\"")
     if res["rc"] != 0:
         msg("error", "Could not change the owner of the template")
 
@@ -553,19 +565,19 @@ def get_onemarket_id(marketplace_name: str) -> int:
         return None
     return int(marketplace["MARKETPLACE"]["ID"])
 
-def add_marketplace(marketplace_name: str, marketplace_descriptrion: str, marketplace_endpoint: str) -> int:
+def add_marketplace(marketplace_name: str, marketplace_description: str, marketplace_endpoint: str) -> int:
     """
     Add a marketplace in OpenNebula
     
     :param marketplace_name: the name of the marketplace, ``str``
-    :param marketplace_descriptrion: the description of the marketplace, ``str``
+    :param marketplace_description: the description of the marketplace, ``str``
     :param marketplace_endpoint: the endpoint of the marketplace, ``str``
     :return: the ID of the marketplace, ``int``
     """
     marketplace_content = dedent(f"""
-        NAME = {marketplace_name}
-        DESCRIPTION = {marketplace_descriptrion}
-        ENDPOINT = {marketplace_endpoint}
+        NAME = "{marketplace_name}"
+        DESCRIPTION = "{marketplace_description}"
+        ENDPOINT = "{marketplace_endpoint}"
         MARKET_MAD = one
     """).strip()
     marketplace_template_path = save_temp_file(data=marketplace_content, file_path="marketplace_template", mode="w", encoding="utf-8")
@@ -601,7 +613,7 @@ def update_marketplace_monitoring_interval(interval: int) -> None:
     msg("info", f"Marketplace monitoring interval set to interval {interval}")
 
 ## APPLIANCE MANAGEMENT ##
-def get_appliance(appliance_name: str, marketplace_id: int) -> dict:
+def get_appliance(appliance_name: str, marketplace_name: str) -> dict:
     """
     Get the details of an appliance in OpenNebula
     
@@ -614,7 +626,7 @@ def get_appliance(appliance_name: str, marketplace_id: int) -> dict:
     if res["rc"] != 0:
         return None
     appliance = loads_json(data=res["stdout"])
-    if appliance["MARKETPLACEAPP"]["MARKETPLACE_ID"] != str(marketplace_id):
+    if appliance["MARKETPLACEAPP"]["MARKETPLACE"] != marketplace_name:
         return None
     return appliance
 
@@ -631,16 +643,16 @@ def get_appliance_id(appliance_name: str, marketplace_id: int) -> int:
         return None
     return int(appliance["MARKETPLACEAPP"]["ID"])
 
-def get_type_appliance(appliance_name: str, marketplace_id: int) -> str:
+def get_type_appliance(appliance_name: str, marketplace_name: str) -> str:
     """
     Get the type of an appliance in OpenNebula
     
     :param appliance_name: the name of the appliance, ``str``
-    :param marketplace_id: the ID of the marketplace, ``int``
+    :param marketplace_name: the name of the marketplace, ``int``
     :return: the type of the appliance, ``str``
     """
     msg("info", f"[GET TYPE OF {appliance_name} APPLIANCE]")
-    appliance = get_appliance(appliance_name, marketplace_id)
+    appliance = get_appliance(appliance_name, marketplace_name)
     if appliance is None:
         return None
     appliance_type = appliance["MARKETPLACEAPP"]["TYPE"]
@@ -666,30 +678,29 @@ def get_appliances_oneadmin() -> dict:
         return None
     return loads_json(data=res["stdout"])
 
-def get_appliances_marketplace(marketplace_id: int) -> list:
+def get_appliances_marketplace(marketplace_name: str) -> list:
     """
     Get the appliances from a marketplace in OpenNebula
     
-    :param marketplace_id: the ID of the market, ``int``
+    :param marketplace_name: the name of the market, ``str``
     :return: list of appliances, ``list``
     """
-    msg("info", f"[GET APPLIANCES FROM {marketplace_id} MARKETPLACE]")
+    msg("info", f"[GET APPLIANCES FROM {marketplace_name} MARKETPLACE]")
     oneadmin_appliances = get_appliances_oneadmin()
     if oneadmin_appliances is None:
         return None
     appliances = oneadmin_appliances["MARKETPLACEAPP_POOL"]["MARKETPLACEAPP"]
-    return [appliance["NAME"] for appliance in appliances if appliance["MARKETPLACE_ID"] == str(marketplace_id)]
+    return [appliance["NAME"] for appliance in appliances if appliance["MARKETPLACE"] == marketplace_name]
     
-def export_appliance(appliance_id: int, appliance_name: str, datastore_id: int) -> None:
+def export_appliance(appliance_name: str, datastore_id: int) -> None:
     """
     Export an appliance from OpenNebula
     
-    :param appliance_id: the id of the appliance, ``int``
     :param appliance_name: the name of the appliance, ``str``
     :param datastore_id: the datastore where the appliance is stored, ``int``
     """
     msg("info", f"[EXPORT {appliance_name} APPLIANCE]")
-    res = run_command(f"onemarketapp export {appliance_id} \"{appliance_name}\" -d {datastore_id}")
+    res = run_command(f"onemarketapp export \"{appliance_name}\" \"{appliance_name}\" -d {datastore_id}")
     if res["rc"] != 0:
         msg("error", "Could not export the appliance")
     data = res["stdout"]
@@ -702,68 +713,65 @@ def export_appliance(appliance_id: int, appliance_name: str, datastore_id: int) 
         service_id = None
     return image_ids, template_ids, service_id
 
-def add_appliances_from_marketplace(sixg_sandbox_group_id: int, jenkins_user_id: int, marketplace_id: int, appliances: list) -> None:
+def add_appliances_from_marketplace(sixg_sandbox_group: str, jenkins_user: str, marketplace_name: str, appliances: list) -> None:
     """
     Add appliances from a marketplace to the local OpenNebula
 
-    :param sixg_sandbox_group: the ID of the 6G-SANDBOX group, ``int``
-    :param jenkins_user: the ID of the Jenkins user, ``int``
-    :param marketplace_id: the ID of the marketplace, ``int``
+    :param sixg_sandbox_group: the name of the 6G-SANDBOX group, ``str``
+    :param jenkins_user: the name of the Jenkins user, ``str``
+    :param marketplace_name: the name of the marketplace, ``str``
     :param appliances: the list of appliances to add, ``list``
     """
     for appliance_name in appliances:
-        appliance_id = get_appliance_id(appliance_name=appliance_name, marketplace_id=marketplace_id)
-        appliance_type = get_type_appliance(appliance_name=appliance_name, marketplace_id=marketplace_id)
+        appliance_type = get_type_appliance(appliance_name=appliance_name, marketplace_name=marketplace_name)
         if appliance_type == "IMAGE":
             if get_image(appliance_name) is None:
                 msg("info", f"Appliance {appliance_name} not present, exporting...")
                 onedatastores = get_onedatastores()
                 datastore = ask_select(prompt="Select the datastore where you want to store the image", choices=onedatastores)
                 datastore_id = get_onedatastore_id(datastore)
-                image_id, template_id, _ = export_appliance(appliance_id=appliance_id, appliance_name=appliance_name, datastore_id=datastore_id)
+                image_id, template_id, _ = export_appliance(appliance_name=appliance_name, datastore_id=datastore_id)
                 sleep(10)
                 rename_image(image_id=image_id[0], new_name=appliance_name)
                 while get_state_image(appliance_name) != "1":
                     msg("info", "Please, wait 10s for the image to be ready...")
                     sleep(10)
-                chown_image(image_id=image_id[0], user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
-                chown_template(template_id=template_id[0], user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
+                chown_image(image_id=image_id[0], username=jenkins_user, group_name=sixg_sandbox_group)
+                chown_template(template_id=template_id[0], username=jenkins_user, group_name=sixg_sandbox_group)
         elif appliance_type == "VM":
             if get_template(appliance_name) is None:
                 msg("info", f"Appliance {appliance_name} not present, exporting...")
                 onedatastores = get_onedatastores()
                 datastore = ask_select(prompt="Select the datastore where you want to store the image", choices=onedatastores)
                 datastore_id = get_onedatastore_id(datastore)
-                image_ids, template_id, _ = export_appliance(appliance_id=appliance_id, appliance_name=appliance_name, datastore_id=datastore_id)
+                image_ids, template_id, _ = export_appliance(appliance_name=appliance_name, datastore_id=datastore_id)
                 sleep(10)
                 for i, image_id in enumerate(image_ids):
                     rename_image(image_id=image_id, new_name=f"{appliance_name}-{i}")
+                    chown_image(image_id=image_id, username=jenkins_user, group_name=sixg_sandbox_group)
                 for i, image_id in enumerate(image_ids):
                     while get_state_image(f"{appliance_name}-{i}") != "1":
                         msg("info", "Please, wait 10s for the image to be ready...")
                         sleep(10)
-                for i, image_id in enumerate(image_ids):
-                    chown_image(image_id=image_id, user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
-                chown_template(template_id=template_id[0], user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
+                chown_template(template_id=template_id[0], username=jenkins_user, group_name=sixg_sandbox_group)
         else:
             if get_oneflow_template(appliance_name) is None:
                 msg("info", f"Appliance {appliance_name} not present, exporting...")
                 onedatastores = get_onedatastores()
                 datastore = ask_select(prompt="Select the datastore where you want to store the image", choices=onedatastores)
                 datastore_id = get_onedatastore_id(datastore)
-                image_ids, template_ids, service_id = export_appliance(appliance_id=appliance_id, appliance_name=appliance_name, datastore_id=datastore_id)
+                image_ids, template_ids, service_id = export_appliance(appliance_name=appliance_name, datastore_id=datastore_id)
                 sleep(10)
                 for i, image_id in enumerate(image_ids):
                     rename_image(image_id=image_id, new_name=f"{appliance_name}-{i}")
+                    chown_image(image_id=image_id, username=jenkins_user, group_name=sixg_sandbox_group)
                 for i, image_id in enumerate(image_ids):
                     while get_state_image(f"{appliance_name}-{i}") != "1":
                         msg("info", "Please, wait 10s for the image to be ready...")
                         sleep(10)
-                for i, image_id in enumerate(image_ids):
-                    chown_image(image_id=image_id, user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
-                for i, template_id in enumerate(template_ids):
-                    chown_template(template_id=template_id, user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
-                chown_oneflow_template(service_id=service_id, user_id=jenkins_user_id, group_id=sixg_sandbox_group_id)
+                for template_id in template_ids:
+                    chown_template(template_id=template_id, username=jenkins_user, group_name=sixg_sandbox_group)
+                chown_oneflow_template(service_id=service_id, username=jenkins_user, group_name=sixg_sandbox_group)
 
 ## SERVICE MANAGEMENT ##
 def restart_one() -> None:
