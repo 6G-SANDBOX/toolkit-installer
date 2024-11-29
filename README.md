@@ -1,20 +1,19 @@
-# 6G-SANDBOX TOOLKIT INSTALLER
+# 6G-SANDBOX TOOLKIT INSTALLER <!-- omit in toc -->
 
 Python3 script that configures an OpenNebula cluster as a 6G-SANDBOX site. 
 
 <details>
 <summary>Table of Contents</summary>
 
-- [6G-SANDBOX TOOLKIT INSTALLER](#6g-sandbox-toolkit-installer)
-  - [:white\_check\_mark: Requirements](#white_check_mark-requirements)
-  - [:rocket: Getting Stared](#rocket-getting-stared)
-  - [:cyclone: Phases](#cyclone-phases)
-    - [Zero phase](#zero-phase)
-    - [First phase](#first-phase)
-    - [Second phase](#second-phase)
-    - [Third phase](#third-phase)
-    - [Fourth phase](#fourth-phase)
-    - [Fifth phase](#fifth-phase)
+- [:white\_check\_mark: Requirements](#white_check_mark-requirements)
+- [:rocket: Getting Stared](#rocket-getting-stared)
+- [:cyclone: Phases](#cyclone-phases)
+  - [Zero phase](#zero-phase)
+  - [First phase](#first-phase)
+  - [Second phase](#second-phase)
+  - [Third phase](#third-phase)
+  - [Fourth phase](#fourth-phase)
+  - [Fifth phase](#fifth-phase)
 
 </details>
 
@@ -70,13 +69,13 @@ python3 main.py
 
 ### First phase
 
-- Integrate with 6G-SANDBOX-Sites repository.
-- Create new 6G-SANDBOX sites in 6G-Sandbox-Sites repository.
+- Create 6G-SANDBOX group.
+- Create jenkins-master user.
 
 ### Second phase
 
-- Create 6G-SANDBOX group.
-- Create jenkins-master user.
+- Integrate with 6G-SANDBOX-Sites repository.
+- Create new 6G-SANDBOX sites in 6G-Sandbox-Sites repository.
 
 ### Third phase
 
@@ -88,15 +87,15 @@ python3 main.py
 - Download required appliances from the 6G-SANDBOX marketplace:
   - Service 6G-Sandbox Toolkit
   - NTP
-  - UERAMSIM
+  - UERANSIM
 
 ### Fourth phase
 
-- Integrate with 6G-Library repository.
-- Download appliance from components selected in 6G-Sandbox-Sites repository using 6G-Library repository.
+- Instantiate the 6G-SANDBOX Toolkit appliance.
 
 ### Fifth phase
 
+- Instantiate toolkit service.
 - Integrate with TNLCM repository.
 - Launch an end-to-end trial network.
 
