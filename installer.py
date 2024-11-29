@@ -18,7 +18,7 @@ try:
     # PHASE 3
     site = third_phase(sites_token)
     
-    # # PHASE 4
+    # PHASE 4
     fourth_phase(sixg_sandbox_group, jenkins_user, site, sites_token)
     
     # PHASE 5
