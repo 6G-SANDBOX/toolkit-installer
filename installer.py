@@ -1,9 +1,9 @@
-from src.installer.zero_phase import zero_phase
-from src.installer.first_phase import first_phase
-from src.installer.second_phase import second_phase
-from src.installer.third_phase import third_phase
-from src.installer.fourth_phase import fourth_phase
-from src.installer.fifth_phase import fifth_phase
+from src.zero_phase import zero_phase
+from src.first_phase import first_phase
+from src.second_phase import second_phase
+from src.third_phase import third_phase
+from src.fourth_phase import fourth_phase
+from src.fifth_phase import fifth_phase
 
 try:
     # PHASE 0
@@ -13,16 +13,16 @@ try:
     sixg_sandbox_group, jenkins_user = first_phase()
     
     # PHASE 2
-    site_core_path, sites_token = second_phase()
+    sites_token = second_phase(sixg_sandbox_group, jenkins_user)
     
     # PHASE 3
-    third_phase(sixg_sandbox_group, jenkins_user, site_core_path, sites_token)
+    site = third_phase(sites_token)
     
-    # PHASE 4
-    fourth_phase(sixg_sandbox_group, jenkins_user, sites_token)
+    # # PHASE 4
+    fourth_phase(sixg_sandbox_group, jenkins_user, site, sites_token)
     
     # PHASE 5
-    # fifth_phase()
+    # fifth_phase(site)
 
 except Exception as e:
     print(f"An error occurred: {e}")
