@@ -1,5 +1,5 @@
-from src.utils.cli import run_command
-from src.utils.logs import msg
+from phases.utils.cli import run_command
+from phases.utils.logs import msg
 
 def update_ubuntu_package() -> None:
     msg("info", "[UBUNTU PACKAGE UPDATE]")
