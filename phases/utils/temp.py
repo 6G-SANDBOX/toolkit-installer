@@ -2,14 +2,18 @@ import os
 import shutil
 import json
 
+from phases.utils.logs import msg
+
 TEMP_DIRECTORY = os.path.join(os.getcwd(), ".temp")
 
 def create_temp_directory() -> None:
     """
     Create the temporary directory if it does not exist
     """
+    msg("info", "Creating temporary directory")
     if not os.path.exists(TEMP_DIRECTORY):
         os.makedirs(TEMP_DIRECTORY)
+    msg("info", f"Temporary directory created in path: {TEMP_DIRECTORY}")
 
 def load_temp_file(file_path: str, mode: str, encoding: str) -> str:
     """

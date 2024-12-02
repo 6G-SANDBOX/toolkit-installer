@@ -115,8 +115,6 @@ def second_phase(sixg_sandbox_group: str, jenkins_user: str) -> tuple:
             update_marketplace_monitoring_interval(interval=old_interval)
             restart_one()
             check_one_health()
-    else:
-        msg("info", f"Marketplace {sixg_sandbox_marketplace_name} already present")
     appliances = []
     toolkit_service = get_env_var("OPENNEBULA_TOOLKIT_SERVICE")
     appliances.append(toolkit_service)

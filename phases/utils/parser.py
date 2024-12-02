@@ -3,6 +3,8 @@ import base64
 from ansible.parsing.vault import VaultLib, VaultSecret
 from ansible.constants import DEFAULT_VAULT_ID_MATCH
 
+from phases.utils.logs import msg
+
 def encode_base64(data: str) -> str:
     """
     Encode a string to Base64
@@ -28,8 +30,10 @@ def ansible_encrypt(data: str, token_path: str) -> None:
     :param encrypted_data: the data to be encrypted, ``str``
     :param token_path: the path to the token file, ``str``
     """
+    msg("info", f"Encrypting data using Ansible Vault")
     secret = token_path.encode("utf-8")
     vault = VaultLib([(DEFAULT_VAULT_ID_MATCH, VaultSecret(secret))])
+    msg("info", "Data encrypted")
     return vault.encrypt(data)
 
 def ansible_decrypt(encrypted_data: str, password: str) -> None:
@@ -39,6 +43,8 @@ def ansible_decrypt(encrypted_data: str, password: str) -> None:
     :param encrypted_data: the data to be decrypted, ``str``
     :param token_path: the path to the token file, ``str``
     """
+    msg("info", "Decrypting data using Ansible Vault")
     secret = password.encode("utf-8")
     vault = VaultLib([(DEFAULT_VAULT_ID_MATCH, VaultSecret(secret))])
+    msg("info", "Data decrypted")
     return vault.decrypt(encrypted_data)

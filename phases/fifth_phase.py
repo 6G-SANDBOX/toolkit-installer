@@ -17,6 +17,7 @@ def _login_tnlcm(tnlcm_url: str, tnlcm_admin_username: str, tnlcm_admin_password
     :param tnlcm_admin_password: the TNLCM admin password, ``str``
     :return: the access token, ``str``
     """
+    msg("info", "Logging in to TNLCM")
     credentials = f"{tnlcm_admin_username}:{tnlcm_admin_password}"
     encoded_credentials = encode_base64(credentials)
     headers = {
@@ -27,6 +28,7 @@ def _login_tnlcm(tnlcm_url: str, tnlcm_admin_username: str, tnlcm_admin_password
     if res.status_code != 201:
         msg("error", res["message"])
     data = res.json()
+    msg("info", "Logged in to TNLCM")
     return data["access_token"]
 
 def _create_trial_network(tnlcm_url: str, site: str, access_token: str, trial_network_path: str) -> str:
@@ -39,6 +41,7 @@ def _create_trial_network(tnlcm_url: str, site: str, access_token: str, trial_ne
     :param trial_network_path: the trial network path, ``str``
     :return: the trial network ID, ``str``
     """
+    msg("info", "Creating trial network")
     params = {
         "tn_id": "test",
         "deployment_site": site,
@@ -56,9 +59,12 @@ def _create_trial_network(tnlcm_url: str, site: str, access_token: str, trial_ne
     if res.status_code != 201:
         msg("error", res["message"])
     data = res.json()
-    return data["tn_id"]
+    tn_id = data["tn_id"]
+    msg("info", f"Trial network created with tn_id: {tn_id}")
+    return tn_id
 
 def _deploy_trial_network(tnlcm_url, tn_id, access_token):
+    msg("info", "Deploying trial network")
     url = f"{tnlcm_url}/tnlcm/trial-network"
     params = {
         "jenkins_deploy_pipeline": "TN_DEPLOY",
@@ -71,8 +77,10 @@ def _deploy_trial_network(tnlcm_url, tn_id, access_token):
     res = requests.put(url, headers=headers, params=params)
     if res.status_code != 200:
         msg("error", res["message"])
+    msg("info", "Trial network deployed")
 
 def _destroy_trial_network(tnlcm_url, tn_id, access_token):
+    msg("info", "Destroying trial network")
     url = f"{tnlcm_url}/tnlcm/trial-network"
     params = {
         "jenkins_destroy_pipeline": "TN_DESTROY",
@@ -85,6 +93,7 @@ def _destroy_trial_network(tnlcm_url, tn_id, access_token):
     res = requests.delete(url, headers=headers, params=params)
     if res.status_code != 200:
         msg("error", res["message"])
+    msg("info", "Trial network destroyed")
 
 def fifth_phase(site: str, vm_tnlcm_name: str) -> None:
     msg("info", "FIFTH PHASE")

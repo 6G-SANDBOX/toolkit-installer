@@ -15,10 +15,12 @@ def _create_site(sites_path: str) -> str:
     :param sites_path: the path to the sites repository, ``str``
     :return: the name of the site, ``str``
     """
+    msg("info", "Creating a new site")
     site = ask_text(prompt="Enter the name of the site:", default="", validate=True)
     sites = git_branches(sites_path)
     if site in sites:
         site = ask_text(prompt="Site already exists, enter a new name:", default="", validate=True)
+    msg("info", f"New site: {site}")
     return site
 
 def _update_site_config(site_core: str) -> dict:

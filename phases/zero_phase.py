@@ -16,20 +16,17 @@ def _generate_banner(message: str) -> None:
     ascii_banner = pyfiglet.figlet_format(message)
     print(ascii_banner)
 
-def check_user() -> None:
-    user = get_user()
-    if user != "root":
-        msg("error", "This script must be run as root")
-
 def zero_phase() -> None:
     pyproject_toml = os.path.join(os.getcwd(), "pyproject.toml")
-    __version__ = loads_toml(pyproject_toml, "rt", "utf-8")["tool"]["poetry"]["version"]
+    __version__ = loads_toml(file_path=pyproject_toml, mode="rt", encoding="utf-8")["tool"]["poetry"]["version"]
     load_dotenv_file()
     banner_message = get_env_var("BANNER_MESSAGE")
     _generate_banner(message=banner_message)
     _generate_banner(message=__version__)
     msg("info", "ZERO PHASE")
     update_ubuntu_package()
-    check_user()
+    user = get_user()
+    if user != "root":
+        msg("error", "This script must be run as root")
     check_one_health()
     create_temp_directory()
