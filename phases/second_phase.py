@@ -49,6 +49,7 @@ def _generate_custom_attrs_values(custom_attrs: dict, jenkins_user: str) -> dict
                     value = ask_password(prompt=description)
                 if input_type == "boolean":
                     value = ask_confirm(prompt=description, default=default_value)
+                    value = "YES" if value else "NO"
                 if input_type == "text64":
                     value = ask_text(prompt=description, default=default_value)
             if field_type == "M":
