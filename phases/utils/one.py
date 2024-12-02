@@ -674,15 +674,15 @@ def get_appliance(appliance_name: str, marketplace_name: str) -> dict:
     msg("info", f"Appliance {appliance_name} in {marketplace_name} marketplace")
     return appliance
 
-def get_appliance_id(appliance_name: str, marketplace_id: int) -> int:
+def get_appliance_id(appliance_name: str, marketplace_name: str) -> int:
     """
     Get the id of an appliance in OpenNebula
     
     :param appliance_name: the name of the appliance, ``str``
-    :param marketplace_id: the id of the marketplace, ``int``
+    :param marketplace_name: the name of the marketplace, ``int``
     :return: the id of the appliance, ``int``
     """
-    appliance = get_appliance(appliance_name, marketplace_id)
+    appliance = get_appliance(appliance_name, marketplace_name)
     if appliance is None:
         return None
     return int(appliance["MARKETPLACEAPP"]["ID"])

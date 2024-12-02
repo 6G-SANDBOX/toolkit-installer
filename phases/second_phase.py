@@ -118,7 +118,7 @@ def second_phase(sixg_sandbox_group: str, jenkins_user: str) -> tuple:
     appliances = []
     toolkit_service = get_env_var("OPENNEBULA_TOOLKIT_SERVICE")
     appliances.append(toolkit_service)
-    add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=sixg_sandbox_marketplace, appliances=appliances)
+    add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=sixg_sandbox_marketplace_name, appliances=appliances)
     params = {}
     custom_attrs = get_oneflow_template_custom_attrs(toolkit_service)
     custom_attrs_values = _generate_custom_attrs_values(custom_attrs, jenkins_user)

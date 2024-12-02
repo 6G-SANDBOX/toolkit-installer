@@ -30,15 +30,15 @@ def fourth_phase(sixg_sandbox_group: str, jenkins_user: str, site: str, sites_to
                 if "appliance" in metadata:
                     appliance_name = metadata["appliance"]
                     appliances.append(appliance_name)
-    sixg_sandbox_marketplace = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_NAME")
-    add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=sixg_sandbox_marketplace, appliances=appliances)
+    sixg_sandbox_marketplace_name = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_NAME")
+    add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=sixg_sandbox_marketplace_name, appliances=appliances)
 
-    opennebula_public_marketplace = get_env_var("OPENNEBULA_PUBLIC_MARKETPLACE_NAME")    
-    opennebula_public_marketplace_appliances = get_appliances_marketplace(marketplace_name=opennebula_public_marketplace)
+    opennebula_public_marketplace_name = get_env_var("OPENNEBULA_PUBLIC_MARKETPLACE_NAME")    
+    opennebula_public_marketplace_appliances = get_appliances_marketplace(marketplace_name=opennebula_public_marketplace_name)
     opennebula_public_appliances_selected = ask_checkbox("Select the appliances you want to import from the OpenNebula Public Marketplace", opennebula_public_marketplace_appliances)
     if opennebula_public_appliances_selected:
-        add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=opennebula_public_marketplace, appliances=opennebula_public_appliances_selected)
-    sixg_sandbox_marketplace_appliances = get_appliances_marketplace(marketplace_name=sixg_sandbox_marketplace)
+        add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=opennebula_public_marketplace_name, appliances=opennebula_public_appliances_selected)
+    sixg_sandbox_marketplace_appliances = get_appliances_marketplace(marketplace_name=sixg_sandbox_marketplace_name)
     for appliance in appliances:
         if appliance in sixg_sandbox_marketplace_appliances:
             sixg_sandbox_marketplace_appliances.remove(appliance)
@@ -46,4 +46,4 @@ def fourth_phase(sixg_sandbox_group: str, jenkins_user: str, site: str, sites_to
     sixg_sandbox_appliances_selected = ask_checkbox("Select the appliances you want to import from the 6G-SANDBOX Marketplace", sixg_sandbox_marketplace_appliances)
     toolkit_service = get_env_var("OPENNEBULA_TOOLKIT_SERVICE")
     if sixg_sandbox_appliances_selected:
-        add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=sixg_sandbox_marketplace, appliances=sixg_sandbox_appliances_selected)
+        add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=sixg_sandbox_marketplace_name, appliances=sixg_sandbox_appliances_selected)
