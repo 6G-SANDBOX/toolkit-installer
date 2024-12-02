@@ -1,4 +1,5 @@
 import os
+import requests
 
 from phases.utils.file import load_file, load_yaml, get_env_var
 from phases.utils.git import git_clone
@@ -7,6 +8,19 @@ from phases.utils.logs import msg
 from phases.utils.one import get_appliances_marketplace, add_appliances_from_marketplace
 from phases.utils.parser import ansible_decrypt
 from phases.utils.temp import save_temp_directory, temp_path
+
+def _extract_appliance_name(appliance_url: str) -> str:
+    """
+    Extract the appliance name from the URL
+    
+    :param appliance_url: the URL of the appliance, ``str``
+    :return: the name of the appliance, ``str``
+    """
+    res = requests.get(appliance_url)
+    if res.status_code != 200:
+        msg("error", f"Failed to get the appliance URL: {appliance_url}")
+    appliance_name = res.json()["name"]
+    return appliance_name
 
 def fourth_phase(sixg_sandbox_group: str, jenkins_user: str, site: str, sites_token: str) -> None:
     msg("info", "FOURTH PHASE")
@@ -28,7 +42,8 @@ def fourth_phase(sixg_sandbox_group: str, jenkins_user: str, site: str, sites_to
                 public_yaml = load_yaml(file_path=public_yaml_path, mode="rt", encoding="utf-8")
                 metadata = public_yaml["metadata"]
                 if "appliance" in metadata:
-                    appliance_name = metadata["appliance"]
+                    appliance_url = metadata["appliance"]
+                    appliance_name = _extract_appliance_name(appliance_url=appliance_url)
                     appliances.append(appliance_name)
     sixg_sandbox_marketplace_name = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_NAME")
     add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=sixg_sandbox_marketplace_name, appliances=appliances)
