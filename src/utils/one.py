@@ -120,6 +120,18 @@ def chown_vm(vm_id: int, username: str, group_name: str) -> None:
     if res["rc"] != 0:
         msg("error", "Could not change the owner of the VM")
 
+def get_vm_ip(vm_name: str) -> str:
+    """
+    Get the IP of a VM in OpenNebula
+    
+    :param vm_name: the name of the VM, ``str``
+    :return: the IP of the VM, ``str``
+    """
+    vm = get_vm(vm_name)
+    if vm is None:
+        return None
+    return vm["VM"]["TEMPLATE"]["NIC"][0]["IP"]
+
 ## DATASTORE MANAGEMENT ##
 def get_onedatastores() -> dict:
     """

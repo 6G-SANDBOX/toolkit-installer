@@ -137,6 +137,7 @@ def second_phase(sixg_sandbox_group: str, jenkins_user: str) -> tuple:
     sleep(10)
     chown_oneflow(oneflow_id=toolkit_service_id, username=jenkins_user, group_name=sixg_sandbox_group)
     roles = get_oneflow_roles(oneflow_name=toolkit_service)
+    vm_tnlcm_name = None
     for role in roles:
         while role["state"] != 1:
             sleep(10)
@@ -145,6 +146,8 @@ def second_phase(sixg_sandbox_group: str, jenkins_user: str) -> tuple:
             jenkins_ssh_key = get_vm(vm_name=vm_jenkins_name)["VM"]["USER_TEMPLATE"]["CONTEXT"]["SSH_KEY"]
             ssh_key_path = save_temp_file(data=jenkins_ssh_key, file_path="jenkins_ssh_key", mode="wt", encoding="utf-8")
             chauth_ssh_key(username=jenkins_user, ssh_key_path=ssh_key_path)
+        if role["name"] == "tnlcm":
+            vm_tnlcm_name = role["nodes"][0]["vm_info"]["VM"]["NAME"]
         vm_id = role["nodes"][0]["vm_info"]["VM"]["ID"]
         chown_vm(vm_id=vm_id, username=jenkins_user, group_name=sixg_sandbox_group)
-    return sites_token
+    return sites_token, vm_tnlcm_name
