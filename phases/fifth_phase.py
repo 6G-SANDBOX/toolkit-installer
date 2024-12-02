@@ -1,12 +1,12 @@
 import os
 import requests
 
-from src.utils.file import get_env_var
-from src.utils.git import git_clone
-from src.utils.logs import msg
-from src.utils.one import get_vm_ip, get_vm
-from src.utils.parser import encode_base64
-from src.utils.temp import load_temp_file, save_temp_directory, temp_path
+from phases.utils.file import get_env_var
+from phases.utils.git import git_clone
+from phases.utils.logs import msg
+from phases.utils.one import get_vm_ip, get_vm
+from phases.utils.parser import encode_base64
+from phases.utils.temp import load_temp_file, save_temp_directory, temp_path
 
 def _login_tnlcm(tnlcm_url: str, tnlcm_admin_username: str, tnlcm_admin_password: str) -> str:
     """

@@ -32,6 +32,7 @@ Create new 6G-SANDBOX site.
   - [Third phase](#third-phase)
   - [Fourth phase](#fourth-phase)
   - [Fifth phase](#fifth-phase)
+- [📚 Documentation](#-documentation)
 
 </details>
 
@@ -136,6 +137,10 @@ python3 installer.py
 
 - Integrate with TNLCM repository.
 - Launch an end-to-end trial network.
+
+## 📚 Documentation
+
+Find the complete documentation and usage guides in our [wiki](https://github.com/6G-SANDBOX/toolkit-installer/wiki).
 
 ## Contributors <!-- omit in toc -->
 

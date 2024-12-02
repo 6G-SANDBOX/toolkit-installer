@@ -1,9 +1,9 @@
-from src.zero_phase import zero_phase
-from src.first_phase import first_phase
-from src.second_phase import second_phase
-from src.third_phase import third_phase
-from src.fourth_phase import fourth_phase
-from src.fifth_phase import fifth_phase
+from phases.zero_phase import zero_phase
+from phases.first_phase import first_phase
+from phases.second_phase import second_phase
+from phases.third_phase import third_phase
+from phases.fourth_phase import fourth_phase
+from phases.fifth_phase import fifth_phase
 
 try:
     # PHASE 0

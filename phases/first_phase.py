@@ -1,8 +1,8 @@
-from src.utils.file import get_env_var
-from src.utils.interactive import ask_text, ask_password
-from src.utils.logs import msg
-from src.utils.one import get_group, create_group, get_username, create_user, assign_user_group
-from src.utils.temp import save_temp_file
+from phases.utils.file import get_env_var
+from phases.utils.interactive import ask_text, ask_password
+from phases.utils.logs import msg
+from phases.utils.one import get_group, create_group, get_username, create_user, assign_user_group
+from phases.utils.temp import save_temp_file
 
 def first_phase() -> tuple:
     msg("info", "FIRST PHASE")

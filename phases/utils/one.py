@@ -4,11 +4,11 @@ import re
 from time import sleep
 from textwrap import dedent
 
-from src.utils.cli import run_command
-from src.utils.file import load_file, loads_json, save_file
-from src.utils.interactive import ask_select
-from src.utils.logs import msg
-from src.utils.temp import save_temp_file
+from phases.utils.cli import run_command
+from phases.utils.file import load_file, loads_json, save_file
+from phases.utils.interactive import ask_select
+from phases.utils.logs import msg
+from phases.utils.temp import save_temp_file
 
 ## CONFIG MANAGEMENT ##
 def get_oned_conf_path() -> str:
@@ -424,15 +424,15 @@ def assign_user_group(username: str, group_name: str) -> None:
     if res["rc"] != 0:
         msg("error", "Could not assign the user to the group")
 
-def chauth_ssh_key(username: str, ssh_key_path: str) -> None:
+def add_ssh_key(username: str, jenkins_ssh_key: str) -> None:
     """
     Update the SSH key of a user in OpenNebula
     
     :param username: the name of the user, ``int``
-    :param ssh_key_path: the path with SSH key, ``str``
+    :param jenkins_ssh_key: the SSH key, ``str``
     """
     msg("info", f"[UPDATE SSH KEY OF USER {username}]")
-    res = run_command(f"oneuser chauth \"{username}\" --ssh --key \"{ssh_key_path}\"")
+    res = f"echo \'SSH_PUBLIC_KEY=\"{jenkins_ssh_key}\"\' | oneuser update {username}"
     if res["rc"] != 0:
         msg("error", "Could not update the SSH key")
 

@@ -1,12 +1,12 @@
 import os
 
-from src.utils.file import load_file, load_yaml, get_env_var
-from src.utils.git import git_clone
-from src.utils.interactive import ask_checkbox
-from src.utils.logs import msg
-from src.utils.one import get_appliances_marketplace, add_appliances_from_marketplace
-from src.utils.parser import ansible_decrypt
-from src.utils.temp import save_temp_directory, temp_path
+from phases.utils.file import load_file, load_yaml, get_env_var
+from phases.utils.git import git_clone
+from phases.utils.interactive import ask_checkbox
+from phases.utils.logs import msg
+from phases.utils.one import get_appliances_marketplace, add_appliances_from_marketplace
+from phases.utils.parser import ansible_decrypt
+from phases.utils.temp import save_temp_directory, temp_path
 
 def fourth_phase(sixg_sandbox_group: str, jenkins_user: str, site: str, sites_token: str) -> None:
     msg("info", "FOURTH PHASE")

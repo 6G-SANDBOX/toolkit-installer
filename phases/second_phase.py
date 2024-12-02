@@ -1,10 +1,10 @@
 from time import sleep
 
-from src.utils.file import get_env_var
-from src.utils.interactive import ask_text, ask_password, ask_confirm, ask_select
-from src.utils.logs import msg
-from src.utils.one import add_appliances_from_marketplace, get_onemarket, add_marketplace, get_marketplace_monitoring_interval, update_marketplace_monitoring_interval, restart_one, check_one_health, get_vm, get_onegate_endpoint, chauth_ssh_key, get_oneflow_template_networks, get_oneflow_template_custom_attrs, instantiate_oneflow_template, get_vnets_names, get_vnet_id, chown_oneflow, get_oneflow_roles, chown_vm
-from src.utils.temp import load_temp_file, save_temp_json_file, temp_path, save_temp_file
+from phases.utils.file import get_env_var
+from phases.utils.interactive import ask_text, ask_password, ask_confirm, ask_select
+from phases.utils.logs import msg
+from phases.utils.one import add_appliances_from_marketplace, get_onemarket, add_marketplace, get_marketplace_monitoring_interval, update_marketplace_monitoring_interval, restart_one, check_one_health, get_vm, get_onegate_endpoint, add_ssh_key, get_oneflow_template_networks, get_oneflow_template_custom_attrs, instantiate_oneflow_template, get_vnets_names, get_vnet_id, chown_oneflow, get_oneflow_roles, chown_vm
+from phases.utils.temp import load_temp_file, save_temp_json_file, temp_path, save_temp_file
 
 def _parse_custom_attr(attr_string: str) -> dict:
     """
@@ -143,9 +143,8 @@ def second_phase(sixg_sandbox_group: str, jenkins_user: str) -> tuple:
             sleep(10)
         if role["name"] == "jenkins":
             vm_jenkins_name = role["nodes"][0]["vm_info"]["VM"]["NAME"]
-            jenkins_ssh_key = get_vm(vm_name=vm_jenkins_name)["VM"]["USER_TEMPLATE"]["CONTEXT"]["SSH_KEY"]
-            ssh_key_path = save_temp_file(data=jenkins_ssh_key, file_path="jenkins_ssh_key", mode="wt", encoding="utf-8")
-            chauth_ssh_key(username=jenkins_user, ssh_key_path=ssh_key_path)
+            jenkins_ssh_key = get_vm(vm_name=vm_jenkins_name)["VM"]["USER_TEMPLATE"]["SSH_KEY"]
+            add_ssh_key(username=jenkins_user, ssh_key_path=jenkins_ssh_key)
         if role["name"] == "tnlcm":
             vm_tnlcm_name = role["nodes"][0]["vm_info"]["VM"]["NAME"]
         vm_id = role["nodes"][0]["vm_info"]["VM"]["ID"]
