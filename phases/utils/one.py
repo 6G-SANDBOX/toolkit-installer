@@ -25,12 +25,7 @@ def get_onegate_endpoint() -> dict:
     match = re.search(r"^\s*ONEGATE_ENDPOINT\s*=\s*\"([^\"]+)\"", oned_conf, re.MULTILINE)
     if match is None:
         msg("error", "Could not find ONEGATE_ENDPOINT in oned.conf")
-    onegate_endpoint = match.group(1)
-    command = f"curl {onegate_endpoint}"
-    res = run_command(command)
-    if res["rc"] != 0:
-        msg("error", f"OpenNebula CLI healthcheck failed. Command: '{command}'")
-    return onegate_endpoint
+    return match.group(1)
 
 ## NETWORKS MANAGEMENT ##
 def get_vnets() -> dict:
@@ -830,11 +825,19 @@ def check_one_health() -> None:
     Check the health of OpenNebula
     """
     msg("info", "Checking OpenNebula health")
-    get_groups()
-    get_users()
-    get_vms()
-    get_onedatastores()
-    get_oneflows()
-    get_onemarkets()
-    get_onegate_endpoint()
+    res = run_command("systemctl list-units | grep opennebula")
+    if res["rc"] != 0:
+        msg("error", "Could not check the health of OpenNebula")
+    output = res["stdout"]
+    all_running = True
+    errors = []
+    for line in output.strip().split("\n"):
+        service_status = re.search(r"(\S+)\s+loaded active (\S+)", line)
+        if service_status:
+            service_name, status = service_status.groups()
+            if status != "running" and "timer" not in service_name:
+                all_running = False
+                errors.append(f"{service_name} is {status}")
+    if not all_running:
+        msg("error", "OpenNebula healthcheck failed")
     msg("info", "OpenNebula healthcheck passed")
