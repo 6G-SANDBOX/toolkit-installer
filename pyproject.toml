@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "toolkit-installer"
 version = "v0.1.0"
-description = "TOOLKIT INSTALLER"
+description = "Installer that create a new 6G-SANDBOX site and install the tools MinIO, Jenkins and TNLCM in OpenNebula."
 authors = ["Daniel Garcia <dgarcia@opennebula.io>", "Carlos Andreo <c.andreo@uma.es>"]
 package-mode = false
 
