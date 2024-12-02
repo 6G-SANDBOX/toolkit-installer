@@ -100,8 +100,5 @@ def fifth_phase(site: str, vm_tnlcm_name: str) -> None:
     git_clone(github_tnlcm_https, save_temp_directory(tnlcm_directory))
     trial_network_path = temp_path(os.path.join(tnlcm_directory, "tn_template_lib", "ueransim_split.yaml"))
     tn_id = _create_trial_network(tnlcm_url, site, access_token, trial_network_path)
-    msg("info", f"Trial network created with ID {tn_id}")
     _deploy_trial_network(tnlcm_url, tn_id, access_token)
-    msg("info", "Trial network deployed")
     _destroy_trial_network(tnlcm_url, tn_id, access_token)
-    msg("info", "Trial network destroyed")

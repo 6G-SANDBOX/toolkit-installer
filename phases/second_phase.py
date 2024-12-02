@@ -101,14 +101,11 @@ def second_phase(sixg_sandbox_group: str, jenkins_user: str) -> tuple:
     sixg_sandbox_marketplace_endpoint = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_ENDPOINT")
     sixg_sandbox_marketplace = get_onemarket(marketplace_name=sixg_sandbox_marketplace_name)
     if sixg_sandbox_marketplace is None:
-        msg("info", f"Marketplace {sixg_sandbox_marketplace_name} not present, adding...")
         _ = add_marketplace(sixg_sandbox_marketplace_name, sixg_sandbox_marketplace_description, sixg_sandbox_marketplace_endpoint)
         force_fast_marketplace_monitoring = get_env_var("FORCE_FAST_MARKETPLACE_MONITORING")
         if force_fast_marketplace_monitoring == "false":
-            msg("info", "Please, wait 600s for the marketplace to be ready...")
             sleep(600)
         else:
-            msg("info", "Forcing fast marketplace monitoring...")
             marketplace_interval = int(get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_INTERVAL"))
             old_interval = get_marketplace_monitoring_interval()
             update_marketplace_monitoring_interval(interval=marketplace_interval)

@@ -2,7 +2,6 @@ from phases.utils.cli import run_command
 from phases.utils.logs import msg
 
 def update_ubuntu_package() -> None:
-    msg("info", "[UBUNTU PACKAGE UPDATE]")
     res = run_command("apt update")
     if res["rc"] != 0:
         msg("error", "Could not update Ubuntu packages")

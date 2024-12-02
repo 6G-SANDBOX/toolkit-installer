@@ -39,7 +39,6 @@ def get_vnets() -> dict:
     
     :return: the list of VNets, ``dict``
     """
-    msg("info", "[GET VNETS]")
     res = run_command("onevnet list -j")
     if res["rc"] != 0:
         return None
@@ -63,7 +62,6 @@ def get_vnet(vnet_name: str) -> dict:
     :param vnet_name: the name of the VNet, ``str``
     :return: the details of the VNet, ``dict``
     """
-    msg("info", f"[GET {vnet_name} VNET]")
     res = run_command(f"onevnet show \"{vnet_name}\" -j")
     if res["rc"] != 0:
         return None
@@ -88,7 +86,6 @@ def get_vms() -> dict:
     
     :return: the list of VMs, ``dict``
     """
-    msg("info", "[GET VMS]")
     res = run_command("onevm list -j")
     if res["rc"] != 0:
         msg("error", "Could not list the VMs")
@@ -101,7 +98,6 @@ def get_vm(vm_name: str) -> dict:
     :param vm_name: the name of the VM, ``str``
     :return: the details of the VM, ``dict``
     """
-    msg("info", f"[GET {vm_name} VM]")
     res = run_command(f"onevm show \"{vm_name}\" -j")
     if res["rc"] != 0:
         return None
@@ -115,7 +111,6 @@ def chown_vm(vm_id: int, username: str, group_name: str) -> None:
     :param username: the name of the user, ``str``
     :param group_name: the name of the group, ``str``
     """
-    msg("info", f"[CHANGE OWNER OF VM {vm_id}]")
     res = run_command(f"onevm chown {vm_id} \"{username}\" \"{group_name}\"")
     if res["rc"] != 0:
         msg("error", "Could not change the owner of the VM")
@@ -139,7 +134,6 @@ def get_onedatastores() -> dict:
     
     :return: the list of datastores, ``dict``
     """
-    msg("info", "[GET DATASTORES]")
     res = run_command("onedatastore list -j")
     if res["rc"] != 0:
         msg("error", "Could not list the datastores")
@@ -153,7 +147,6 @@ def get_onedatastore(datastore_name: str) -> dict:
     :param datastore_name: the name of the datastore, ``str``
     :return: the details of the datastore, ``dict``
     """
-    msg("info", f"[GET {datastore_name} DATASTORE]")
     res = run_command(f"onedatastore show \"{datastore_name}\" -j")
     if res["rc"] != 0:
         return None
@@ -178,7 +171,6 @@ def get_oneflows() -> dict:
     
     :return: the list of services, ``dict``
     """
-    msg("info", "[GET SERVICES]")
     res = run_command("oneflow list -j")
     if res["rc"] != 0:
         return None
@@ -191,7 +183,6 @@ def get_oneflow(oneflow_name: str) -> dict:
     :param oneflow_name: the name of the service, ``str``
     :return: the details of the service, ``dict``
     """
-    msg("info", f"[GET {oneflow_name} SERVICE]")
     res = run_command(f"oneflow show \"{oneflow_name}\" -j")
     if res["rc"] != 0:
         return None
@@ -216,7 +207,6 @@ def rename_oneflow(oneflow_id: int, new_name: str) -> None:
     :param oneflow_id: the ID of the service, ``int``
     :param new_name: the new name of the service, ``str``
     """
-    msg("info", f"[RENAME SERVICE {oneflow_id}]")
     res = run_command(f"oneflow rename {oneflow_id} \"{new_name}\"")
     if res["rc"] != 0:
         msg("error", "Could not rename the service")
@@ -229,7 +219,6 @@ def chown_oneflow(oneflow_id: int, username: str, group_name: str) -> None:
     :param user_id: the name of the user, ``str``
     :param group_id: the ID of the group, ``str``
     """
-    msg("info", f"[CHANGE OWNER OF SERVICE {oneflow_id}]")
     res = run_command(f"oneflow chown {oneflow_id} \"{username}\" \"{group_name}\"")
     if res["rc"] != 0:
         msg("error", "Could not change the owner of the service")
@@ -242,7 +231,6 @@ def get_oneflow_template(oneflow_name: str) -> dict:
     :param oneflow_name: the name of the service, ``str``
     :return: the details of the service, ``dict``
     """
-    msg("info", f"[GET {oneflow_name} SERVICE]")
     res = run_command(f"oneflow-template show \"{oneflow_name}\" -j")
     if res["rc"] != 0:
         return None
@@ -291,7 +279,6 @@ def instantiate_oneflow_template(oneflow_template_name: str, file_path: str) -> 
     :param oneflow_template_id: the ID of the service, ``int``
     :param file_path: the path to the file with params, ``str``
     """
-    msg("info", f"[INSTANTIATE SERVICE {oneflow_template_name}]")
     res = run_command(f"oneflow-template instantiate \"{oneflow_template_name}\" < {file_path}")
     if res["rc"] != 0:
         msg("error", "Could not instantiate the service")
@@ -305,7 +292,6 @@ def chown_oneflow_template(service_id: int, username: str, group_name: str) -> N
     :param username: the name of the user, ``str``
     :param group_name: the name of the group, ``str``
     """
-    msg("info", f"[CHANGE OWNER OF IMAGE {service_id}]")
     res = run_command(f"oneflow-template chown {service_id} \"{username}\" \"{group_name}\"")
     if res["rc"] != 0:
         msg("error", "Could not change the owner of the image")
@@ -318,7 +304,6 @@ def get_group(group_name: str) -> dict:
     :param group_name: the name of the group, ``str``
     :return: the details of the group, ``dict``
     """
-    msg("info", f"[GET {group_name} GROUP]")
     res = run_command(f"onegroup show \"{group_name}\" -j")
     if res["rc"] != 0:
         return None
@@ -342,7 +327,6 @@ def get_groups() -> dict:
     
     :return: the list of groups, ``dict``
     """
-    msg("info", "[GET GROUPS]")
     res = run_command("onegroup list -j")
     if res["rc"] != 0:
         msg("error", "Could not list the groups")
@@ -355,7 +339,6 @@ def get_username(username: str) -> dict:
     :param username: the name of the user, ``str``
     :return: the details of the user, ``dict``
     """
-    msg("info", f"[GET {username} USER]")
     res = run_command(f"oneuser show \"{username}\" -j")
     if res["rc"] != 0:
         return None
@@ -379,7 +362,6 @@ def get_users() -> dict:
     
     :return: the list of users, ``dict``
     """
-    msg("info", "[GET USERS]")
     res = run_command("oneuser list -j")
     if res["rc"] != 0:
         msg("error", "Could not list the users")
@@ -392,7 +374,6 @@ def create_group(group_name: str) -> int:
     :param group_name: the name of the group, ``str``
     :return: the ID of the group, ``int``
     """
-    msg("info", f"[CREATE {group_name} GROUP]")
     res = run_command(f"onegroup create {group_name}")
     if res["rc"] != 0:
         msg("error", "Group could not be registered")
@@ -406,7 +387,6 @@ def create_user(username: str, password: str) -> int:
     :param password: the user password, ``str``
     :return: the ID of the user, ``int``
     """
-    msg("info", f"[CREATE {username} USER]")
     res = run_command(f"oneuser create \"{username}\" \"{password}\"")
     if res["rc"] != 0:
         msg("error", "User could not be registered")
@@ -419,7 +399,6 @@ def assign_user_group(username: str, group_name: str) -> None:
     :param username: the name of the user, ``str``
     :param group_name: the name of the group, ``str``
     """
-    msg("info", "[ASSIGN USER TO GROUP]")
     res = run_command(f"oneuser chgrp \"{username}\" \"{group_name}\"")
     if res["rc"] != 0:
         msg("error", "Could not assign the user to the group")
@@ -431,7 +410,6 @@ def add_ssh_key(username: str, jenkins_ssh_key: str) -> None:
     :param username: the name of the user, ``int``
     :param jenkins_ssh_key: the SSH key, ``str``
     """
-    msg("info", f"[UPDATE SSH KEY OF USER {username}]")
     res = f"echo \'SSH_PUBLIC_KEY=\"{jenkins_ssh_key}\"\' | oneuser update {username}"
     if res["rc"] != 0:
         msg("error", "Could not update the SSH key")
@@ -443,7 +421,6 @@ def get_templates() -> dict:
     
     :return: the list of templates, ``dict``
     """
-    msg("info", "[GET LOCAL TEMPLATES]")
     res = run_command("onetemplate list -j")
     if res["rc"] != 0:
         msg("error", "Could not list the templates")
@@ -456,7 +433,6 @@ def get_template(template_name: str) -> dict:
     :param template_name: the name of the template, ``str``
     :return: the details of the template, ``dict``
     """
-    msg("info", f"[GET {template_name} TEMPLATE]")
     res = run_command(f"onetemplate show \"{template_name}\" -j")
     if res["rc"] != 0:
         return None
@@ -469,7 +445,6 @@ def get_images() -> dict:
     
     :return: the list of images, ``dict``
     """
-    msg("info", "[GET LOCAL IMAGES]")
     res = run_command("oneimage list -j")
     if res["rc"] != 0:
         msg("error", "Could not list the images")
@@ -482,7 +457,6 @@ def get_image(image_name: str) -> dict:
     :param image_name: the name of the image, ``str``
     :return: the details of the image, ``dict``
     """
-    msg("info", f"[GET {image_name} IMAGE]")
     res = run_command(f"oneimage show \"{image_name}\" -j")
     if res["rc"] != 0:
         return None
@@ -508,7 +482,6 @@ def chown_image(image_id: int, username: str, group_name: str) -> None:
     :param username: the name of the user, ``str``
     :param group_name: the name of the group, ``str``
     """
-    msg("info", f"[CHANGE OWNER OF IMAGE {image_id}]")
     res = run_command(f"oneimage chown {image_id} \"{username}\" \"{group_name}\"")
     if res["rc"] != 0:
         msg("error", "Could not change the owner of the image")
@@ -520,7 +493,6 @@ def rename_image(image_id: int, new_name: str) -> None:
     :param image_id: the ID of the image, ``int``
     :param new_name: the new name of the image, ``str``
     """
-    msg("info", f"[RENAME IMAGE {image_id}]")
     res = run_command(f"oneimage rename {image_id} \"{new_name}\"")
     if res["rc"] != 0:
         msg("error", "Could not rename the image")
@@ -534,7 +506,6 @@ def chown_template(template_id: int, username: str, group_name: str) -> None:
     :param username: the name of the user, ``str``
     :param group_name: the name of the group, ``str``
     """
-    msg("info", f"[CHANGE OWNER OF TEMPLATE {template_id}]")
     res = run_command(f"onetemplate chown {template_id} \"{username}\" \"{group_name}\"")
     if res["rc"] != 0:
         msg("error", "Could not change the owner of the template")
@@ -546,7 +517,6 @@ def get_onemarkets() -> dict:
     
     :return: the list of marketplaces, ``dict``
     """
-    msg("info", "[GET MARKETPLACES]")
     res = run_command("onemarket list -j")
     if res["rc"] != 0:
         msg("error", "Could not list the market")
@@ -559,7 +529,6 @@ def get_onemarket(marketplace_name: str) -> dict:
     :param marketplace_name: the name of the market, ``str``
     :return: the details of the market, ``dict``
     """
-    msg("info", f"[GET {marketplace_name} MARKETPLACE]")
     res = run_command(f"onemarket show \"{marketplace_name}\" -j")
     if res["rc"] != 0:
         return None
@@ -622,7 +591,6 @@ def update_marketplace_monitoring_interval(interval: int) -> None:
     pattern = r"^\s*MONITORING_INTERVAL_MARKET\s*=\s*\"?(\d+)\"?"
     updated_conf = re.sub(pattern, f"MONITORING_INTERVAL_MARKET = {interval}", oned_conf, flags=re.MULTILINE)
     save_file(data=updated_conf, file_path=oned_conf_path, mode="w", encoding="utf-8")
-    msg("info", f"Marketplace monitoring interval set to interval {interval}")
 
 ## APPLIANCE MANAGEMENT ##
 def get_appliance(appliance_name: str, marketplace_name: str) -> dict:
@@ -633,7 +601,6 @@ def get_appliance(appliance_name: str, marketplace_name: str) -> dict:
     :param marketplace_id: the ID of the marketplace, ``int``
     :return: the details of the appliance, ``dict``
     """
-    msg("info", f"[GET {appliance_name} APPLIANCE]")
     res = run_command(f"onemarketapp show \"{appliance_name}\" -j")
     if res["rc"] != 0:
         return None
@@ -663,7 +630,6 @@ def get_type_appliance(appliance_name: str, marketplace_name: str) -> str:
     :param marketplace_name: the name of the marketplace, ``int``
     :return: the type of the appliance, ``str``
     """
-    msg("info", f"[GET TYPE OF {appliance_name} APPLIANCE]")
     appliance = get_appliance(appliance_name, marketplace_name)
     if appliance is None:
         return None
@@ -683,7 +649,6 @@ def get_appliances_oneadmin() -> dict:
         
     :return: the appliances, ``dict``
     """
-    msg("info", "[GET APPLIANCES FROM ONEADMIN USER]")
     oneadmin_id = get_username_id(username="oneadmin")
     res = run_command(f"onemarketapp list {oneadmin_id} -j")
     if res["rc"] != 0:
@@ -697,7 +662,6 @@ def get_appliances_marketplace(marketplace_name: str) -> list:
     :param marketplace_name: the name of the market, ``str``
     :return: list of appliances, ``list``
     """
-    msg("info", f"[GET APPLIANCES FROM {marketplace_name} MARKETPLACE]")
     oneadmin_appliances = get_appliances_oneadmin()
     if oneadmin_appliances is None:
         return None
@@ -711,7 +675,6 @@ def export_appliance(appliance_name: str, datastore_id: int) -> None:
     :param appliance_name: the name of the appliance, ``str``
     :param datastore_id: the datastore where the appliance is stored, ``int``
     """
-    msg("info", f"[EXPORT {appliance_name} APPLIANCE]")
     res = run_command(f"onemarketapp export \"{appliance_name}\" \"{appliance_name}\" -d {datastore_id}")
     if res["rc"] != 0:
         msg("error", "Could not export the appliance")
@@ -738,7 +701,6 @@ def add_appliances_from_marketplace(sixg_sandbox_group: str, jenkins_user: str, 
         appliance_type = get_type_appliance(appliance_name=appliance_name, marketplace_name=marketplace_name)
         if appliance_type == "IMAGE":
             if get_image(appliance_name) is None:
-                msg("info", f"Appliance {appliance_name} not present, exporting...")
                 onedatastores = get_onedatastores()
                 datastore = ask_select(prompt="Select the datastore where you want to store the image", choices=onedatastores)
                 datastore_id = get_onedatastore_id(datastore)
@@ -746,13 +708,11 @@ def add_appliances_from_marketplace(sixg_sandbox_group: str, jenkins_user: str, 
                 sleep(10)
                 rename_image(image_id=image_id[0], new_name=appliance_name)
                 while get_state_image(appliance_name) != "1":
-                    msg("info", "Please, wait 10s for the image to be ready...")
                     sleep(10)
                 chown_image(image_id=image_id[0], username=jenkins_user, group_name=sixg_sandbox_group)
                 chown_template(template_id=template_id[0], username=jenkins_user, group_name=sixg_sandbox_group)
         elif appliance_type == "VM":
             if get_template(appliance_name) is None:
-                msg("info", f"Appliance {appliance_name} not present, exporting...")
                 onedatastores = get_onedatastores()
                 datastore = ask_select(prompt="Select the datastore where you want to store the image", choices=onedatastores)
                 datastore_id = get_onedatastore_id(datastore)
@@ -763,12 +723,10 @@ def add_appliances_from_marketplace(sixg_sandbox_group: str, jenkins_user: str, 
                     chown_image(image_id=image_id, username=jenkins_user, group_name=sixg_sandbox_group)
                 for i, image_id in enumerate(image_ids):
                     while get_state_image(f"{appliance_name}-{i}") != "1":
-                        msg("info", "Please, wait 10s for the image to be ready...")
                         sleep(10)
                 chown_template(template_id=template_id[0], username=jenkins_user, group_name=sixg_sandbox_group)
         else:
             if get_oneflow_template(appliance_name) is None:
-                msg("info", f"Appliance {appliance_name} not present, exporting...")
                 onedatastores = get_onedatastores()
                 datastore = ask_select(prompt="Select the datastore where you want to store the image", choices=onedatastores)
                 datastore_id = get_onedatastore_id(datastore)
@@ -779,7 +737,6 @@ def add_appliances_from_marketplace(sixg_sandbox_group: str, jenkins_user: str, 
                     chown_image(image_id=image_id, username=jenkins_user, group_name=sixg_sandbox_group)
                 for i, image_id in enumerate(image_ids):
                     while get_state_image(f"{appliance_name}-{i}") != "1":
-                        msg("info", "Please, wait 10s for the image to be ready...")
                         sleep(10)
                 for template_id in template_ids:
                     chown_template(template_id=template_id, username=jenkins_user, group_name=sixg_sandbox_group)
@@ -793,14 +750,12 @@ def restart_one() -> None:
     res = run_command("systemctl restart opennebula")
     if res["rc"] != 0:
         msg("error", "Could not restart the OpenNebula daemon")
-    msg("info", "OpenNebula daemon restarted")
 
 ## HEALTH MANAGEMENT ##
 def check_one_health() -> None:
     """
     Check the health of OpenNebula
     """
-    msg("info", "[OPENNEBULA HEALTH CHECK]")
     get_groups()
     get_users()
     get_vms()
@@ -808,4 +763,3 @@ def check_one_health() -> None:
     get_oneflows()
     get_onemarkets()
     get_onegate_endpoint()
-    msg("info", "OpenNebula is healthy")

@@ -22,7 +22,6 @@ def fourth_phase(sixg_sandbox_group: str, jenkins_user: str, site: str, sites_to
     site_available_components = data["site_available_components"]
     appliances = []
     if site_available_components:
-        msg("info", "Site available components:")
         for component_name, _ in site_available_components.items():
             public_yaml_path = os.path.join(library_path, component_name, ".tnlcm", "public.yaml")
             if os.path.exists(public_yaml_path):
