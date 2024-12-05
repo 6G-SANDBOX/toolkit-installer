@@ -5,7 +5,7 @@ from time import sleep
 from textwrap import dedent
 
 from phases.utils.cli import run_command
-from phases.utils.file import load_file, loads_json, save_file
+from phases.utils.file import load_file, loads_json, save_file, loads_yaml
 from phases.utils.interactive import ask_select
 from phases.utils.logs import msg
 from phases.utils.temp import save_temp_file
@@ -83,7 +83,7 @@ def get_vms() -> dict:
     """
     res = run_command("onevm list -j")
     if res["rc"] != 0:
-        msg("error", "Could not list the VMs")
+        msg("error", res["stderr"])
     return loads_json(data=res["stdout"])
 
 def get_vm(vm_name: str) -> dict:
@@ -112,7 +112,7 @@ def chown_vm(vm_id: int, username: str, group_name: str) -> None:
     msg("info", f"Changing owner of OpenNebula VM {vm_id} to {username}:{group_name}")
     res = run_command(f"onevm chown {vm_id} \"{username}\" \"{group_name}\"")
     if res["rc"] != 0:
-        msg("error", "Could not change the owner of the VM")
+        msg("error", res["stderr"])
     msg("info", "Owner of VM changed")
 
 def get_vm_ip(vm_name: str) -> str:
@@ -140,7 +140,7 @@ def get_onedatastores() -> dict:
     msg("info", "Getting OpenNebula datastores")
     res = run_command("onedatastore list -j")
     if res["rc"] != 0:
-        msg("error", "Could not list the datastores")
+        msg("error", res["stderr"])
     onedatastores = loads_json(data=res["stdout"])
     msg("info", "Datastores found")
     return [datastore["NAME"] for datastore in onedatastores["DATASTORE_POOL"]["DATASTORE"]]
@@ -207,6 +207,18 @@ def get_oneflow_roles(oneflow_name: str) -> dict:
     msg("info", "Roles found")
     return oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]["roles"]
 
+def get_oneflow_custom_attrs_values(oneflow_name: str) -> dict:
+    """
+    Get the custom_attrs of a service in OpenNebula
+    
+    :param oneflow_name: the name of the service, ``str``
+    :return: the custom_attrs of the service, ``dict``
+    """
+    oneflow = get_oneflow(oneflow_name)
+    if oneflow is None:
+        return None
+    return oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]["custom_attrs_values"]
+
 def rename_oneflow(oneflow_id: int, new_name: str) -> None:
     """
     Rename a service in OpenNebula
@@ -216,7 +228,7 @@ def rename_oneflow(oneflow_id: int, new_name: str) -> None:
     """
     res = run_command(f"oneflow rename {oneflow_id} \"{new_name}\"")
     if res["rc"] != 0:
-        msg("error", "Could not rename the service")
+        msg("error", res["stderr"])
 
 def chown_oneflow(oneflow_id: int, username: str, group_name: str) -> None:
     """
@@ -229,61 +241,61 @@ def chown_oneflow(oneflow_id: int, username: str, group_name: str) -> None:
     msg("info", f"Changing owner of OpenNebula service {oneflow_id} to {username}:{group_name}")
     res = run_command(f"oneflow chown {oneflow_id} \"{username}\" \"{group_name}\"")
     if res["rc"] != 0:
-        msg("error", "Could not change the owner of the service")
+        msg("error", res["stderr"])
     msg("info", "Owner of service changed")
 
 ## ONEFLOW TEMPLATE MANAGEMENT ##
-def get_oneflow_template(oneflow_name: str) -> dict:
+def get_oneflow_template(oneflow_template_name: str) -> dict:
     """
     Get the details of a service in OpenNebula
     
-    :param oneflow_name: the name of the service, ``str``
+    :param oneflow_template_name: the name of the service, ``str``
     :return: the details of the service, ``dict``
     """
-    res = run_command(f"oneflow-template show \"{oneflow_name}\" -j")
-    if res["rc"] != 0:
+    oneflow_template = run_command(f"oneflow-template show \"{oneflow_template_name}\" -j")
+    if oneflow_template["rc"] != 0:
         return None
-    return loads_json(data=res["stdout"])
+    return loads_json(data=oneflow_template["stdout"])
 
-def get_oneflow_template_id(oneflow_name: str) -> int:
+def get_oneflow_template_id(oneflow_template_name: str) -> int:
     """
     Get the id of a service in OpenNebula
     
-    :param oneflow_name: the name of the service, ``str``
+    :param oneflow_template_name: the name of the service, ``str``
     :return: the id of the service, ``int``
     """
-    oneflow = get_oneflow_template(oneflow_name)
-    if oneflow is None:
+    oneflow_template = get_oneflow_template(oneflow_template_name)
+    if oneflow_template is None:
         return None
-    return int(oneflow["DOCUMENT"]["ID"])
+    return int(oneflow_template["DOCUMENT"]["ID"])
 
-def get_oneflow_template_custom_attrs(oneflow_name: str) -> dict:
+def get_oneflow_template_custom_attrs(oneflow_template_name: str) -> dict:
     """
     Get the custom_attrs of a service in OpenNebula
     
-    :param oneflow_name: the name of the service, ``str``
+    :param oneflow_template_name: the name of the service, ``str``
     :return: the custom_attrs of the service, ``dict``
     """
-    msg("info", f"Getting custom_attrs of OpenNebula service {oneflow_name}")
-    oneflow = get_oneflow_template(oneflow_name)
-    if oneflow is None:
+    msg("info", f"Getting custom_attrs of OpenNebula service {oneflow_template_name}")
+    oneflow_template = get_oneflow_template(oneflow_template_name)
+    if oneflow_template is None:
         return None
-    custom_attrs = oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]["custom_attrs"]
+    custom_attrs = oneflow_template["DOCUMENT"]["TEMPLATE"]["BODY"]["custom_attrs"]
     msg("info", "Custom_attrs found")
     return custom_attrs
 
-def get_oneflow_template_networks(oneflow_name: str) -> dict:
+def get_oneflow_template_networks(oneflow_template_name: str) -> dict:
     """
     Get the networks of a service in OpenNebula
     
-    :param oneflow_name: the name of the service, ``str``
+    :param oneflow_template_name: the name of the service, ``str``
     :return: the networks of the service, ``dict``
     """
-    msg("info", f"Getting networks of OpenNebula service {oneflow_name}")
-    oneflow = get_oneflow_template(oneflow_name)
-    if oneflow is None:
+    msg("info", f"Getting networks of OpenNebula service {oneflow_template_name}")
+    oneflow_template = get_oneflow_template(oneflow_template_name)
+    if oneflow_template is None:
         return None
-    networks = oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]["networks"]
+    networks = oneflow_template["DOCUMENT"]["TEMPLATE"]["BODY"]["networks"]
     msg("info", "Networks found")
     return networks
 
@@ -297,22 +309,35 @@ def instantiate_oneflow_template(oneflow_template_name: str, file_path: str) -> 
     msg("info", f"Instantiating OpenNebula service {oneflow_template_name}")
     res = run_command(f"oneflow-template instantiate \"{oneflow_template_name}\" {file_path}")
     if res["rc"] != 0:
-        msg("error", "Could not instantiate the service")
+        msg("error", res["stderr"])
     msg("info", "Service instantiated")
     return int(re.search(r"ID:\s*(\d+)", res["stdout"]).group(1))
 
-def chown_oneflow_template(service_id: int, username: str, group_name: str) -> None:
+def update_oneflow_template(oneflow_template_name: str, file_path: str) -> None:
+    """
+    Update a service in OpenNebula
+    
+    :param oneflow_template_name: the name of the service, ``str``
+    :param file_path: the path to the file with params, ``str``
+    """
+    msg("info", f"Updating OpenNebula service {oneflow_template_name}")
+    res = run_command(f"oneflow-template update \"{oneflow_template_name}\" {file_path}")
+    if res["rc"] != 0:
+        msg("error", res["stderr"])
+    msg("info", "Service updated")
+
+def chown_oneflow_template(oneflow_template_id: int, username: str, group_name: str) -> None:
     """
     Change the owner of an image in OpenNebula
     
-    :param service_id: the id of the service, ``int``
+    :param oneflow_template_id: the id of the service, ``int``
     :param username: the name of the user, ``str``
     :param group_name: the name of the group, ``str``
     """
-    msg("info", f"Changing owner of OpenNebula service {service_id} to {username}:{group_name}")
-    res = run_command(f"oneflow-template chown {service_id} \"{username}\" \"{group_name}\"")
+    msg("info", f"Changing owner of OpenNebula service {oneflow_template_id} to {username}:{group_name}")
+    res = run_command(f"oneflow-template chown {oneflow_template_id} \"{username}\" \"{group_name}\"")
     if res["rc"] != 0:
-        msg("error", "Could not change the owner of the image")
+        msg("error", res["stderr"])
     msg("info", "Owner of service changed")
 
 ## USER MANAGEMENT ##
@@ -351,7 +376,7 @@ def get_groups() -> dict:
     """
     res = run_command("onegroup list -j")
     if res["rc"] != 0:
-        msg("error", "Could not list the groups")
+        msg("error", res["stderr"])
     return loads_json(data=res["stdout"])
 
 def get_username(username: str) -> dict:
@@ -389,7 +414,7 @@ def get_users() -> dict:
     """
     res = run_command("oneuser list -j")
     if res["rc"] != 0:
-        msg("error", "Could not list the users")
+        msg("error", res["stderr"])
     return loads_json(data=res["stdout"])
 
 def create_group(group_name: str) -> int:
@@ -400,9 +425,9 @@ def create_group(group_name: str) -> int:
     :return: the id of the group, ``int``
     """
     msg("info", f"Creating OpenNebula group: {group_name}")
-    res = run_command(f"onegroup create {group_name}")
+    res = run_command(f"onegroup create \"{group_name}\"")
     if res["rc"] != 0:
-        msg("error", "Group could not be registered")
+        msg("error", res["stderr"])
     msg("info", "Group created")
     return re.search(r"ID:\s*(\d+)", res["stdout"]).group(1)
 
@@ -417,7 +442,7 @@ def create_user(username: str, password: str) -> int:
     msg("info", f"Creating OpenNebula user: {username}")
     res = run_command(f"oneuser create \"{username}\" \"{password}\"")
     if res["rc"] != 0:
-        msg("error", "User could not be registered")
+        msg("error", res["stderr"])
     msg("info", "User created")
     return re.search(r"ID:\s*(\d+)", res["stdout"]).group(1)
 
@@ -431,7 +456,7 @@ def assign_user_group(username: str, group_name: str) -> None:
     msg("info", f"Assigning user {username} to group {group_name}")
     res = run_command(f"oneuser chgrp \"{username}\" \"{group_name}\"")
     if res["rc"] != 0:
-        msg("error", "Could not assign the user to the group")
+        msg("error", res["stderr"])
     msg("info", "User assigned to group")
 
 def add_ssh_key(username: str, jenkins_ssh_key: str) -> None:
@@ -444,7 +469,7 @@ def add_ssh_key(username: str, jenkins_ssh_key: str) -> None:
     msg("info", f"Updating SSH key of OpenNebula user {username}")
     res = run_command(f"echo \'SSH_PUBLIC_KEY=\"{jenkins_ssh_key}\"\' | oneuser update \"{username}\"")
     if res["rc"] != 0:
-        msg("error", "Could not update the SSH key")
+        msg("error", res["stderr"])
     msg("info", "SSH key updated")
 
 ## TEMPLATE MANAGEMENT ##
@@ -456,20 +481,40 @@ def get_templates() -> dict:
     """
     res = run_command("onetemplate list -j")
     if res["rc"] != 0:
-        msg("error", "Could not list the templates")
+        msg("error", res["stderr"])
     return loads_json(data=res["stdout"])
 
-def get_template(template_name: str) -> dict:
+def get_template(template_name: str = None, template_id: int = None, format: str = "-j") -> dict:
     """
     Get the details of a local template in OpenNebula
     
     :param template_name: the name of the template, ``str``
+    :param template_id: the id of the template, ``int``
     :return: the details of the template, ``dict``
     """
-    res = run_command(f"onetemplate show \"{template_name}\" -j")
-    if res["rc"] != 0:
+    if template_id is None:
+        onetemplate = run_command(f"onetemplate show \"{template_name}\" {format}")
+    else:
+        onetemplate = run_command(f"onetemplate show {template_id} {format}")
+    if onetemplate["rc"] != 0:
         return None
-    return loads_json(data=res["stdout"])
+    if format == "-j":
+        return loads_json(data=onetemplate["stdout"])
+    else:
+        return loads_yaml(data=onetemplate["stdout"])
+
+def update_template(template_name: str, file_path: str) -> None:
+    """
+    Update a local template in OpenNebula
+    
+    :param template_name: the name of the template, ``str``
+    :param file_path: the path with the data, ``str``
+    """
+    msg("info", f"Updating OpenNebula template: {template_name}")
+    res = run_command(f"onetemplate update -a \"{template_name}\" {file_path}")
+    if res["rc"] != 0:
+        msg("error", res["stderr"])
+    msg("info", "Template updated")
 
 ## IMAGES MANAGEMENT ##
 def get_images() -> dict:
@@ -480,37 +525,47 @@ def get_images() -> dict:
     """
     res = run_command("oneimage list -j")
     if res["rc"] != 0:
-        msg("error", "Could not list the images")
+        msg("error", res["stderr"])
     return loads_json(data=res["stdout"])
 
-def get_image(image_name: str) -> dict:
+def get_image(image_name: str = None, image_id: str = None) -> dict:
     """
     Get the details of a local image in OpenNebula
     
     :param image_name: the name of the image, ``str``
+    :param image_id: the id of the image, ``str``
     :return: the details of the image, ``dict``
     """
-    msg("info", f"Getting OpenNebula image: {image_name}")
-    res = run_command(f"oneimage show \"{image_name}\" -j")
+    if image_id is None:
+        msg("info", f"Getting OpenNebula image: {image_name}")
+        res = run_command(f"oneimage show \"{image_name}\" -j")
+    else:
+        msg("info", f"Getting OpenNebula image: {image_id}")
+        res = run_command(f"oneimage show {image_id} -j")
     if res["rc"] != 0:
         msg("info", "Image not found")
         return None
     msg("info", "Image found")
     return loads_json(data=res["stdout"])
 
-def get_state_image(image_name: str) -> str:
+def get_state_image(image_name: str = None, image_id: int = None) -> str:
     """
     Get the status of a local image in OpenNebula
     
     :param image_name: the name of the image, ``str``
+    :param image_id: the id of the image, ``int``
     :return: the status of the image, ``str``
     """
-    msg("info", f"Getting state of OpenNebula image: {image_name}")
-    image = get_image(image_name)
+    if image_id is None:
+        msg("info", f"Getting state of OpenNebula image: {image_name}")
+        image = get_image(image_name=image_name)
+    else:
+        msg("info", f"Getting state of OpenNebula image: {image_id}")
+        image = get_image(image_id=image_id)
     if image is None:
         return None
     state = image["IMAGE"]["STATE"]
-    msg("info", f"State of image {image_name} is {state}")
+    msg("info", f"State of image {image_id} is {state}")
     return state
 
 def chown_image(image_id: int, username: str, group_name: str) -> None:
@@ -524,7 +579,7 @@ def chown_image(image_id: int, username: str, group_name: str) -> None:
     msg("info", f"Changing owner of OpenNebula image {image_id} to {username}:{group_name}")
     res = run_command(f"oneimage chown {image_id} \"{username}\" \"{group_name}\"")
     if res["rc"] != 0:
-        msg("error", "Could not change the owner of the image")
+        msg("error", res["stderr"])
     msg("info", "Owner of image changed")
 
 def rename_image(image_id: int, new_name: str) -> None:
@@ -537,7 +592,7 @@ def rename_image(image_id: int, new_name: str) -> None:
     msg("info", f"Renaming OpenNebula image {image_id} to {new_name}")
     res = run_command(f"oneimage rename {image_id} \"{new_name}\"")
     if res["rc"] != 0:
-        msg("error", "Could not rename the image")
+        msg("error", res["stderr"])
     msg("info", "Image renamed")
 
 ## TEMPLATE MANAGEMENT ##
@@ -552,7 +607,7 @@ def chown_template(template_id: int, username: str, group_name: str) -> None:
     msg("info", f"Changing owner of OpenNebula template {template_id} to {username}:{group_name}")
     res = run_command(f"onetemplate chown {template_id} \"{username}\" \"{group_name}\"")
     if res["rc"] != 0:
-        msg("error", "Could not change the owner of the template")
+        msg("error", res["stderr"])
     msg("info", "Owner of template changed")
 
 ## MARKETPLACE MANAGEMENT ##
@@ -564,7 +619,7 @@ def get_onemarkets() -> dict:
     """
     res = run_command("onemarket list -j")
     if res["rc"] != 0:
-        msg("error", "Could not list the market")
+        msg("error", res["stderr"])
     return loads_json(data=res["stdout"])
 
 def get_onemarket(marketplace_name: str) -> dict:
@@ -613,7 +668,7 @@ def add_marketplace(marketplace_name: str, marketplace_description: str, marketp
     msg("info", f"Creating OpenNebula marketplace: {marketplace_name}")
     res = run_command(f"onemarket create {marketplace_template_path}")
     if res["rc"] != 0:
-        msg("error", "Marketplace could not be registered. Please, review the marketplace_template file")
+        msg("error", res["stderr"])
     msg("info", "Marketplace created")
     return re.search(r"ID:\s*(\d+)", res["stdout"]).group(1)
 
@@ -742,7 +797,7 @@ def export_appliance(appliance_name: str, datastore_id: int) -> None:
     msg("info", f"Exporting appliance {appliance_name} in datastore {datastore_id}")
     res = run_command(f"onemarketapp export \"{appliance_name}\" \"{appliance_name}\" -d {datastore_id}")
     if res["rc"] != 0:
-        msg("error", "Could not export the appliance")
+        msg("error", res["stderr"])
     data = res["stdout"]
     image_ids = [int(id_) for id_ in re.findall(r"ID:\s*(\d+)", re.search(r"IMAGE\s*\n((?:\s*ID:\s*\d+\s*\n?)*)", data).group(1))]
     template_ids = [int(id_) for id_ in re.findall(r"ID:\s*(\d+)", re.search(r"VMTEMPLATE\s*\n((?:\s*ID:\s*\d+\s*\n?)*)", data).group(1))]
@@ -766,29 +821,28 @@ def add_appliances_from_marketplace(sixg_sandbox_group: str, jenkins_user: str, 
     for appliance_name in appliances:
         appliance_type = get_type_appliance(appliance_name=appliance_name, marketplace_name=marketplace_name)
         if appliance_type == "IMAGE":
-            if get_image(appliance_name) is None:
+            if get_image(image_name=appliance_name) is None:
                 onedatastores = get_onedatastores()
                 datastore = ask_select(prompt="Select the datastore where you want to store the image", choices=onedatastores)
                 datastore_id = get_onedatastore_id(datastore)
                 image_id, template_id, _ = export_appliance(appliance_name=appliance_name, datastore_id=datastore_id)
                 sleep(10)
                 rename_image(image_id=image_id[0], new_name=appliance_name)
-                while get_state_image(appliance_name) != "1":
+                while get_state_image(image_name=appliance_name) != "1":
                     sleep(10)
                 chown_image(image_id=image_id[0], username=jenkins_user, group_name=sixg_sandbox_group)
                 chown_template(template_id=template_id[0], username=jenkins_user, group_name=sixg_sandbox_group)
         elif appliance_type == "VM":
-            if get_template(appliance_name) is None:
+            if get_template(template_name=appliance_name) is None:
                 onedatastores = get_onedatastores()
                 datastore = ask_select(prompt="Select the datastore where you want to store the image", choices=onedatastores)
                 datastore_id = get_onedatastore_id(datastore)
                 image_ids, template_id, _ = export_appliance(appliance_name=appliance_name, datastore_id=datastore_id)
                 sleep(10)
                 for i, image_id in enumerate(image_ids):
-                    rename_image(image_id=image_id, new_name=f"{appliance_name}-{i}")
                     chown_image(image_id=image_id, username=jenkins_user, group_name=sixg_sandbox_group)
-                for i, image_id in enumerate(image_ids):
-                    while get_state_image(f"{appliance_name}-{i}") != "1":
+                for image_id in image_ids:
+                    while get_state_image(image_id=image_id) != "1":
                         sleep(10)
                 chown_template(template_id=template_id[0], username=jenkins_user, group_name=sixg_sandbox_group)
         else:
@@ -799,14 +853,13 @@ def add_appliances_from_marketplace(sixg_sandbox_group: str, jenkins_user: str, 
                 image_ids, template_ids, service_id = export_appliance(appliance_name=appliance_name, datastore_id=datastore_id)
                 sleep(10)
                 for i, image_id in enumerate(image_ids):
-                    rename_image(image_id=image_id, new_name=f"{appliance_name}-{i}")
                     chown_image(image_id=image_id, username=jenkins_user, group_name=sixg_sandbox_group)
-                for i, image_id in enumerate(image_ids):
-                    while get_state_image(f"{appliance_name}-{i}") != "1":
+                for image_id in image_ids:
+                    while get_state_image(image_id=image_id) != "1":
                         sleep(10)
                 for template_id in template_ids:
                     chown_template(template_id=template_id, username=jenkins_user, group_name=sixg_sandbox_group)
-                chown_oneflow_template(service_id=service_id, username=jenkins_user, group_name=sixg_sandbox_group)
+                chown_oneflow_template(oneflow_template_id=service_id, username=jenkins_user, group_name=sixg_sandbox_group)
 
 ## SERVICE MANAGEMENT ##
 def restart_one() -> None:
@@ -816,7 +869,7 @@ def restart_one() -> None:
     msg("info", "Restarting OpenNebula daemon")
     res = run_command("systemctl restart opennebula")
     if res["rc"] != 0:
-        msg("error", "Could not restart the OpenNebula daemon")
+        msg("error", res["stderr"])
     msg("info", "OpenNebula daemon restarted")
 
 ## HEALTH MANAGEMENT ##
@@ -827,7 +880,7 @@ def check_one_health() -> None:
     msg("info", "Checking OpenNebula health")
     res = run_command("systemctl list-units | grep opennebula")
     if res["rc"] != 0:
-        msg("error", "Could not check the health of OpenNebula")
+        msg("error", res["stderr"])
     output = res["stdout"]
     all_running = True
     errors = []
@@ -839,5 +892,5 @@ def check_one_health() -> None:
                 all_running = False
                 errors.append(f"{service_name} is {status}")
     if not all_running:
-        msg("error", "OpenNebula healthcheck failed")
+        msg("error", res["stderr"])
     msg("info", "OpenNebula healthcheck passed")

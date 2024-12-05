@@ -16,13 +16,13 @@ try:
     sites_token, vm_tnlcm_name = second_phase(sixg_sandbox_group, jenkins_user)
     
     # PHASE 3
-    site = third_phase(sites_token)
+    third_phase(sixg_sandbox_group, jenkins_user)
     
     # PHASE 4
-    fourth_phase(sixg_sandbox_group, jenkins_user, site, sites_token)
+    # site = fourth_phase(sixg_sandbox_group, jenkins_user, sites_token)
     
     # PHASE 5
-    fifth_phase(site, vm_tnlcm_name)
+    # fifth_phase(site, vm_tnlcm_name)
 
 except Exception as e:
     print(f"An error occurred: {e}")

@@ -1,64 +1,87 @@
 import os
-import requests
 
-from phases.utils.file import load_file, load_yaml, get_env_var
-from phases.utils.git import git_clone
-from phases.utils.interactive import ask_checkbox
+from phases.utils.cli import run_command
+from phases.utils.file import load_yaml, save_yaml, save_file, get_env_var
+from phases.utils.git import git_branch, git_branches, git_clone, git_switch, git_add, git_commit, git_push
+from phases.utils.interactive import ask_text, ask_confirm
 from phases.utils.logs import msg
-from phases.utils.one import get_appliances_marketplace, add_appliances_from_marketplace
-from phases.utils.parser import ansible_decrypt
+from phases.utils.parser import ansible_encrypt
 from phases.utils.temp import save_temp_directory, temp_path
 
-def _extract_appliance_name(appliance_url: str) -> str:
+def _create_site(sites_path: str) -> str:
     """
-    Extract the appliance name from the URL
+    Create a new site
     
-    :param appliance_url: the URL of the appliance, ``str``
-    :return: the name of the appliance, ``str``
+    :param sites_path: the path to the sites repository, ``str``
+    :return: the name of the site, ``str``
     """
-    res = requests.get(appliance_url)
-    if res.status_code != 200:
-        msg("error", f"Failed to get the appliance URL: {appliance_url}")
-    appliance_name = res.json()["name"]
-    return appliance_name
+    msg("info", "Creating a new site")
+    site = ask_text(prompt="Enter the name of the site:", default="", validate=True)
+    sites = git_branches(sites_path)
+    if site in sites:
+        site = ask_text(prompt="Site already exists, enter a new name:", default="", validate=True)
+    msg("info", f"New site: {site}")
+    return site
 
-def fourth_phase(sixg_sandbox_group: str, jenkins_user: str, site: str, sites_token: str) -> None:
+def _update_site_config(site_core: str) -> dict:
+    """
+    Update the site configuration file
+
+    :param site_core: the path to the site, ``str``
+    :return: the updated site configuration, ``dict``
+    """
+    updated_data = {}
+    for key, value in site_core.items():
+        if isinstance(value, dict):
+            print(f"\nUpdating nested fields in '{key}':")
+            updated_data[key] = _update_site_config(value)
+        elif isinstance(value, bool):
+            new_value = ask_confirm(
+                f"Enter the value of '{key}':",
+                default=value
+            )
+            updated_data[key] = new_value
+        elif isinstance(value, list):
+            new_value = ask_text(
+                f"Enter the value of '{key}' separated by commas. For example: 0, 1, 2:",
+                default=str(value),
+                validate=True
+            )
+            updated_data[key] = value if new_value == "" else [int(item.strip()) for item in new_value.split(",")]
+        else:
+            new_value = ask_text(
+                f"Enter the value of '{key}':",
+                default=str(value),
+                validate=True
+            )
+            updated_data[key] = value if new_value == "" else new_value
+    return updated_data
+
+def fourth_phase(sites_token: str) -> str:
     msg("info", "FOURTH PHASE")
+    github_sites_https = get_env_var("GITHUB_SITES_HTTPS")
     sites_directory = get_env_var("SITES_DIRECTORY")
-    site_core_path = temp_path(os.path.join(sites_directory, site, "core.yaml"))
-    github_library_https = get_env_var("GITHUB_LIBRARY_HTTPS")
-    library_directory = get_env_var("LIBRARY_DIRECTORY")
-    library_path = save_temp_directory(library_directory)
-    git_clone(github_library_https, library_path)
-    encrypted_data = load_file(file_path=site_core_path, mode="rb", encoding=None)
-    decrypted_data = ansible_decrypt(encrypted_data=encrypted_data, password=sites_token)
-    data = load_yaml(file_path=decrypted_data, mode="rt", encoding="utf-8")
-    site_available_components = data["site_available_components"]
-    appliances = []
-    if site_available_components:
-        for component_name, _ in site_available_components.items():
-            public_yaml_path = os.path.join(library_path, component_name, ".tnlcm", "public.yaml")
-            if os.path.exists(public_yaml_path):
-                public_yaml = load_yaml(file_path=public_yaml_path, mode="rt", encoding="utf-8")
-                metadata = public_yaml["metadata"]
-                if "appliance" in metadata:
-                    appliance_url = metadata["appliance"]
-                    appliance_name = _extract_appliance_name(appliance_url=appliance_url)
-                    appliances.append(appliance_name)
-    sixg_sandbox_marketplace_name = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_NAME")
-    add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=sixg_sandbox_marketplace_name, appliances=appliances)
-
-    opennebula_public_marketplace_name = get_env_var("OPENNEBULA_PUBLIC_MARKETPLACE_NAME")    
-    opennebula_public_marketplace_appliances = get_appliances_marketplace(marketplace_name=opennebula_public_marketplace_name)
-    opennebula_public_appliances_selected = ask_checkbox("Select the appliances you want to import from the OpenNebula Public Marketplace", opennebula_public_marketplace_appliances)
-    if opennebula_public_appliances_selected:
-        add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=opennebula_public_marketplace_name, appliances=opennebula_public_appliances_selected)
-    sixg_sandbox_marketplace_appliances = get_appliances_marketplace(marketplace_name=sixg_sandbox_marketplace_name)
-    for appliance in appliances:
-        if appliance in sixg_sandbox_marketplace_appliances:
-            sixg_sandbox_marketplace_appliances.remove(appliance)
-    sixg_sandbox_marketplace_appliances.remove(toolkit_service)
-    sixg_sandbox_appliances_selected = ask_checkbox("Select the appliances you want to import from the 6G-SANDBOX Marketplace", sixg_sandbox_marketplace_appliances)
-    toolkit_service = get_env_var("OPENNEBULA_TOOLKIT_SERVICE")
-    if sixg_sandbox_appliances_selected:
-        add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=sixg_sandbox_marketplace_name, appliances=sixg_sandbox_appliances_selected)
+    sites_path = save_temp_directory(sites_directory)
+    github_sites_token = ask_text(prompt=r"Enter the token for the GitHub sites repository. Please follow the instructions indicated in the following link https://github.com/6G-SANDBOX/toolkit-installer/wiki/How-to-create-6G%E2%80%90SANDBOX-sites-token:", default="", validate=True)
+    github_sites_https = github_sites_https.replace("https://", f"https://{github_sites_token}@")
+    git_clone(github_sites_https, sites_path)
+    site = _create_site(sites_path)
+    git_branch(sites_path, site)
+    git_switch(sites_path, site)
+    site_path = save_temp_directory(os.path.join(sites_path, site))
+    dummy_core_path = temp_path(os.path.join(sites_directory, ".dummy_site", "core.yaml"))
+    site_core_path = os.path.join(site_path, "core.yaml")
+    run_command(f"cp {dummy_core_path} {site_core_path}")
+    site_core = load_yaml(site_core_path, mode="rt", encoding="utf-8")
+    current_config = _update_site_config(site_core)
+    yaml_str = save_yaml(current_config, site_core_path)
+    encrypted_data = ansible_encrypt(yaml_str, sites_token)
+    save_file(encrypted_data, site_core_path, mode="wb", encoding=None)
+    dummy_path = temp_path(os.path.join(sites_directory, ".dummy_site"))
+    readme_path = temp_path(os.path.join(sites_directory, "README.md"))
+    run_command(f"rm -r {dummy_path}")
+    run_command(f"rm {readme_path}")
+    git_add(sites_path)
+    git_commit(sites_path, f"Add new site {site}")
+    git_push(sites_path, site)
+    return site

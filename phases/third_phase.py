@@ -1,86 +1,107 @@
 import os
+import requests
 
-from phases.utils.cli import run_command
-from phases.utils.file import load_yaml, save_file, get_env_var
-from phases.utils.git import git_branch, git_branches, git_clone, git_switch, git_add, git_commit, git_push
-from phases.utils.interactive import ask_text, ask_confirm
+from textwrap import dedent
+
+from phases.utils.file import load_yaml, get_env_var, save_json, save_file
+from phases.utils.git import git_clone, git_switch
+from phases.utils.interactive import ask_text, ask_checkbox
 from phases.utils.logs import msg
-from phases.utils.parser import ansible_encrypt
+from phases.utils.one import get_appliances_marketplace, add_appliances_from_marketplace, get_oneflow_template, update_oneflow_template, update_template, get_template
 from phases.utils.temp import save_temp_directory, temp_path
 
-def _create_site(sites_path: str) -> str:
+def _extract_appliance_name(appliance_url: str) -> str:
     """
-    Create a new site
+    Extract the appliance name from the URL
     
-    :param sites_path: the path to the sites repository, ``str``
-    :return: the name of the site, ``str``
+    :param appliance_url: the URL of the appliance, ``str``
+    :return: the name of the appliance, ``str``
     """
-    msg("info", "Creating a new site")
-    site = ask_text(prompt="Enter the name of the site:", default="", validate=True)
-    sites = git_branches(sites_path)
-    if site in sites:
-        site = ask_text(prompt="Site already exists, enter a new name:", default="", validate=True)
-    msg("info", f"New site: {site}")
-    return site
+    headers = {
+        "Accept": "application/json"
+    }
+    res = requests.get(appliance_url, headers=headers)
+    if res.status_code != 200:
+        msg("error", f"Failed to get the appliance URL: {appliance_url}")
+    appliance_name = res.json()["name"]
+    return appliance_name
 
-def _update_site_config(site_core: str) -> dict:
-    """
-    Update the site configuration file
-
-    :param site_core: the path to the site, ``str``
-    :return: the updated site configuration, ``dict``
-    """
-    updated_data = {}
-    for key, value in site_core.items():
-        if isinstance(value, dict):
-            print(f"\nUpdating nested fields in '{key}':")
-            updated_data[key] = _update_site_config(value)
-        elif isinstance(value, bool):
-            new_value = ask_confirm(
-                f"Enter the value of '{key}':",
-                default=value
-            )
-            updated_data[key] = new_value
-        elif isinstance(value, list):
-            new_value = ask_text(
-                f"Enter the value of '{key}' separated by commas. For example: 0, 1, 2:",
-                default=str(value),
-                validate=True
-            )
-            updated_data[key] = value if new_value == "" else [int(item.strip()) for item in new_value.split(",")]
-        else:
-            new_value = ask_text(
-                f"Enter the value of '{key}':",
-                default=str(value),
-                validate=True
-            )
-            updated_data[key] = value if new_value == "" else new_value
-    return updated_data
-
-def third_phase(sites_token: str) -> str:
+def third_phase(sixg_sandbox_group: str, jenkins_user: str) -> None:
     msg("info", "THIRD PHASE")
     github_sites_https = get_env_var("GITHUB_SITES_HTTPS")
     sites_directory = get_env_var("SITES_DIRECTORY")
+    github_library_https = get_env_var("GITHUB_LIBRARY_HTTPS")
+    github_library_branch = get_env_var("GITHUB_LIBRARY_BRANCH")
+    library_directory = get_env_var("LIBRARY_DIRECTORY")
+    toolkit_service = get_env_var("OPENNEBULA_TOOLKIT_SERVICE")
+    sixg_sandbox_marketplace_name = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_NAME")
+    opennebula_oneke_129_service = get_env_var("OPENNEBULA_ONEKE_129_SERVICE")
     sites_path = save_temp_directory(sites_directory)
-    github_sites_token = ask_text(prompt="Enter the token for the GitHub sites repository:", default="", validate=True)
+    github_sites_token = ask_text(prompt=r"Enter the token for the GitHub sites repository. Please follow the instructions indicated in the following link https://github.com/6G-SANDBOX/toolkit-installer/wiki/How-to-create-6G%E2%80%90SANDBOX-sites-token:", default="", validate=True)
     github_sites_https = github_sites_https.replace("https://", f"https://{github_sites_token}@")
     git_clone(github_sites_https, sites_path)
-    site = _create_site(sites_path)
-    git_branch(sites_path, site)
-    git_switch(sites_path, site)
-    site_path = save_temp_directory(os.path.join(sites_path, site))
-    dummy_core_path = temp_path(os.path.join(sites_directory, ".dummy_site", "core.yaml"))
-    site_core_path = os.path.join(site_path, "core.yaml")
-    run_command(f"cp {dummy_core_path} {site_core_path}")
-    site_core = load_yaml(site_core_path, mode="rt", encoding="utf-8")
-    current_config = _update_site_config(site_core)
-    encrypted_data = ansible_encrypt(current_config, sites_token)
-    save_file(encrypted_data, site_core_path, mode="wb", encoding=None)
-    dummy_path = temp_path(os.path.join(sites_directory, ".dummy_site"))
-    readme_path = temp_path(os.path.join(sites_directory, "README.md"))
-    run_command(f"rm -r {dummy_path}")
-    run_command(f"rm {readme_path}")
-    git_add(sites_path)
-    git_commit(sites_path, f"Add site '{site}'")
-    git_push(sites_path, site)
-    return site
+    library_path = save_temp_directory(library_directory)
+    git_clone(github_library_https, library_path)
+    git_switch(library_path, github_library_branch)
+    dummy_site_core_path = temp_path(os.path.join(sites_directory, ".dummy_site", "core.yaml"))
+    data = load_yaml(file_path=dummy_site_core_path, mode="rt", encoding="utf-8")
+    site_available_components = data["site_available_components"]
+    appliances = []
+    if site_available_components:
+        for component_name in site_available_components.keys():
+            public_yaml_path = os.path.join(library_path, component_name, ".tnlcm", "public.yaml")
+            if os.path.exists(public_yaml_path):
+                public_yaml = load_yaml(file_path=public_yaml_path, mode="rt", encoding="utf-8")
+                metadata = public_yaml["metadata"]
+                if "appliance" in metadata:
+                    appliance_url = metadata["appliance"]
+                    appliance_name = _extract_appliance_name(appliance_url=appliance_url)
+                    appliances.append(appliance_name)
+    add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=sixg_sandbox_marketplace_name, appliances=appliances)
+    if opennebula_oneke_129_service not in appliances:
+        appliances.append(opennebula_oneke_129_service)
+        add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=sixg_sandbox_marketplace_name, appliances=[opennebula_oneke_129_service])
+    
+    oneflow_template_oneke = get_oneflow_template(oneflow_template_name=opennebula_oneke_129_service)
+    oneflow_template_oneke_body = oneflow_template_oneke["DOCUMENT"]["TEMPLATE"]["BODY"]
+    roles = oneflow_template_oneke_body["roles"]
+    storage_vm_template_id = None
+    for role in roles:
+        if role["name"] == "storage":
+            if role["cardinality"] != 3:
+                role["cardinality"] = 3
+                storage_vm_template_id = role["vm_template"]
+                oneflow_template_oneke_body["roles"] = roles
+                oneflow_template_path = temp_path("oneflow_template_oneke.json")
+                save_json(data=oneflow_template_oneke_body, file_path=oneflow_template_path)
+                update_oneflow_template(oneflow_template_name=opennebula_oneke_129_service, file_path=oneflow_template_path)
+            
+                storage_vm_template = get_template(template_id=storage_vm_template_id)
+                storage_vm_template_name = storage_vm_template["VMTEMPLATE"]["NAME"]
+                storage_vm_template_disk = storage_vm_template["VMTEMPLATE"]["TEMPLATE"]["DISK"]
+                content = ""
+                for i, disk in enumerate(storage_vm_template_disk):
+                    if i == 1:
+                        disk["SIZE"] = "15360"
+                        content += f'DISK=[ IMAGE_ID="{disk["IMAGE_ID"]}", SIZE="{disk["SIZE"]}" ]\n'
+                    else:
+                        content += f'DISK=[ IMAGE_ID="{disk["IMAGE_ID"]}" ]\n'
+                storage_vm_template_path = temp_path("storage_vm_template")
+                save_file(data=content, file_path=storage_vm_template_path, mode="w", encoding="utf-8")
+                update_template(template_name=storage_vm_template_name, file_path=storage_vm_template_path)
+    
+    opennebula_public_marketplace_name = get_env_var("OPENNEBULA_PUBLIC_MARKETPLACE_NAME")
+    opennebula_public_marketplace_appliances = get_appliances_marketplace(marketplace_name=opennebula_public_marketplace_name)
+    opennebula_public_appliances_selected = ask_checkbox("Select the appliances you want to import from the OpenNebula Public Marketplace", opennebula_public_marketplace_appliances)
+    if opennebula_oneke_129_service in opennebula_public_appliances_selected:
+        opennebula_public_appliances_selected.remove(opennebula_oneke_129_service)
+    if opennebula_public_appliances_selected:
+        add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=opennebula_public_marketplace_name, appliances=opennebula_public_appliances_selected)
+    sixg_sandbox_marketplace_appliances = get_appliances_marketplace(marketplace_name=sixg_sandbox_marketplace_name)
+    for appliance in appliances:
+        if appliance in sixg_sandbox_marketplace_appliances:
+            sixg_sandbox_marketplace_appliances.remove(appliance)
+    sixg_sandbox_marketplace_appliances.remove(toolkit_service)
+    sixg_sandbox_appliances_selected = ask_checkbox("Select the appliances you want to import from the 6G-SANDBOX Marketplace", sixg_sandbox_marketplace_appliances)
+    if sixg_sandbox_appliances_selected:
+        add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=sixg_sandbox_marketplace_name, appliances=sixg_sandbox_appliances_selected)

@@ -29,6 +29,17 @@ def load_yaml(file_path: str, mode: str, encoding: str) -> dict:
     with open(file_path, mode=mode, encoding=encoding) as yaml_file:
         return yaml.safe_load(yaml_file)
 
+def loads_yaml(data: str) -> dict:
+    """
+    Load the given data as YAML
+    
+    :param data: the YAML data to be loaded, ``str``
+    :return: the YAML data loaded, ``dict``
+    """
+    if data is None or data == "":
+        return None
+    return yaml.safe_load(data)
+
 def loads_json(data: str) -> dict:
     """
     Load the given data as JSON
@@ -88,3 +99,13 @@ def save_yaml(data, file_path: str) -> None:
     """
     with open(file_path, "w") as yaml_file:
         yaml.safe_dump(data, yaml_file, default_flow_style=False)
+
+def save_json(data, file_path: str) -> None:
+    """
+    Save the data to a JSON file
+    
+    :param data: the data to be saved (must be serializable to JSON)
+    :param file_path: The file path where the data will be saved, ``str``
+    """
+    with open(file_path, "w") as json_file:
+        json.dump(data, json_file, indent=4)
