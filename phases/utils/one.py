@@ -438,11 +438,11 @@ def add_ssh_key(username: str, jenkins_ssh_key: str) -> None:
     """
     Update the SSH key of a user in OpenNebula
     
-    :param username: the name of the user, ``int``
+    :param username: the name of the user, ``str``
     :param jenkins_ssh_key: the SSH key, ``str``
     """
     msg("info", f"Updating SSH key of OpenNebula user {username}")
-    res = f"echo \'SSH_PUBLIC_KEY=\"{jenkins_ssh_key}\"\' | oneuser update {username}"
+    res = run_command(f"echo \'SSH_PUBLIC_KEY=\"{jenkins_ssh_key}\"\' | oneuser update \"{username}\"")
     if res["rc"] != 0:
         msg("error", "Could not update the SSH key")
     msg("info", "SSH key updated")
