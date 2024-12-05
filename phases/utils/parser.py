@@ -1,9 +1,19 @@
+import yaml
 import base64
 
 from ansible.parsing.vault import VaultLib, VaultSecret
 from ansible.constants import DEFAULT_VAULT_ID_MATCH
 
 from phases.utils.logs import msg
+
+def object_yaml(data: dict) -> str:
+    """
+    Convert a dictionary to a YAML string
+
+    :param data: the dictionary to be converted, ``dict``
+    :return: the YAML string, ``str``
+    """
+    return yaml.dump(data)
 
 def encode_base64(data: str) -> str:
     """

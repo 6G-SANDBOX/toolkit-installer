@@ -17,9 +17,9 @@ try:
     
     # PHASE 3
     third_phase(sixg_sandbox_group, jenkins_user)
-    
+
     # PHASE 4
-    # site = fourth_phase(sixg_sandbox_group, jenkins_user, sites_token)
+    site = fourth_phase(sites_token)
     
     # PHASE 5
     # fifth_phase(site, vm_tnlcm_name)

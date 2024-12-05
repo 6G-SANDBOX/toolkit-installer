@@ -90,7 +90,7 @@ def save_file(data, file_path: str, mode: str, encoding: str) -> None:
     with open(file_path, mode=mode, encoding=encoding) as file:
         file.write(data)
 
-def save_yaml(data, file_path: str) -> None:
+def save_yaml(data, file_path: str):
     """
     Save the data to a YAML file
     
