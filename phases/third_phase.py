@@ -1,8 +1,6 @@
 import os
 import requests
 
-from textwrap import dedent
-
 from phases.utils.file import load_yaml, get_env_var, save_json, save_file
 from phases.utils.git import git_clone, git_switch
 from phases.utils.interactive import ask_text, ask_checkbox
