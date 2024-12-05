@@ -119,11 +119,6 @@ python3 installer.py
 
 ### Third phase
 
-- Integrate with 6G-SANDBOX-Sites repository.
-- Create new 6G-SANDBOX sites in 6G-Sandbox-Sites repository.
-
-### Fourth phase
-
 - Refresh the list of available appliances in the marketplace.
 - Download required appliances from the OpenNebula Public marketplace:
   - Ubuntu 22.04
@@ -133,10 +128,15 @@ python3 installer.py
   - NTP
   - UERANSIM
 
+### Fourth phase
+
+- Integrate with 6G-SANDBOX-Sites repository.
+- Create new 6G-SANDBOX sites in 6G-Sandbox-Sites repository.
+
 ### Fifth phase
 
 - Integrate with TNLCM repository.
-- Launch an end-to-end trial network.
+- Run an end-to-end trial network.
 
 ## 📚 Documentation
 
