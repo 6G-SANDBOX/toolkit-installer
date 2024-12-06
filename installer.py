@@ -22,7 +22,7 @@ try:
     site = fourth_phase(sites_token)
     
     # PHASE 5
-    # fifth_phase(site, vm_tnlcm_name)
+    fifth_phase(site, vm_tnlcm_name)
 
 except Exception as e:
     print(f"An error occurred: {e}")
