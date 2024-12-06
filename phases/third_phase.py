@@ -63,7 +63,7 @@ def third_phase(sixg_sandbox_group: str, jenkins_user: str) -> None:
     storage_vm_template_id = None
     for role in roles:
         if role["name"] == "storage":
-            if role["cardinality"] == 3:
+            if role["cardinality"] != 3:
                 role["cardinality"] = 3
                 storage_vm_template_id = role["vm_template"]
                 oneflow_template_oneke_body["roles"] = roles
