@@ -493,9 +493,9 @@ def get_template(template_name: str = None, template_id: int = None) -> dict:
     :return: the details of the template, ``dict``
     """
     if template_id is None:
-        onetemplate = run_command(f"onetemplate show \"{template_name}\"")
+        onetemplate = run_command(f"onetemplate show \"{template_name}\" -j")
     else:
-        onetemplate = run_command(f"onetemplate show {template_id}")
+        onetemplate = run_command(f"onetemplate show {template_id} -j")
     if onetemplate["rc"] != 0:
         return None
     return loads_json(data=onetemplate["stdout"])
