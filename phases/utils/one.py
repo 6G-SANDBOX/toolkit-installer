@@ -493,9 +493,9 @@ def get_template(template_name: str = None, template_id: int = None) -> dict:
     :return: the details of the template, ``dict``
     """
     if template_id is None:
-        onetemplate = run_command(f"onetemplate show \"{template_name}\" {format}")
+        onetemplate = run_command(f"onetemplate show \"{template_name}\"")
     else:
-        onetemplate = run_command(f"onetemplate show {template_id} {format}")
+        onetemplate = run_command(f"onetemplate show {template_id}")
     if onetemplate["rc"] != 0:
         return None
     return loads_json(data=onetemplate["stdout"])
@@ -562,7 +562,7 @@ def get_state_image(image_name: str = None, image_id: int = None) -> str:
     if image is None:
         return None
     state = image["IMAGE"]["STATE"]
-    msg("info", f"State of image {image_id} is {state}")
+    msg("info", f"State of image is {state}")        
     return state
 
 def chown_image(image_id: int, username: str, group_name: str) -> None:
