@@ -1,8 +1,8 @@
 import os
 import json
-import yaml
 import tomlkit
 
+from ruamel.yaml import YAML
 from dotenv import load_dotenv
 
 def load_file(file_path: str, mode: str, encoding: str) -> str:
@@ -26,19 +26,11 @@ def load_yaml(file_path: str, mode: str, encoding: str) -> dict:
     :param encoding: the file encoding (e.g. utf-8), ``str``
     :return: the data loaded from the YAML file, ``dict``
     """
+    yaml = YAML(typ="safe")
+    yaml.indent(sequence=4, offset=2)
+    yaml.preserve_quotes = True
     with open(file_path, mode=mode, encoding=encoding) as yaml_file:
-        return yaml.safe_load(yaml_file)
-
-def loads_yaml(data: str) -> dict:
-    """
-    Load the given data as YAML
-    
-    :param data: the YAML data to be loaded, ``str``
-    :return: the YAML data loaded, ``dict``
-    """
-    if data is None or data == "":
-        return None
-    return yaml.safe_load(data)
+        return yaml.load(yaml_file)
 
 def loads_json(data: str) -> dict:
     """
@@ -89,16 +81,6 @@ def save_file(data, file_path: str, mode: str, encoding: str) -> None:
     """
     with open(file_path, mode=mode, encoding=encoding) as file:
         file.write(data)
-
-def save_yaml(data, file_path: str):
-    """
-    Save the data to a YAML file
-    
-    :param data: the data to be saved (must be serializable to YAML)
-    :param file_path: The file path where the data will be saved, ``str``
-    """
-    with open(file_path, "w") as yaml_file:
-        yaml.safe_dump(data, yaml_file, default_flow_style=False)
 
 def save_json(data, file_path: str) -> None:
     """

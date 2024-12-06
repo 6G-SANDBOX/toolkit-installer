@@ -1,5 +1,7 @@
-import yaml
 import base64
+
+from ruamel.yaml import YAML
+from io import StringIO
 
 from ansible.parsing.vault import VaultLib, VaultSecret
 from ansible.constants import DEFAULT_VAULT_ID_MATCH
@@ -13,7 +15,12 @@ def object_yaml(data: dict) -> str:
     :param data: the dictionary to be converted, ``dict``
     :return: the YAML string, ``str``
     """
-    return yaml.dump(data)
+    yaml = YAML()
+    yaml.default_flow_style = False
+    yaml.preserve_quotes = True
+    buffer = StringIO()
+    yaml.dump(data, buffer)
+    return buffer.getvalue()
 
 def encode_base64(data: str) -> str:
     """
