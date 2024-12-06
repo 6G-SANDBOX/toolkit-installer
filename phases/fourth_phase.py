@@ -1,5 +1,7 @@
 import os
 
+from ruamel.yaml.scalarstring import DoubleQuotedScalarString
+
 from phases.utils.cli import run_command
 from phases.utils.file import load_yaml, save_file, get_env_var
 from phases.utils.git import git_branch, git_branches, git_switch, git_add, git_commit, git_push
@@ -61,19 +63,7 @@ def _update_site_config(site_core: str) -> dict:
                 default=str(value),
                 validate=True
             )
-            updated_data[key] = new_value
-        elif value is None:
-            new_value = ask_text(
-                f"Enter the value of '{key}':",
-                default=str(value),
-                validate=False
-            )
-            if isinstance(new_value, int):
-                updated_data[key] = int(new_value)
-            elif isinstance(new_value, str):
-                updated_data[key] = new_value
-            else:
-                updated_data[key] = None
+            updated_data[key] = DoubleQuotedScalarString(new_value)
         else:
             updated_data[key] = value
     return updated_data
