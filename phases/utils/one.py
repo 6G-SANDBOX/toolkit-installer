@@ -5,7 +5,7 @@ from time import sleep
 from textwrap import dedent
 
 from phases.utils.cli import run_command
-from phases.utils.file import load_file, loads_json, save_file, loads_yaml
+from phases.utils.file import load_file, loads_json, save_file
 from phases.utils.interactive import ask_select
 from phases.utils.logs import msg
 from phases.utils.temp import save_temp_file
@@ -484,7 +484,7 @@ def get_templates() -> dict:
         msg("error", res["stderr"])
     return loads_json(data=res["stdout"])
 
-def get_template(template_name: str = None, template_id: int = None, format: str = "-j") -> dict:
+def get_template(template_name: str = None, template_id: int = None) -> dict:
     """
     Get the details of a local template in OpenNebula
     
@@ -498,10 +498,7 @@ def get_template(template_name: str = None, template_id: int = None, format: str
         onetemplate = run_command(f"onetemplate show {template_id} {format}")
     if onetemplate["rc"] != 0:
         return None
-    if format == "-j":
-        return loads_json(data=onetemplate["stdout"])
-    else:
-        return loads_yaml(data=onetemplate["stdout"])
+    return loads_json(data=onetemplate["stdout"])
 
 def update_template(template_name: str, file_path: str) -> None:
     """
