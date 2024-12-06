@@ -43,12 +43,12 @@ Create new 6G-SANDBOX site.
 
 Be part of the [**6G-SANDBOX**](https://github.com/6G-SANDBOX) organization on GitHub.
 
-| Repository       | Release                                                                                |
-| ---------------- | -------------------------------------------------------------------------------------- |
-| OpenNebula       | [v6.10](https://github.com/OpenNebula/one/releases/tag/release-6.10.0)                 |
-| 6G-Library       | [develop](https://github.com/6G-SANDBOX/6G-Library/tree/develop)                       |
-| 6G-Sandbox-Sites | [main](https://github.com/6G-SANDBOX/6G-Sandbox-Sites)                                 |
-| TNLCM            | [v0.4.4](https://github.com/6G-SANDBOX/TNLCM/releases/tag/v0.4.4)                      |
+| Repository       | Release                                                                | Branch                                                            |
+| ---------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| OpenNebula       | [v6.10](https://github.com/OpenNebula/one/releases/tag/release-6.10.0) | -                                                                 |
+| 6G-Library       | -                                                                      | [develop](https://github.com/6G-SANDBOX/6G-Library/tree/develop)  |
+| 6G-Sandbox-Sites | -                                                                      | [main](https://github.com/6G-SANDBOX/6G-Sandbox-Sites)            |
+| TNLCM            | [v0.4.4](https://github.com/6G-SANDBOX/TNLCM/releases/tag/v0.4.4)      | -                                                                 |
 
 ## :rocket: Getting Started
 
