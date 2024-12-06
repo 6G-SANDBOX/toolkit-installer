@@ -56,10 +56,7 @@ def third_phase(sixg_sandbox_group: str, jenkins_user: str) -> None:
                     appliance_name = _extract_appliance_name(appliance_url=appliance_url)
                     appliances.append(appliance_name)
     add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=sixg_sandbox_marketplace_name, appliances=appliances)
-    if opennebula_oneke_129_service not in appliances:
-        appliances.append(opennebula_oneke_129_service)
-        add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=sixg_sandbox_marketplace_name, appliances=[opennebula_oneke_129_service])
-    
+
     oneflow_template_oneke = get_oneflow_template(oneflow_template_name=opennebula_oneke_129_service)
     oneflow_template_oneke_body = oneflow_template_oneke["DOCUMENT"]["TEMPLATE"]["BODY"]
     roles = oneflow_template_oneke_body["roles"]
