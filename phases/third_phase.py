@@ -33,6 +33,7 @@ def third_phase(sixg_sandbox_group: str, jenkins_user: str) -> None:
     library_directory = get_env_var("LIBRARY_DIRECTORY")
     toolkit_service = get_env_var("OPENNEBULA_TOOLKIT_SERVICE")
     sixg_sandbox_marketplace_name = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_NAME")
+    opennebula_public_marketplace_name = get_env_var("OPENNEBULA_PUBLIC_MARKETPLACE_NAME")
     opennebula_oneke_129_service = get_env_var("OPENNEBULA_ONEKE_129_SERVICE")
     sites_path = save_temp_directory(sites_directory)
     github_sites_token = ask_text(prompt=r"Enter the token for the GitHub sites repository. Please follow the instructions indicated in the following link https://github.com/6G-SANDBOX/toolkit-installer/wiki/How-to-create-6G%E2%80%90SANDBOX-sites-token:", default="", validate=True)
@@ -56,6 +57,7 @@ def third_phase(sixg_sandbox_group: str, jenkins_user: str) -> None:
                     appliance_name = _extract_appliance_name(appliance_url=appliance_url)
                     appliances.append(appliance_name)
     add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=sixg_sandbox_marketplace_name, appliances=appliances)
+    add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=opennebula_public_marketplace_name, appliances=appliances)
 
     oneflow_template_oneke = get_oneflow_template(oneflow_template_name=opennebula_oneke_129_service)
     oneflow_template_oneke_body = oneflow_template_oneke["DOCUMENT"]["TEMPLATE"]["BODY"]
@@ -85,7 +87,6 @@ def third_phase(sixg_sandbox_group: str, jenkins_user: str) -> None:
                 save_file(data=content, file_path=storage_vm_template_path, mode="w", encoding="utf-8")
                 update_template(template_name=storage_vm_template_name, file_path=storage_vm_template_path)
     
-    opennebula_public_marketplace_name = get_env_var("OPENNEBULA_PUBLIC_MARKETPLACE_NAME")
     opennebula_public_marketplace_appliances = get_appliances_marketplace(marketplace_name=opennebula_public_marketplace_name)
     if opennebula_oneke_129_service in opennebula_public_marketplace_appliances:
         opennebula_public_marketplace_appliances.remove(opennebula_oneke_129_service)

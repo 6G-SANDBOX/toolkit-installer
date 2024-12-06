@@ -101,14 +101,15 @@ def second_phase(sixg_sandbox_group: str, jenkins_user: str) -> tuple:
     sixg_sandbox_marketplace_name = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_NAME")
     sixg_sandbox_marketplace_description = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_DESCRIPTION")
     sixg_sandbox_marketplace_endpoint = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_ENDPOINT")
+    toolkit_service = get_env_var("OPENNEBULA_TOOLKIT_SERVICE")
+    marketplace_interval = int(get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_INTERVAL"))
+    force_fast_marketplace_monitoring = get_env_var("FORCE_FAST_MARKETPLACE_MONITORING")
     sixg_sandbox_marketplace = get_onemarket(marketplace_name=sixg_sandbox_marketplace_name)
     if sixg_sandbox_marketplace is None:
         _ = add_marketplace(sixg_sandbox_marketplace_name, sixg_sandbox_marketplace_description, sixg_sandbox_marketplace_endpoint)
-        force_fast_marketplace_monitoring = get_env_var("FORCE_FAST_MARKETPLACE_MONITORING")
         if force_fast_marketplace_monitoring == "false":
             sleep(600)
         else:
-            marketplace_interval = int(get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_INTERVAL"))
             old_interval = get_marketplace_monitoring_interval()
             update_marketplace_monitoring_interval(interval=marketplace_interval)
             restart_one()
@@ -117,7 +118,6 @@ def second_phase(sixg_sandbox_group: str, jenkins_user: str) -> tuple:
             update_marketplace_monitoring_interval(interval=old_interval)
             restart_one()
             check_one_health()
-    toolkit_service = get_env_var("OPENNEBULA_TOOLKIT_SERVICE")
     sites_token = None
     vm_tnlcm_name = None
     if get_oneflow(oneflow_name=toolkit_service) is None:

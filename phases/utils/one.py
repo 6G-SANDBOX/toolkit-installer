@@ -817,46 +817,49 @@ def add_appliances_from_marketplace(sixg_sandbox_group: str, jenkins_user: str, 
     """
     for appliance_name in appliances:
         appliance_type = get_type_appliance(appliance_name=appliance_name, marketplace_name=marketplace_name)
-        if appliance_type == "IMAGE":
-            if get_image(image_name=appliance_name) is None:
-                onedatastores = get_onedatastores()
-                datastore = ask_select(prompt="Select the datastore where you want to store the image", choices=onedatastores)
-                datastore_id = get_onedatastore_id(datastore)
-                image_id, template_id, _ = export_appliance(appliance_name=appliance_name, datastore_id=datastore_id)
-                sleep(10)
-                rename_image(image_id=image_id[0], new_name=appliance_name)
-                while get_state_image(image_name=appliance_name) != "1":
+        if appliance_type is not None:
+            if appliance_type == "IMAGE":
+                if get_image(image_name=appliance_name) is None:
+                    onedatastores = get_onedatastores()
+                    datastore = ask_select(prompt="Select the datastore where you want to store the image", choices=onedatastores)
+                    datastore_id = get_onedatastore_id(datastore)
+                    image_id, template_id, _ = export_appliance(appliance_name=appliance_name, datastore_id=datastore_id)
                     sleep(10)
-                chown_image(image_id=image_id[0], username=jenkins_user, group_name=sixg_sandbox_group)
-                chown_template(template_id=template_id[0], username=jenkins_user, group_name=sixg_sandbox_group)
-        elif appliance_type == "VM":
-            if get_template(template_name=appliance_name) is None:
-                onedatastores = get_onedatastores()
-                datastore = ask_select(prompt="Select the datastore where you want to store the image", choices=onedatastores)
-                datastore_id = get_onedatastore_id(datastore)
-                image_ids, template_id, _ = export_appliance(appliance_name=appliance_name, datastore_id=datastore_id)
-                sleep(10)
-                for i, image_id in enumerate(image_ids):
-                    chown_image(image_id=image_id, username=jenkins_user, group_name=sixg_sandbox_group)
-                for image_id in image_ids:
-                    while get_state_image(image_id=image_id) != "1":
+                    rename_image(image_id=image_id[0], new_name=appliance_name)
+                    while get_state_image(image_name=appliance_name) != "1":
                         sleep(10)
-                chown_template(template_id=template_id[0], username=jenkins_user, group_name=sixg_sandbox_group)
+                    chown_image(image_id=image_id[0], username=jenkins_user, group_name=sixg_sandbox_group)
+                    chown_template(template_id=template_id[0], username=jenkins_user, group_name=sixg_sandbox_group)
+            elif appliance_type == "VM":
+                if get_template(template_name=appliance_name) is None:
+                    onedatastores = get_onedatastores()
+                    datastore = ask_select(prompt="Select the datastore where you want to store the image", choices=onedatastores)
+                    datastore_id = get_onedatastore_id(datastore)
+                    image_ids, template_id, _ = export_appliance(appliance_name=appliance_name, datastore_id=datastore_id)
+                    sleep(10)
+                    for i, image_id in enumerate(image_ids):
+                        chown_image(image_id=image_id, username=jenkins_user, group_name=sixg_sandbox_group)
+                    for image_id in image_ids:
+                        while get_state_image(image_id=image_id) != "1":
+                            sleep(10)
+                    chown_template(template_id=template_id[0], username=jenkins_user, group_name=sixg_sandbox_group)
+            else:
+                if get_oneflow_template(appliance_name) is None:
+                    onedatastores = get_onedatastores()
+                    datastore = ask_select(prompt="Select the datastore where you want to store the image", choices=onedatastores)
+                    datastore_id = get_onedatastore_id(datastore)
+                    image_ids, template_ids, service_id = export_appliance(appliance_name=appliance_name, datastore_id=datastore_id)
+                    sleep(10)
+                    for i, image_id in enumerate(image_ids):
+                        chown_image(image_id=image_id, username=jenkins_user, group_name=sixg_sandbox_group)
+                    for image_id in image_ids:
+                        while get_state_image(image_id=image_id) != "1":
+                            sleep(10)
+                    for template_id in template_ids:
+                        chown_template(template_id=template_id, username=jenkins_user, group_name=sixg_sandbox_group)
+                    chown_oneflow_template(oneflow_template_id=service_id, username=jenkins_user, group_name=sixg_sandbox_group)
         else:
-            if get_oneflow_template(appliance_name) is None:
-                onedatastores = get_onedatastores()
-                datastore = ask_select(prompt="Select the datastore where you want to store the image", choices=onedatastores)
-                datastore_id = get_onedatastore_id(datastore)
-                image_ids, template_ids, service_id = export_appliance(appliance_name=appliance_name, datastore_id=datastore_id)
-                sleep(10)
-                for i, image_id in enumerate(image_ids):
-                    chown_image(image_id=image_id, username=jenkins_user, group_name=sixg_sandbox_group)
-                for image_id in image_ids:
-                    while get_state_image(image_id=image_id) != "1":
-                        sleep(10)
-                for template_id in template_ids:
-                    chown_template(template_id=template_id, username=jenkins_user, group_name=sixg_sandbox_group)
-                chown_oneflow_template(oneflow_template_id=service_id, username=jenkins_user, group_name=sixg_sandbox_group)
+            msg("info", f"Appliance type not recognized")
 
 ## SERVICE MANAGEMENT ##
 def restart_one() -> None:
