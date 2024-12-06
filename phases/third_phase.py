@@ -87,9 +87,9 @@ def third_phase(sixg_sandbox_group: str, jenkins_user: str) -> None:
     
     opennebula_public_marketplace_name = get_env_var("OPENNEBULA_PUBLIC_MARKETPLACE_NAME")
     opennebula_public_marketplace_appliances = get_appliances_marketplace(marketplace_name=opennebula_public_marketplace_name)
+    if opennebula_oneke_129_service in opennebula_public_marketplace_appliances:
+        opennebula_public_marketplace_appliances.remove(opennebula_oneke_129_service)
     opennebula_public_appliances_selected = ask_checkbox("Select the appliances you want to import from the OpenNebula Public Marketplace", opennebula_public_marketplace_appliances)
-    if opennebula_oneke_129_service in opennebula_public_appliances_selected:
-        opennebula_public_appliances_selected.remove(opennebula_oneke_129_service)
     if opennebula_public_appliances_selected:
         add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=opennebula_public_marketplace_name, appliances=opennebula_public_appliances_selected)
     sixg_sandbox_marketplace_appliances = get_appliances_marketplace(marketplace_name=sixg_sandbox_marketplace_name)
