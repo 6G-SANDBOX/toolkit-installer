@@ -7,7 +7,7 @@ from phases.utils.file import load_yaml, save_file, get_env_var
 from phases.utils.git import git_branch, git_branches, git_switch, git_add, git_commit, git_push
 from phases.utils.interactive import ask_text, ask_confirm
 from phases.utils.logs import msg
-from phases.utils.parser import ansible_encrypt, object_yaml
+from phases.utils.parser import ansible_encrypt, object_to_yaml
 from phases.utils.temp import save_temp_directory, temp_path
 
 def _create_site(sites_path: str) -> str:
@@ -81,7 +81,7 @@ def fourth_phase(sites_token: str) -> str:
     run_command(f"cp {dummy_core_path} {site_core_path}")
     site_core = load_yaml(site_core_path, mode="rt", encoding="utf-8")
     current_config = _update_site_config(site_core)
-    current_config_yaml = object_yaml(current_config)
+    current_config_yaml = object_to_yaml(current_config)
     encrypted_data = ansible_encrypt(current_config_yaml, sites_token)
     save_file(encrypted_data, site_core_path, mode="wb", encoding=None)
     dummy_path = temp_path(os.path.join(sites_directory, ".dummy_site"))

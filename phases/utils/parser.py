@@ -8,7 +8,7 @@ from ansible.constants import DEFAULT_VAULT_ID_MATCH
 
 from phases.utils.logs import msg
 
-def object_yaml(data: dict) -> str:
+def object_to_yaml(data: dict) -> str:
     """
     Convert a dictionary to a YAML string
 
