@@ -85,12 +85,6 @@ Activate environment
 ${POETRY_BIN} shell
 ```
 
-Create .env file
-
-```bash
-cp .env.template .env
-```
-
 > [!IMPORTANT]
 > The script execution must be performed in the OpenNebula frontend using **root** user.
 
