@@ -307,7 +307,7 @@ def instantiate_oneflow_template(oneflow_template_name: str, file_path: str) -> 
     :param file_path: the path to the file with params, ``str``
     """
     msg("info", f"Instantiating OpenNebula service {oneflow_template_name}")
-    res = run_command(f"oneflow-template instantiate \"{oneflow_template_name}\" {file_path}")
+    res = run_command(f"oneflow-template instantiate \"{oneflow_template_name}\" < {file_path}")
     if res["rc"] != 0:
         msg("error", res["stderr"])
     msg("info", "Service instantiated")
