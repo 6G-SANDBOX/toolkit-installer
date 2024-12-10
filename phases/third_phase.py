@@ -60,6 +60,9 @@ def third_phase(sixg_sandbox_group: str, jenkins_user: str) -> None:
     add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=opennebula_public_marketplace_name, appliances=appliances)
 
     oneflow_template_oneke = get_oneflow_template(oneflow_template_name=opennebula_oneke_129_service)
+    if oneflow_template_oneke is None:
+        add_appliances_from_marketplace(sixg_sandbox_group=sixg_sandbox_group, jenkins_user=jenkins_user, marketplace_name=opennebula_public_marketplace_name, appliances=[opennebula_oneke_129_service])
+        oneflow_template_oneke = get_oneflow_template(oneflow_template_name=opennebula_oneke_129_service)
     oneflow_template_oneke_body = oneflow_template_oneke["DOCUMENT"]["TEMPLATE"]["BODY"]
     roles = oneflow_template_oneke_body["roles"]
     storage_vm_template_id = None
@@ -67,25 +70,25 @@ def third_phase(sixg_sandbox_group: str, jenkins_user: str) -> None:
         if role["name"] == "storage":
             if role["cardinality"] != 3:
                 role["cardinality"] = 3
-                storage_vm_template_id = role["vm_template"]
                 oneflow_template_oneke_body["roles"] = roles
                 oneflow_template_path = temp_path("oneflow_template_oneke.json")
                 save_json(data=oneflow_template_oneke_body, file_path=oneflow_template_path)
                 update_oneflow_template(oneflow_template_name=opennebula_oneke_129_service, file_path=oneflow_template_path)
             
-                storage_vm_template = get_template(template_id=storage_vm_template_id)
-                storage_vm_template_name = storage_vm_template["VMTEMPLATE"]["NAME"]
-                storage_vm_template_disk = storage_vm_template["VMTEMPLATE"]["TEMPLATE"]["DISK"]
-                content = ""
-                for i, disk in enumerate(storage_vm_template_disk):
-                    if i == 1:
-                        disk["SIZE"] = "15360"
-                        content += f'DISK=[ IMAGE_ID="{disk["IMAGE_ID"]}", SIZE="{disk["SIZE"]}" ]\n'
-                    else:
-                        content += f'DISK=[ IMAGE_ID="{disk["IMAGE_ID"]}" ]\n'
-                storage_vm_template_path = temp_path("storage_vm_template")
-                save_file(data=content, file_path=storage_vm_template_path, mode="w", encoding="utf-8")
-                update_template(template_name=storage_vm_template_name, file_path=storage_vm_template_path)
+            storage_vm_template_id = role["vm_template"]
+            storage_vm_template = get_template(template_id=storage_vm_template_id)
+            storage_vm_template_name = storage_vm_template["VMTEMPLATE"]["NAME"]
+            storage_vm_template_disk = storage_vm_template["VMTEMPLATE"]["TEMPLATE"]["DISK"]
+            content = ""
+            for i, disk in enumerate(storage_vm_template_disk):
+                if i == 1 and ("SIZE" not in disk or disk["SIZE"] != "15360"):
+                    disk["SIZE"] = "15360"
+                    content += f'DISK=[ IMAGE_ID="{disk["IMAGE_ID"]}", SIZE="{disk["SIZE"]}" ]\n'
+                else:
+                    content += f'DISK=[ IMAGE_ID="{disk["IMAGE_ID"]}" ]\n'
+            storage_vm_template_path = temp_path("oneke_storage_vm_template")
+            save_file(data=content, file_path=storage_vm_template_path, mode="w", encoding="utf-8")
+            update_template(template_name=storage_vm_template_name, file_path=storage_vm_template_path)
     
     opennebula_public_marketplace_appliances = get_appliances_marketplace(marketplace_name=opennebula_public_marketplace_name)
     if opennebula_oneke_129_service in opennebula_public_marketplace_appliances:
