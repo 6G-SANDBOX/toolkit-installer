@@ -6,7 +6,7 @@ from phases.utils.git import git_clone
 from phases.utils.logs import msg
 from phases.utils.one import get_vm_ip, get_vm
 from phases.utils.parser import encode_base64
-from phases.utils.temp import load_temp_file, save_temp_directory, temp_path
+from phases.utils.temp import save_temp_directory, temp_path
 
 def _login_tnlcm(tnlcm_url: str, tnlcm_admin_username: str, tnlcm_admin_password: str) -> str:
     """
@@ -43,7 +43,7 @@ def _create_trial_network(tnlcm_url: str, site: str, access_token: str, trial_ne
     :return: the trial network id, ``str``
     """
     msg("info", "Creating trial network")
-    params = {
+    data = {
         "tn_id": "test",
         "deployment_site": site,
         "github_6g_library_reference_type": "branch",
@@ -55,12 +55,12 @@ def _create_trial_network(tnlcm_url: str, site: str, access_token: str, trial_ne
         "accept": "application/json",
         "authorization": f"Bearer {access_token}"
     }
-    files = load_temp_file(trial_network_path, mode="rb", encoding=None)
-    res = requests.post(f"{tnlcm_url}/trial-network", headers=headers, data=params, files=files)
+    files = {"descriptor": (trial_network_path, open(trial_network_path, "rb"), "multipart/form-data")}
+    res = requests.post(f"{tnlcm_url}/trial-network", headers=headers, data=data, files=files)
+    data_json = res.json()
     if res.status_code != 201:
-        msg("error", res["message"])
-    data = res.json()
-    tn_id = data["tn_id"]
+        msg("error", data_json["message"])
+    tn_id = data_json["tn_id"]
     msg("info", f"Trial network created with tn_id: {tn_id}")
     return tn_id
 
@@ -74,17 +74,17 @@ def _deploy_trial_network(tnlcm_url: str, tn_id: str, access_token: str, jenkins
     :param jenkins_deploy_pipeline: the Jenkins deploy pipeline, ``str``
     """
     msg("info", "Deploying trial network")
-    params = {
-        "jenkins_deploy_pipeline": jenkins_deploy_pipeline,
-        "tn_id": tn_id
+    data = {
+        "jenkins_deploy_pipeline": jenkins_deploy_pipeline
     }
     headers = {
         "accept": "application/json",
         "Authorization": f"Bearer {access_token}"
     }
-    res = requests.put(f"{tnlcm_url}/trial-network", headers=headers, params=params)
+    res = requests.put(f"{tnlcm_url}/trial-network/{tn_id}", headers=headers, data=data)
+    data_json = res.json()
     if res.status_code != 200:
-        msg("error", res["message"])
+        msg("error", data_json["message"])
     msg("info", "Trial network deployed")
 
 def _destroy_trial_network(tnlcm_url: str, tn_id: str, access_token: str, jenkins_destroy_pipeline: str) -> None:
@@ -97,18 +97,17 @@ def _destroy_trial_network(tnlcm_url: str, tn_id: str, access_token: str, jenkin
     :param jenkins_destroy_pipeline: the Jenkins destroy pipeline, ``str``
     """
     msg("info", "Destroying trial network")
-    url = f"{tnlcm_url}/trial-network"
-    params = {
-        "jenkins_destroy_pipeline": jenkins_destroy_pipeline,
-        "tn_id": tn_id
+    data = {
+        "jenkins_destroy_pipeline": jenkins_destroy_pipeline
     }
     headers = {
         "accept": "application/json",
         "Authorization": f"Bearer {access_token}"
     }
-    res = requests.delete(url, headers=headers, params=params)
+    res = requests.delete(f"{tnlcm_url}/trial-network/{tn_id}", headers=headers, data=data)
+    data_json = res.json()
     if res.status_code != 200:
-        msg("error", res["message"])
+        msg("error", data_json["message"])
     msg("info", "Trial network destroyed")
 
 def _purge_trial_network(tnlcm_url: str, tn_id: str, access_token: str) -> None:
@@ -120,16 +119,14 @@ def _purge_trial_network(tnlcm_url: str, tn_id: str, access_token: str) -> None:
     :param access_token: the access token, ``str``
     """
     msg("info", "Purging trial network")
-    params = {
-        "tn_id": tn_id
-    }
     headers = {
         "accept": "application/json",
         "Authorization": f"Bearer {access_token}"
     }
-    res = requests.delete(f"{tnlcm_url}/trial-network/purge", headers=headers, params=params)
+    res = requests.delete(f"{tnlcm_url}/trial-network/purge/{tn_id}", headers=headers)
+    data_json = res.json()
     if res.status_code != 200:
-        msg("error", res["message"])
+        msg("error", data_json["message"])
     msg("info", "Trial network purged")
 
 def fifth_phase(site: str, vm_tnlcm_name: str) -> None:
