@@ -5,6 +5,8 @@ import tomlkit
 from ruamel.yaml import YAML
 from dotenv import load_dotenv
 
+DOTENV_PATH = os.path.join(os.getcwd(), ".env")
+
 def load_file(file_path: str, mode: str, encoding: str) -> str:
     """
     Load the content from a file as a string or a list of lines.
@@ -59,8 +61,29 @@ def load_dotenv_file() -> None:
     """
     Load the .env file in the current working directory
     """
-    load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
+    load_dotenv(dotenv_path=DOTENV_PATH)
 
+def update_dotenv_file(key: str, value) -> None:
+    """
+    Update the .env file with the given data
+    
+    :param key: the key of the environment variable, ``str``
+    :param value: the value of the environment variable
+    """
+    lines = []
+    key_found = False
+    with open(DOTENV_PATH, "rt") as file:
+        for line in file:
+            if line.strip().startswith(f"{key}="):
+                lines.append(f"{key}=\"{value}\"\n")
+                key_found = True
+            else:
+                lines.append(line)
+
+    if key_found:
+        with open(DOTENV_PATH, "w") as file:
+            file.writelines(lines)
+    
 def get_env_var(var_name: str) -> str:
     """
     Get the value of an environment variable
