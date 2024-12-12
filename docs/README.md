@@ -73,16 +73,16 @@ Access to the path in which the toolkit-installer repository was cloned
 cd toolkit-installer
 ```
 
-Activate environment
-
-```bash
-${POETRY_BIN} shell
-```
-
 Install libraries
 
 ```bash
 ${POETRY_BIN} install --no-root
+```
+
+Activate environment
+
+```bash
+${POETRY_BIN} shell
 ```
 
 > [!IMPORTANT]
