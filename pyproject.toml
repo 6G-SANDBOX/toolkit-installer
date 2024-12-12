@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "toolkit-installer"
+version = "v0.1.0"
+description = "Installer that create a new 6G-SANDBOX site and install the tools MinIO, Jenkins and TNLCM in OpenNebula."
+authors = ["Daniel Garcia <dgarcia@opennebula.io>", "Carlos Andreo <c.andreo@uma.es>"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.13"
+ansible-core = "2.18.1"
+GitPython = "3.1.43"
+questionary = "2.0.1"
+requests = "2.32.3"
+tomlkit = "0.13.2"
+pyfiglet = "1.0.2"
+python-dotenv = "1.0.1"
+"ruamel.yaml" = "0.18.6"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
