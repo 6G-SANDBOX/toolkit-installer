@@ -147,8 +147,8 @@ Find the complete documentation and usage guides in our [wiki](https://github.co
 <!-- Urls, Shields and Badges -->
 [toolkit-installer-badge]: https://img.shields.io/badge/toolkit--installer-v0.1.0-blue
 [toolkit-installer-url]: https://github.com/6G-SANDBOX/toolkit-installer/releases/tag/v0.1.0
-[python-badge]: https://img.shields.io/badge/Python-3.13.0-blue?style=for-the-badge&logo=python&logoColor=white&labelColor=3776AB
-[python-url]: https://www.python.org/downloads/release/python-3130/
+[python-badge]: https://img.shields.io/badge/Python-3.13.1-blue?style=for-the-badge&logo=python&logoColor=white&labelColor=3776AB
+[python-url]: https://www.python.org/downloads/release/python-3131/
 [contributors-shield]: https://img.shields.io/github/contributors/6G-SANDBOX/toolkit-installer.svg?style=for-the-badge
 [contributors-url]: https://github.com/6G-SANDBOX/toolkit-installer/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/6G-SANDBOX/toolkit-installer.svg?style=for-the-badge
