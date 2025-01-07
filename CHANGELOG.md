@@ -1,6 +1,6 @@
 # Changelog
 
-## [v0.1.0] - 2024-XX-XX
+## [v0.1.0] - XXXX-XX-XX
 
 ### Added
 
