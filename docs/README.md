@@ -68,21 +68,9 @@ Access to the path in which the toolkit-installer repository was cloned
 cd toolkit-installer
 ```
 
-Create environment
+Create environment and install libraries
 ```bash
-uv venv
-```
-
-Activate environment
-
-```bash
-source .venv/bin/activate
-```
-
-Install libraries
-
-```bash
-uv pip install -r pyproject.toml
+uv sync
 ```
 
 > [!IMPORTANT]
