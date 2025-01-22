@@ -49,13 +49,11 @@ Be part of the [**6G-SANDBOX**](https://github.com/6G-SANDBOX) organization on G
 
 ## :rocket: Getting Started
 
-Install Poetry
+Install uv
 
 ```bash
-POETRY_FOLDER="/opt/poetry"
-POETRY_BIN="/opt/poetry/bin/poetry"
-curl -sSL https://install.python-poetry.org | POETRY_HOME=${POETRY_FOLDER} python3 -
-${POETRY_BIN} config virtualenvs.in-project true
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source ${HOME}/.local/bin/env
 ```
 
 Clone the repository
@@ -70,16 +68,21 @@ Access to the path in which the toolkit-installer repository was cloned
 cd toolkit-installer
 ```
 
-Install libraries
-
+Create environment
 ```bash
-${POETRY_BIN} install --no-root
+uv venv
 ```
 
 Activate environment
 
 ```bash
-${POETRY_BIN} shell
+source .venv/bin/activate
+```
+
+Install libraries
+
+```bash
+uv pip install -r pyproject.toml
 ```
 
 > [!IMPORTANT]
