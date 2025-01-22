@@ -22,7 +22,6 @@ Create new 6G-SANDBOX site.
 <details>
 <summary>Table of Contents</summary>
 
-- [:hammer\_and\_wrench: Stack](#hammer_and_wrench-stack)
 - [:white\_check\_mark: Requirements](#white_check_mark-requirements)
 - [:rocket: Getting Started](#rocket-getting-started)
 - [:cyclone: Phases](#cyclone-phases)
@@ -32,12 +31,10 @@ Create new 6G-SANDBOX site.
   - [Third phase](#third-phase)
   - [Fourth phase](#fourth-phase)
   - [Fifth phase](#fifth-phase)
-- [📚 Documentation](#-documentation)
+- [:hammer\_and\_wrench: Stack](#hammer_and_wrench-stack)
+- [:books: Documentation](#books-documentation)
 
 </details>
-
-## :hammer_and_wrench: Stack
-[![Python][python-badge]][python-url] - Programming language.
 
 ## :white_check_mark: Requirements
 
@@ -132,7 +129,11 @@ python3 installer.py
 - Integrate with TNLCM repository.
 - Run an end-to-end trial network.
 
-## 📚 Documentation
+## :hammer_and_wrench: Stack
+
+[![Python][python-badge]][python-url] - Programming language.
+
+## :books: Documentation
 
 Find the complete documentation and usage guides in our [wiki](https://github.com/6G-SANDBOX/toolkit-installer/wiki).
 
