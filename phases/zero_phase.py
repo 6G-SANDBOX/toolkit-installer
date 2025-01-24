@@ -18,11 +18,11 @@ def _generate_banner(message: str) -> None:
 
 def zero_phase() -> None:
     pyproject_toml = os.path.join(os.getcwd(), "pyproject.toml")
-    __version__ = loads_toml(file_path=pyproject_toml, mode="rt", encoding="utf-8")["tool"]["poetry"]["version"]
+    version = loads_toml(file_path=pyproject_toml, mode="rt", encoding="utf-8")["project"]["version"]
     load_dotenv_file()
     banner_message = get_env_var("BANNER_MESSAGE")
     _generate_banner(message=banner_message)
-    _generate_banner(message=__version__)
+    _generate_banner(message=version)
     msg("info", "ZERO PHASE")
     update_ubuntu_package()
     user = get_user()
