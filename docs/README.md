@@ -52,8 +52,9 @@ Be part of the [**6G-SANDBOX**](https://github.com/6G-SANDBOX) organization on G
 Install uv
 
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-source ${HOME}/.local/bin/env
+UV_PATH="/opt/uv"
+UV_BIN="${UV_PATH}/uv"
+curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=${UV_PATH} sh
 ```
 
 Clone the repository
@@ -77,7 +78,7 @@ uv sync
 > The script execution must be performed in the OpenNebula frontend using **root** user.
 
 ```bash
-python3 installer.py
+${UV_BIN} run python installer.py
 ```
 
 ## :cyclone: Phases
