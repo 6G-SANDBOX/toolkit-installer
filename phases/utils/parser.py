@@ -47,7 +47,7 @@ def ansible_encrypt(data: str, token_path: str) -> None:
     :param encrypted_data: the data to be encrypted, ``str``
     :param token_path: the path to the token file, ``str``
     """
-    msg("info", f"Encrypting data using Ansible Vault")
+    msg("info", "Encrypting data using Ansible Vault")
     secret = token_path.encode("utf-8")
     vault = VaultLib([(DEFAULT_VAULT_ID_MATCH, VaultSecret(secret))])
     msg("info", "Data encrypted")

@@ -859,7 +859,7 @@ def add_appliances_from_marketplace(sixg_sandbox_group: str, jenkins_user: str, 
                         chown_template(template_id=template_id, username=jenkins_user, group_name=sixg_sandbox_group)
                     chown_oneflow_template(oneflow_template_id=service_id, username=jenkins_user, group_name=sixg_sandbox_group)
         else:
-            msg("info", f"Appliance type not recognized")
+            msg("info", "Appliance type not recognized")
 
 ## SERVICE MANAGEMENT ##
 def restart_one() -> None:

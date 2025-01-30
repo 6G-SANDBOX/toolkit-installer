@@ -3,7 +3,7 @@ from time import sleep
 from phases.utils.file import get_env_var
 from phases.utils.interactive import ask_text, ask_password, ask_confirm, ask_select
 from phases.utils.logs import msg
-from phases.utils.one import add_appliances_from_marketplace, get_vm, get_oneflow, get_oneflow_custom_attrs_values, get_onemarket, add_marketplace, get_marketplace_monitoring_interval, update_marketplace_monitoring_interval, restart_one, check_one_health, get_vm, get_onegate_endpoint, add_ssh_key, get_oneflow_template_networks, get_oneflow_template_custom_attrs, instantiate_oneflow_template, get_vnets_names, get_vnet_id, chown_oneflow, get_oneflow_roles, chown_vm
+from phases.utils.one import add_appliances_from_marketplace, get_vm, get_oneflow, get_oneflow_custom_attrs_values, get_onemarket, add_marketplace, get_marketplace_monitoring_interval, update_marketplace_monitoring_interval, restart_one, check_one_health, get_onegate_endpoint, add_ssh_key, get_oneflow_template_networks, get_oneflow_template_custom_attrs, instantiate_oneflow_template, get_vnets_names, get_vnet_id, chown_oneflow, get_oneflow_roles, chown_vm
 from phases.utils.temp import load_temp_file, save_temp_json_file
 
 def _parse_custom_attr(attr_string: str) -> dict:

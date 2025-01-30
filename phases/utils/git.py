@@ -22,7 +22,7 @@ def git_branch(path: str, branch_name: str) -> str:
     repo = get_repo(path)
     msg("info", f"Creating branch {branch_name}")
     repo.create_head(branch_name)
-    msg("info", f"Branch created")
+    msg("info", "Branch created")
 
 def git_branches(path: str) -> list[str]:
     """
