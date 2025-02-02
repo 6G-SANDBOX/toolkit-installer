@@ -14,120 +14,24 @@
 
   [![toolkit-installer][toolkit-installer-badge]][toolkit-installer-url]
 
-  [Report error](https://github.com/6G-SANDBOX/toolkit-installer/issues/new?assignees=&labels=&projects=&template=bug_report.md) · [Feature request](https://github.com/6G-SANDBOX/toolkit-installer/issues/new?assignees=&labels=&projects=&template=feature_request.md) · [Wiki](https://github.com/6G-SANDBOX/toolkit-installer/wiki)
+  [Report error](https://github.com/6G-SANDBOX/toolkit-installer/issues/new?assignees=&labels=&projects=&template=bug_report.md) · [Feature request](https://github.com/6G-SANDBOX/toolkit-installer/issues/new?assignees=&labels=&projects=&template=feature_request.md)
 </div>
 
-Create new 6G-SANDBOX site.
+## :wrench: What is toolkit installer?
 
-<details>
-<summary>Table of Contents</summary>
+The 6G-SANDBOX Toolkit Installer is a Python script that automates the installation of the 6G-SANDBOX toolkit. The toolkit is a set of repositories that provide a set of tools and services to create a 6G-SANDBOX site.
 
-- [:white\_check\_mark: Requirements](#white_check_mark-requirements)
-- [:rocket: Getting Started](#rocket-getting-started)
-- [:cyclone: Phases](#cyclone-phases)
-  - [Zero phase](#zero-phase)
-  - [First phase](#first-phase)
-  - [Second phase](#second-phase)
-  - [Third phase](#third-phase)
-  - [Fourth phase](#fourth-phase)
-  - [Fifth phase](#fifth-phase)
-- [:hammer\_and\_wrench: Stack](#hammer_and_wrench-stack)
-- [:books: Documentation](#books-documentation)
+## :books: Documentation
 
-</details>
+Find the complete documentation and usage guides in our [docs](https://6g-sandbox.github.io/docs/category/toolkit-installer).
 
-## :white_check_mark: Requirements
+## :round_pushpin: Roadmap
 
-Be part of the [**6G-SANDBOX**](https://github.com/6G-SANDBOX) organization on GitHub.
-
-| Repository       | Release                                                                | Branch                                                  |
-| ---------------- | ---------------------------------------------------------------------- | ------------------------------------------------------- |
-| OpenNebula       | [v6.10](https://github.com/OpenNebula/one/releases/tag/release-6.10.0) | -                                                       |
-| 6G-Library       | [v0.3.1](https://github.com/6G-SANDBOX/6G-Library/releases/tag/v0.3.1) | -                                                       |
-| 6G-Sandbox-Sites | -                                                                      | [main](https://github.com/6G-SANDBOX/6G-Sandbox-Sites)  |
-| TNLCM            | [v0.4.4](https://github.com/6G-SANDBOX/TNLCM/releases/tag/v0.4.4)      | -                                                       |
-
-## :rocket: Getting Started
-
-Install uv
-
-```bash
-UV_PATH="/opt/uv"
-UV_BIN="${UV_PATH}/uv"
-curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=${UV_PATH} sh
-```
-
-Clone the repository
-
-```bash
-git clone https://github.com/6G-SANDBOX/toolkit-installer.git
-```
-
-Access to the path in which the toolkit-installer repository was cloned 
-
-```bash
-cd toolkit-installer
-```
-
-Create environment and install libraries
-```bash
-uv sync
-```
-
-> [!IMPORTANT]
-> The script execution must be performed in the OpenNebula frontend using **root** user.
-
-```bash
-${UV_BIN} run python installer.py
-```
-
-## :cyclone: Phases
-
-### Zero phase
-
-- Update ubuntu packages.
-- Check if the script is being executed as root.
-- Check if the OpenNebula CLI tools are installed.
-
-### First phase
-
-- Create 6G-SANDBOX group.
-- Create jenkins-master user.
-
-### Second phase
-
-- Add the 6G-SANDBOX marketplace to OpenNebula.
-- Instantiate the 6G-SANDBOX Toolkit appliance.
-- Assign ssh key to jenkins-master user.
-
-### Third phase
-
-- Refresh the list of available appliances in the marketplace.
-- Download required appliances from the OpenNebula Public marketplace:
-  - Ubuntu 22.04
-  - Service oneKE 1.29
-- Download required appliances from the 6G-SANDBOX marketplace:
-  - Service 6G-Sandbox Toolkit
-  - NTP
-  - UERANSIM
-
-### Fourth phase
-
-- Integrate with 6G-SANDBOX-Sites repository.
-- Create new 6G-SANDBOX sites in 6G-Sandbox-Sites repository.
-
-### Fifth phase
-
-- Integrate with TNLCM repository.
-- Run an end-to-end trial network.
+- Test the toolkit installer using last releases of the 6G-SANDBOX repositories.
 
 ## :hammer_and_wrench: Stack
 
 [![Python][python-badge]][python-url] - Programming language.
-
-## :books: Documentation
-
-Find the complete documentation and usage guides in our [wiki](https://github.com/6G-SANDBOX/toolkit-installer/wiki).
 
 ## Contributors <!-- omit in toc -->
 
