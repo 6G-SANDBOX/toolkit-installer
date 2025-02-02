@@ -137,7 +137,7 @@ def fifth_phase(site: str, vm_tnlcm_name: str) -> None:
     github_tnlcm_https = get_env_var("GITHUB_TNLCM_HTTPS")
     trial_network_name = get_env_var("TRIAL_NETWORK_NAME")
     jenkins_deploy_pipeline = get_env_var("JENKINS_DEPLOY_PIPELINE")
-    jenkins_destroy_pipeline = get_env_var("JENKINS_DESTROY_PIPELINE")
+    # jenkins_destroy_pipeline = get_env_var("JENKINS_DESTROY_PIPELINE")
     tnlcm_ip = get_vm_ip(vm_tnlcm_name)
     tnlcm_url = f"http://{tnlcm_ip}:{tnlcm_port}/tnlcm"
     tnlcm_vm = get_vm(vm_name=vm_tnlcm_name)
@@ -148,5 +148,5 @@ def fifth_phase(site: str, vm_tnlcm_name: str) -> None:
     trial_network_path = temp_path(os.path.join(tnlcm_directory, "tn_template_lib", trial_network_name))
     tn_id = _create_trial_network(tnlcm_url, site, access_token, trial_network_path, github_library_branch)
     _deploy_trial_network(tnlcm_url, tn_id, access_token, jenkins_deploy_pipeline)
-    _destroy_trial_network(tnlcm_url, tn_id, access_token, jenkins_destroy_pipeline)
-    _purge_trial_network(tnlcm_url, tn_id, access_token)
+    # _destroy_trial_network(tnlcm_url, tn_id, access_token, jenkins_destroy_pipeline)
+    # _purge_trial_network(tnlcm_url, tn_id, access_token)
