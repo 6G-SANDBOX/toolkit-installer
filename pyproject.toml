@@ -10,7 +10,7 @@ authors = [
 ]
 
 dependencies = [
-    "ansible-core==2.18.1",
+    "ansible-core==2.18.2",
     "GitPython==3.1.44",
     "questionary==2.1.0",
     "requests==2.32.3",
