@@ -1,23 +1,34 @@
 import questionary
 
-from typing import List, Optional
+from typing import Callable, Union, List, Optional
 
-def ask_text(prompt: str, default: Optional[str] = None, validate: bool = False) -> str:
+def ask_text(prompt: str, default: Optional[str] = None, validate: Union[bool, Callable[[str], bool]] = False) -> str:
     """
-    Prompt the user for text input with an optional mandatory flag
+    Prompt the user for text input with an optional mandatory flag and a custom validation function.
 
     :param prompt: the question to display, ``str``
     :param default: default value if the user presses Enter, ``Optional[str]``
-    :param validate: if True, input is required, ``bool``
+    :param validate: if True, input is required; if False, no validation; if a function is provided, it's used for custom validation, ``Union[bool, Callable[[str], bool]]``
     :return: user input, ``str``
     """
-    if validate:
+    if isinstance(validate, bool):
+        if validate:
+            return questionary.text(
+                prompt,
+                default=default,
+                validate=lambda text: bool(text.strip()) or "This field is required"
+            ).ask()
+        else:
+            return questionary.text(prompt, default=default).ask()
+    elif isinstance(validate, Callable):
         return questionary.text(
             prompt,
             default=default,
-            validate=lambda text: bool(text.strip()) or "This field is required"
+            validate=validate
         ).ask()
-    return questionary.text(prompt, default=default).ask()
+    else:
+        raise ValueError("validate must be a boolean or a callable")
+    
 
 def ask_select(prompt: str, choices: List[str]) -> str:
     """

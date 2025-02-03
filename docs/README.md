@@ -28,6 +28,7 @@ Find the complete documentation and usage guides in our [docs](https://6g-sandbo
 ## :round_pushpin: Roadmap
 
 - Test the toolkit installer using last releases of the 6G-SANDBOX repositories.
+- Validation ansible token inserted.
 
 ## :hammer_and_wrench: Stack
 

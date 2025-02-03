@@ -26,30 +26,31 @@ def _parse_custom_attr(attr_string: str) -> dict:
     
     return result
 
-def _validate_sites_token(sites_token: str) -> bool:
+def _validate_sites_token(sites_token: str) -> str:
     """
-    Valida que la contraseña cumpla con los requisitos especificados
+    Validate the sites token and return an error message if invalid.
 
-    :param password: the sites_token, ``str``
+    :param sites_token: the token sites, ``str``
+    :return: error message if invalid, otherwise an empty string, ``str``
     """
     
     if len(sites_token) < 20:
-        return False
+        return "The token must be at least 20 characters long."
     
     if not any(char.isupper() for char in sites_token):
-        return False
+        return "The token must contain at least one uppercase letter."
     
     if not any(char.islower() for char in sites_token):
-        return False
+        return "The token must contain at least one lowercase letter."
     
     if not any(char.isdigit() for char in sites_token):
-        return False
+        return "The token must contain at least one digit."
     
     special_characters = "!%()*+,-./:;<=>?@[\\]^_{}~"
     if not any(char in special_characters for char in sites_token):
-        return False
+        return "The token must contain at least one special character."
     
-    return True
+    return ""
 
 def _generate_custom_attrs_values(custom_attrs: dict, jenkins_user: str) -> dict:
     """
@@ -78,8 +79,7 @@ def _generate_custom_attrs_values(custom_attrs: dict, jenkins_user: str) -> dict
             field_type = parser_custom_attr["field_type"]
             input_type = parser_custom_attr["input_type"]
             description = parser_custom_attr["description"]
-            default_value = parser_custom_attr["default_value"]
-            value = ask_text(prompt=description, validate=lambda text: _validate_sites_token(text) or "The token does not meet the requirements")
+            value = ask_text(prompt=description, default="", validate=True)
             params[custom_attr_key] = value
         else:
             parser_custom_attr = _parse_custom_attr(custom_attr_value)
