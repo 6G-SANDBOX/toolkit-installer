@@ -27,7 +27,7 @@ def ask_text(prompt: str, default: Optional[str] = None, validate: Union[bool, C
                 prompt,
                 default=default,
                 validate=validate
-            ).ask()
+            ).unsafe_ask()
     except KeyboardInterrupt:
         print("\nOperation interrupted by user")
         sys.exit(255)
@@ -41,7 +41,7 @@ def ask_select(prompt: str, choices: List[str]) -> str:
     :return: selected option, ``str``
     """
     try:
-        return questionary.select(prompt, choices=choices).ask()
+        return questionary.select(prompt, choices=choices).unsafe_ask()
     except KeyboardInterrupt:
         print("\nOperation interrupted by user")
         sys.exit(255)
@@ -55,7 +55,7 @@ def ask_checkbox(prompt: str, choices: List[str]) -> List[str]:
     :return: list of selected options, ``List[str]``
     """
     try:
-        return questionary.checkbox(prompt, choices=choices).ask()
+        return questionary.checkbox(prompt, choices=choices).unsafe_ask()
     except KeyboardInterrupt:
         print("\nOperation interrupted by user")
         sys.exit(255)
@@ -69,7 +69,7 @@ def ask_confirm(prompt: str, default: bool = True) -> bool:
     :return: user's confirmation, ``bool``
     """
     try:
-        return questionary.confirm(prompt, default=default).ask()
+        return questionary.confirm(prompt, default=default).unsafe_ask()
     except KeyboardInterrupt:
         print("\nOperation interrupted by user")
         sys.exit(255)
@@ -90,7 +90,7 @@ def ask_password(prompt: str, validate: Union[bool, Callable[[str], bool]] = Fal
                     validate=lambda text: bool(text.strip()) or "This field is required"
                 ).ask()
             else:
-                return questionary.password(prompt).ask()
+                return questionary.password(prompt).unsafe_ask()
         if isinstance(validate, Callable):
             return questionary.password(
                 prompt,

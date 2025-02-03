@@ -24,6 +24,10 @@ try:
     # PHASE 5
     fifth_phase(site, vm_tnlcm_name)
 
+except KeyboardInterrupt:
+    print("\nOperation interrupted by user")
+    exit(255)
+
 except Exception as e:
     print(f"An error occurred: {e}")
     exit(1)
