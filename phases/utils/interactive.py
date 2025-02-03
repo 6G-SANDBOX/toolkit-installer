@@ -19,9 +19,9 @@ def ask_text(prompt: str, default: Optional[str] = None, validate: Union[bool, C
                     prompt,
                     default=default,
                     validate=lambda text: bool(text.strip()) or "This field is required"
-                ).ask()
+                ).unsafe_ask()
             else:
-                return questionary.text(prompt, default=default).ask()
+                return questionary.text(prompt, default=default).unsafe_ask()
         if isinstance(validate, Callable):
             return questionary.text(
                 prompt,
@@ -88,14 +88,14 @@ def ask_password(prompt: str, validate: Union[bool, Callable[[str], bool]] = Fal
                 return questionary.password(
                     prompt,
                     validate=lambda text: bool(text.strip()) or "This field is required"
-                ).ask()
+                ).unsafe_ask()
             else:
                 return questionary.password(prompt).unsafe_ask()
         if isinstance(validate, Callable):
             return questionary.password(
                 prompt,
                 validate=validate
-            ).ask()
+            ).unsafe_ask()
     except KeyboardInterrupt:
         print("\nOperation interrupted by user")
         sys.exit(255)
