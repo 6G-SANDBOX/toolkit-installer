@@ -26,12 +26,12 @@ def _parse_custom_attr(attr_string: str) -> dict:
     
     return result
 
-def _validate_sites_token(sites_token: str) -> str:
+def validate_sites_token(sites_token: str) -> str | bool:
     """
     Validate the sites token and return an error message if invalid.
 
     :param sites_token: the token sites, ``str``
-    :return: error message if invalid, otherwise an empty string, ``str``
+    :return: error message if invalid, otherwise an empty string, ``str`` or ``bool``
     """
     
     if len(sites_token) < 20:
@@ -49,8 +49,8 @@ def _validate_sites_token(sites_token: str) -> str:
     special_characters = "!%()*+,-./:;<=>?@[\\]^_{}~"
     if not any(char in special_characters for char in sites_token):
         return "The token must contain at least one special character"
-    
-    return ""
+
+    return True
 
 def _generate_custom_attrs_values(custom_attrs: dict, jenkins_user: str) -> dict:
     """
@@ -79,7 +79,7 @@ def _generate_custom_attrs_values(custom_attrs: dict, jenkins_user: str) -> dict
             field_type = parser_custom_attr["field_type"]
             input_type = parser_custom_attr["input_type"]
             description = parser_custom_attr["description"]
-            value = ask_password(prompt=description, validate=_validate_sites_token)
+            value = ask_password(prompt=description, validate=validate_sites_token)
             params[custom_attr_key] = value
         else:
             parser_custom_attr = _parse_custom_attr(custom_attr_value)
