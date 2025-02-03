@@ -26,6 +26,31 @@ def _parse_custom_attr(attr_string: str) -> dict:
     
     return result
 
+def _validate_sites_token(sites_token: str) -> bool:
+    """
+    Valida que la contraseña cumpla con los requisitos especificados
+
+    :param password: the sites_token, ``str``
+    """
+    
+    if len(sites_token) < 20:
+        return False
+    
+    if not any(char.isupper() for char in sites_token):
+        return False
+    
+    if not any(char.islower() for char in sites_token):
+        return False
+    
+    if not any(char.isdigit() for char in sites_token):
+        return False
+    
+    special_characters = "!%()*+,-./:;<=>?@[\\]^_{}~"
+    if not any(char in special_characters for char in sites_token):
+        return False
+    
+    return True
+
 def _generate_custom_attrs_values(custom_attrs: dict, jenkins_user: str) -> dict:
     """
     Generate the custom attributes values from the custom attributes
@@ -36,7 +61,27 @@ def _generate_custom_attrs_values(custom_attrs: dict, jenkins_user: str) -> dict
     """
     params = {}
     for custom_attr_key, custom_attr_value in custom_attrs.items():
-        if custom_attr_key != "oneapp_jenkins_opennebula_username" and custom_attr_key != "oneapp_jenkins_opennebula_password" and custom_attr_key != "oneapp_jenkins_opennebula_endpoint" and custom_attr_key != "oneapp_jenkins_opennebula_endpoint" and custom_attr_key != "oneapp_jenkins_opennebula_flow_endpoint":
+        if custom_attr_key == "oneapp_jenkins_opennebula_username":
+            params[custom_attr_key] = jenkins_user
+        elif custom_attr_key == "oneapp_jenkins_opennebula_password":
+            params[custom_attr_key] = load_temp_file(file_path=jenkins_user, mode="rt", encoding="utf-8")
+        elif custom_attr_key == "oneapp_jenkins_opennebula_endpoint":
+            onegate_endpoint = get_onegate_endpoint()
+            onegate_endpoint = ":".join(onegate_endpoint.split(":")[:2])
+            params[custom_attr_key] = f"{onegate_endpoint}:2633/RPC2"
+        elif custom_attr_key == "oneapp_jenkins_opennebula_flow_endpoint":
+            onegate_endpoint = get_onegate_endpoint()
+            onegate_endpoint = ":".join(onegate_endpoint.split(":")[:2])
+            params[custom_attr_key] = f"{onegate_endpoint}:2474"
+        elif custom_attr_key == "oneapp_jenkins_sites_token":
+            parser_custom_attr = _parse_custom_attr(custom_attr_value)
+            field_type = parser_custom_attr["field_type"]
+            input_type = parser_custom_attr["input_type"]
+            description = parser_custom_attr["description"]
+            default_value = parser_custom_attr["default_value"]
+            value = ask_text(prompt=description, validate=lambda text: _validate_sites_token(text) or "The token does not meet the requirements")
+            params[custom_attr_key] = value
+        else:
             parser_custom_attr = _parse_custom_attr(custom_attr_value)
             field_type = parser_custom_attr["field_type"]
             input_type = parser_custom_attr["input_type"]
@@ -58,19 +103,6 @@ def _generate_custom_attrs_values(custom_attrs: dict, jenkins_user: str) -> dict
                 if input_type == "password":
                     value = ask_password(prompt=description, validate=True)
             params[custom_attr_key] = value
-        else:
-            if custom_attr_key == "oneapp_jenkins_opennebula_username":
-                params[custom_attr_key] = jenkins_user
-            elif custom_attr_key == "oneapp_jenkins_opennebula_password":
-                params[custom_attr_key] = load_temp_file(file_path=jenkins_user, mode="rt", encoding="utf-8")
-            elif custom_attr_key == "oneapp_jenkins_opennebula_endpoint":
-                onegate_endpoint = get_onegate_endpoint()
-                onegate_endpoint = ":".join(onegate_endpoint.split(":")[:2])
-                params[custom_attr_key] = f"{onegate_endpoint}:2633/RPC2"
-            else:
-                onegate_endpoint = get_onegate_endpoint()
-                onegate_endpoint = ":".join(onegate_endpoint.split(":")[:2])
-                params[custom_attr_key] = f"{onegate_endpoint}:2474"
     return params
 
 def _generate_networks_values(networks: dict) -> dict:
