@@ -60,7 +60,7 @@ def ask_confirm(prompt: str, default: bool = True) -> bool:
     """
     return questionary.confirm(prompt, default=default).ask()
 
-def ask_password(prompt: str, validate: bool = False) -> str:
+def ask_password(prompt: str, validate: Union[bool, Callable[[str], bool]] = False) -> str:
     """
     Prompt the user to enter a password (hidden input)
 
@@ -68,9 +68,18 @@ def ask_password(prompt: str, validate: bool = False) -> str:
     :param validate: if True, input is required, ``bool``
     :return: user input, ``str``
     """
-    if validate:
+    if isinstance(validate, bool):
+        if validate:
+            return questionary.password(
+                prompt,
+                validate=lambda text: bool(text.strip()) or "This field is required"
+            ).ask()
+        else:
+            return questionary.password(prompt).ask()
+    elif isinstance(validate, Callable):
         return questionary.password(
             prompt,
-            validate=lambda text: bool(text.strip()) or "This field is required"
+            validate=validate
         ).ask()
-    return questionary.password(prompt).ask()
+    else:
+        raise ValueError("validate must be a boolean or a callable")

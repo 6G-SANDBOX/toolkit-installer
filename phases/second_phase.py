@@ -79,7 +79,7 @@ def _generate_custom_attrs_values(custom_attrs: dict, jenkins_user: str) -> dict
             field_type = parser_custom_attr["field_type"]
             input_type = parser_custom_attr["input_type"]
             description = parser_custom_attr["description"]
-            value = ask_text(prompt=description, default="", validate=True)
+            value = ask_password(prompt=description, validate=_validate_sites_token)
             params[custom_attr_key] = value
         else:
             parser_custom_attr = _parse_custom_attr(custom_attr_value)
