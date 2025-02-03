@@ -35,20 +35,20 @@ def _validate_sites_token(sites_token: str) -> str:
     """
     
     if len(sites_token) < 20:
-        return "The token must be at least 20 characters long."
+        return "The token must be at least 20 characters long"
     
     if not any(char.isupper() for char in sites_token):
-        return "The token must contain at least one uppercase letter."
+        return "The token must contain at least one uppercase letter"
     
     if not any(char.islower() for char in sites_token):
-        return "The token must contain at least one lowercase letter."
+        return "The token must contain at least one lowercase letter"
     
     if not any(char.isdigit() for char in sites_token):
-        return "The token must contain at least one digit."
+        return "The token must contain at least one digit"
     
     special_characters = "!%()*+,-./:;<=>?@[\\]^_{}~"
     if not any(char in special_characters for char in sites_token):
-        return "The token must contain at least one special character."
+        return "The token must contain at least one special character"
     
     return ""
 
