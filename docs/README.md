@@ -28,6 +28,7 @@ Find the complete documentation and usage guides in our [docs](https://6g-sandbo
 ## :round_pushpin: Roadmap
 
 - Test the toolkit installer using last releases of the 6G-SANDBOX repositories.
+- Posibility to install a specific version of the toolkit.
 
 ## :hammer_and_wrench: Stack
 
