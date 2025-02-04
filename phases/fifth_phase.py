@@ -2,7 +2,7 @@ import os
 import requests
 
 from phases.utils.file import get_env_var
-from phases.utils.git import git_clone
+from phases.utils.git import git_clone, git_switch
 from phases.utils.logs import msg
 from phases.utils.one import get_vm_ip, get_vm
 from phases.utils.parser import encode_base64
@@ -135,6 +135,7 @@ def fifth_phase(site: str, vm_tnlcm_name: str) -> None:
     tnlcm_port = get_env_var("TNLCM_PORT")
     tnlcm_directory = get_env_var("TNLCM_DIRECTORY")
     github_tnlcm_https = get_env_var("GITHUB_TNLCM_HTTPS")
+    github_tnlcm_branch = get_env_var("GITHUB_TNLCM_BRANCH")
     trial_network_name = get_env_var("TRIAL_NETWORK_NAME")
     jenkins_deploy_pipeline = get_env_var("JENKINS_DEPLOY_PIPELINE")
     # jenkins_destroy_pipeline = get_env_var("JENKINS_DESTROY_PIPELINE")
@@ -144,7 +145,9 @@ def fifth_phase(site: str, vm_tnlcm_name: str) -> None:
     tnlcm_admin_username = tnlcm_vm["VM"]["USER_TEMPLATE"]["ONEAPP_TNLCM_ADMIN_USER"]
     tnlcm_admin_password = tnlcm_vm["VM"]["USER_TEMPLATE"]["ONEAPP_TNLCM_ADMIN_PASSWORD"]
     access_token = _login_tnlcm(tnlcm_url, tnlcm_admin_username, tnlcm_admin_password)
-    git_clone(github_tnlcm_https, save_temp_directory(tnlcm_directory))
+    tnlcm_path = save_temp_directory(tnlcm_directory)
+    git_clone(github_tnlcm_https, tnlcm_path)
+    git_switch(tnlcm_path, github_tnlcm_branch)
     trial_network_path = temp_path(os.path.join(tnlcm_directory, "tn_template_lib", trial_network_name))
     tn_id = _create_trial_network(tnlcm_url, site, access_token, trial_network_path, github_library_branch)
     _deploy_trial_network(tnlcm_url, tn_id, access_token, jenkins_deploy_pipeline)
