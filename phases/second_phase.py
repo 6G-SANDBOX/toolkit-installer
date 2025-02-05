@@ -52,15 +52,16 @@ def validate_sites_token(sites_token: str) -> str | bool:
 
     return True
 
-def validate_length(value: str) -> str | bool:
+def validate_length(value: str, max_length: int) -> str | bool:
     """
     Validate the length of the value and return an error message if invalid.
 
     :param value: the value, ``str``
+    :param max_length: the maximum length, ``int``
     :return: error message if invalid, otherwise an empty string, ``str`` or ``bool``
     """
-    if len(value) < 8:
-        return "The value must be at least 8 characters long"
+    if len(value) < max_length:
+        return f"The value must be at least {max_length} characters long"
     return True
 
 def _generate_custom_attrs_values(custom_attrs: dict, jenkins_user: str) -> dict:
@@ -98,28 +99,28 @@ def _generate_custom_attrs_values(custom_attrs: dict, jenkins_user: str) -> dict
             input_type = parser_custom_attr["input_type"]
             description = parser_custom_attr["description"]
             default_value = parser_custom_attr["default_value"]
-            value = ask_text(prompt=description, default=default_value, validate=validate_length)
+            value = ask_text(prompt=description, default=default_value, validate=validate_length(default_value, 3))
             params[custom_attr_key] = value
         elif custom_attr_key == "oneapp_minio_root_password":
             parser_custom_attr = _parse_custom_attr(custom_attr_value)
             field_type = parser_custom_attr["field_type"]
             input_type = parser_custom_attr["input_type"]
             description = parser_custom_attr["description"]
-            value = ask_password(prompt=description, validate=validate_length)
+            value = ask_password(prompt=description, validate=validate_length("", 8))
             params[custom_attr_key] = value
         elif custom_attr_key == "oneapp_jenkins_username":
             parser_custom_attr = _parse_custom_attr(custom_attr_value)
             field_type = parser_custom_attr["field_type"]
             input_type = parser_custom_attr["input_type"]
             description = parser_custom_attr["description"]
-            value = ask_text(prompt=description, default=default_value, validate=validate_length)
+            value = ask_text(prompt=description, default=default_value, validate=validate_length(default_value, 3))
             params[custom_attr_key] = value
         elif custom_attr_key == "oneapp_jenkins_password":
             parser_custom_attr = _parse_custom_attr(custom_attr_value)
             field_type = parser_custom_attr["field_type"]
             input_type = parser_custom_attr["input_type"]
             description = parser_custom_attr["description"]
-            value = ask_password(prompt=description, validate=validate_length)
+            value = ask_password(prompt=description, validate=validate_length("", 8))
             params[custom_attr_key] = value
         else:
             parser_custom_attr = _parse_custom_attr(custom_attr_value)
