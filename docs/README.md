@@ -17,9 +17,9 @@
   [Report error](https://github.com/6G-SANDBOX/toolkit-installer/issues/new?assignees=&labels=&projects=&template=bug_report.md) · [Feature request](https://github.com/6G-SANDBOX/toolkit-installer/issues/new?assignees=&labels=&projects=&template=feature_request.md)
 </div>
 
-## :wrench: What is toolkit installer?
+## :wrench: About
 
-The 6G-SANDBOX Toolkit Installer is a Python script that automates the installation of the 6G-SANDBOX toolkit. The toolkit is a set of repositories that provide a set of tools and services to create a 6G-SANDBOX site.
+Python script that install and configure the MinIO, Jenkins and TNLCM stack on OpenNebula creating a new 6G-SANDBOX site.
 
 ## :books: Documentation
 
