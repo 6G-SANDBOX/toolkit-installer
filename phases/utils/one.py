@@ -25,7 +25,12 @@ def get_onegate_endpoint() -> dict:
     match = re.search(r"^\s*ONEGATE_ENDPOINT\s*=\s*\"([^\"]+)\"", oned_conf, re.MULTILINE)
     if match is None:
         msg("error", "Could not find ONEGATE_ENDPOINT in oned.conf")
-    return match.group(1)
+    url = match.group(1)
+    ip_match = re.search(r"(\d{1,3}(?:\.\d{1,3}){3})", url)
+    if ip_match is None:
+        raise msg("error", "Could not extract IP from ONEGATE_ENDPOINT")
+
+    return ip_match.group(1)
 
 ## NETWORKS MANAGEMENT ##
 def get_vnets() -> dict:
