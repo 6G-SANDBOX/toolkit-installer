@@ -127,6 +127,7 @@ def _generate_custom_attrs_values(custom_attrs: dict, jenkins_user: str) -> dict
             field_type = parser_custom_attr["field_type"]
             input_type = parser_custom_attr["input_type"]
             description = parser_custom_attr["description"]
+            default_value = parser_custom_attr["default_value"]
             value = ask_text(prompt=description, default=default_value, validate=lambda v: validate_length(v, 5))
             params[custom_attr_key] = value
         elif custom_attr_key == "oneapp_tnlcm_admin_password":
