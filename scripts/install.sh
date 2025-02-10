@@ -3,7 +3,7 @@
 export DEBIAN_FRONTEND=noninteractive
 
 echo "============================================="
-echo "               GLOBAL VARIABLES                "
+echo "              GLOBAL VARIABLES               "
 echo "============================================="
 PYTHON_VERSION="3.13"
 PYTHON_BIN="python${PYTHON_VERSION}"
@@ -38,9 +38,6 @@ echo "========== Starting Toolkit Installation =========="
 
 echo "Updating package lists..."
 apt-get update
-
-echo "--------------- Installing weasyprint ---------------"
-apt install -y weasyprint
 
 echo "--------------- Installing Git ---------------"
 if git --version &>/dev/null; then
