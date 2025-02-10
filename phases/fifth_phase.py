@@ -31,7 +31,7 @@ def _login_tnlcm(tnlcm_url: str, tnlcm_admin_username: str, tnlcm_admin_password
     msg("info", "Logged in to TNLCM")
     return data["access_token"]
 
-def _create_trial_network(tnlcm_url: str, site: str, access_token: str, trial_network_path: str, deployment_site: str, github_library_branch: str) -> str:
+def _create_trial_network(tnlcm_url: str, site: str, access_token: str, trial_network_path: str, github_library_branch: str) -> str:
     """
     Create the trial network in TNLCM
     
@@ -39,17 +39,15 @@ def _create_trial_network(tnlcm_url: str, site: str, access_token: str, trial_ne
     :param site: the site where the deployment is being executed, ``str``
     :param access_token: the access token, ``str``
     :param trial_network_path: the trial network path, ``str``
-    :param deployment_site: the deployment site, ``str``
     :param github_library_branch: the GitHub library branch, ``str``
     :return: the trial network id, ``str``
     """
     msg("info", "Creating trial network")
     data = {
         "tn_id": "test",
-        "deployment_site": site,
         "library_reference_type": "branch",
         "library_reference_value": github_library_branch,
-        "deployment_site": deployment_site,
+        "deployment_site": site,
     }
     headers = {
         "accept": "application/json",
@@ -149,7 +147,7 @@ def fifth_phase(site: str, vm_tnlcm_name: str) -> None:
     git_clone(github_tnlcm_https, tnlcm_path)
     git_switch(tnlcm_path, github_tnlcm_branch)
     trial_network_path = temp_path(os.path.join(tnlcm_directory, "tn_template_lib", trial_network_name))
-    tn_id = _create_trial_network(tnlcm_url, site, access_token, trial_network_path, site, github_library_branch)
+    tn_id = _create_trial_network(tnlcm_url, site, access_token, trial_network_path, github_library_branch)
     _deploy_trial_network(tnlcm_url, tn_id, access_token, jenkins_deploy_pipeline)
     # _destroy_trial_network(tnlcm_url, tn_id, access_token, jenkins_destroy_pipeline)
     # _purge_trial_network(tnlcm_url, tn_id, access_token)
