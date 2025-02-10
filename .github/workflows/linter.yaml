@@ -4,17 +4,13 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - 'docs/**'
-      - 'README'
-      - 'LICENSE'
+    paths:
+      - '**/*.py'
   pull_request:
-    paths-ignore:
-      - 'docs/**'
-      - 'README'
-      - 'LICENSE'
     branches:
       - main
+    paths:
+      - '**/*.py'
   # workflow_dispatch:
 
 jobs:
