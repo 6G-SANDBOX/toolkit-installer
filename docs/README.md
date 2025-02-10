@@ -27,8 +27,8 @@ Find the complete documentation and usage guides in our [docs](https://6g-sandbo
 
 ## :round_pushpin: Roadmap
 
-- Test the toolkit installer using last releases of the 6G-SANDBOX repositories.
-- Posibility to install a specific version of the toolkit.
+- Validate if the Official OpenNebula Marketplace is installed. [#11](https://github.com/6G-SANDBOX/toolkit-installer/issues/11)
+- Posibility to install a specific version of the toolkit. [#12](https://github.com/6G-SANDBOX/toolkit-installer/issues/12)
 
 ## :hammer_and_wrench: Stack
 
