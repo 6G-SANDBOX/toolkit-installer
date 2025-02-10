@@ -113,27 +113,27 @@ def _generate_custom_attrs_values(custom_attrs: dict, jenkins_user: str) -> dict
             field_type = parser_custom_attr["field_type"]
             input_type = parser_custom_attr["input_type"]
             description = parser_custom_attr["description"]
-            value = ask_text(prompt=description, default=default_value, validate=lambda v: validate_length(v, 3))
+            value = ask_text(prompt=description, default=default_value, validate=lambda v: validate_length(v, 5))
             params[custom_attr_key] = value
         elif custom_attr_key == "oneapp_jenkins_password":
             parser_custom_attr = _parse_custom_attr(custom_attr_value)
             field_type = parser_custom_attr["field_type"]
             input_type = parser_custom_attr["input_type"]
             description = parser_custom_attr["description"]
-            value = ask_password(prompt=description, validate=lambda v: validate_length(v, 5))
+            value = ask_password(prompt=description, validate=lambda v: validate_length(v, 8))
             params[custom_attr_key] = value
         elif custom_attr_key == "oneapp_tnlcm_admin_user":
             parser_custom_attr = _parse_custom_attr(custom_attr_value)
             field_type = parser_custom_attr["field_type"]
             input_type = parser_custom_attr["input_type"]
             description = parser_custom_attr["description"]
-            value = ask_text(prompt=description, default=default_value, validate=lambda v: validate_length(v, 3))
+            value = ask_text(prompt=description, default=default_value, validate=lambda v: validate_length(v, 5))
         elif custom_attr_key == "oneapp_tnlcm_admin_password":
             parser_custom_attr = _parse_custom_attr(custom_attr_value)
             field_type = parser_custom_attr["field_type"]
             input_type = parser_custom_attr["input_type"]
             description = parser_custom_attr["description"]
-            value = ask_password(prompt=description, validate=lambda v: validate_length(v, 5))
+            value = ask_password(prompt=description, validate=lambda v: validate_length(v,8))
             params[custom_attr_key] = value
         else:
             parser_custom_attr = _parse_custom_attr(custom_attr_value)
