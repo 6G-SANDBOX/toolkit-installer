@@ -80,11 +80,9 @@ def _generate_custom_attrs_values(custom_attrs: dict, jenkins_user: str) -> dict
             params[custom_attr_key] = load_temp_file(file_path=jenkins_user, mode="rt", encoding="utf-8")
         elif custom_attr_key == "oneapp_jenkins_opennebula_endpoint":
             onegate_endpoint = get_onegate_endpoint()
-            onegate_endpoint = ":".join(onegate_endpoint.split(":")[:2])
             params[custom_attr_key] = f"{onegate_endpoint}:2633/RPC2"
         elif custom_attr_key == "oneapp_jenkins_opennebula_flow_endpoint":
             onegate_endpoint = get_onegate_endpoint()
-            onegate_endpoint = ":".join(onegate_endpoint.split(":")[:2])
             params[custom_attr_key] = f"{onegate_endpoint}:2474"
         elif custom_attr_key == "oneapp_jenkins_sites_token":
             parser_custom_attr = _parse_custom_attr(custom_attr_value)

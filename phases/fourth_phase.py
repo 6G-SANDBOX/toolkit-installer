@@ -7,6 +7,7 @@ from phases.utils.file import load_yaml, save_file, get_env_var
 from phases.utils.git import git_branch, git_branches, git_switch, git_add, git_commit, git_push
 from phases.utils.interactive import ask_text, ask_confirm
 from phases.utils.logs import msg
+from phases.utils.one import get_onegate_endpoint
 from phases.utils.parser import ansible_encrypt, object_to_yaml
 from phases.utils.temp import save_temp_directory, temp_path
 
@@ -17,11 +18,20 @@ def _create_site(sites_path: str) -> str:
     :param sites_path: the path to the sites repository, ``str``
     :return: the name of the site, ``str``
     """
+    def validate_site(site: str) -> bool | str:
+        """
+        Validate if the site name does not already exist.
+        
+        :param site: the name of the site, ``str``
+        :return: True if valid, or an error message if invalid, ``bool | str``
+        """
+        if site in sites:
+            return f"Site {site} already exists, please enter a new name."
+        return True
+
     msg("info", "Creating a new site")
-    site = ask_text(prompt="Enter the name of the site:", default="", validate=True)
     sites = git_branches(sites_path)
-    if site in sites:
-        site = ask_text(prompt="Site already exists, enter a new name:", default="", validate=True)
+    site = ask_text(prompt="Enter the name of the site:", default="", validate=validate_site)
     msg("info", f"New site: {site}")
     return site
 
@@ -58,12 +68,16 @@ def _update_site_config(site_core: str) -> dict:
             )
             updated_data[key] = int(new_value)
         elif isinstance(value, str):
-            new_value = ask_text(
-                f"Enter the value of '{key}':",
-                default=str(value),
-                validate=True
-            )
-            updated_data[key] = DoubleQuotedScalarString(new_value)
+            if key == "site_onegate":
+                onegate_endpoint = get_onegate_endpoint()
+                updated_data[key] = DoubleQuotedScalarString(onegate_endpoint)
+            else:
+                new_value = ask_text(
+                    f"Enter the value of '{key}':",
+                    default=str(value),
+                    validate=True
+                )
+                updated_data[key] = DoubleQuotedScalarString(new_value)
         else:
             updated_data[key] = value
     return updated_data
