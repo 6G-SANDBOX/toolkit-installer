@@ -45,16 +45,21 @@ def git_clone(https_url: str, path: str) -> None:
     Repo.clone_from(https_url, path)
     msg("info", "Repository cloned")
 
-def git_switch(path: str, branch: str) -> None:
+def git_switch(path: str, branch: str = None, tag: str = None, commit: str = None) -> None:
     """
     Switch to the specified branch
 
     :param path: the path to the repository, ``str``
     :param branch: the branch to switch to, ``str``
+    :param tag: the tag to switch to, ``str``ç
+    :param commit: the commit to switch to, ``str``
     """
     repo = get_repo(path)
     msg("info", f"Switching to branch {branch}")
-    repo.git.switch(branch)
+    if tag or commit:
+        repo.git.switch("--detach", branch)
+    else:
+        repo.git.switch(branch)
     msg("info", "Switched to branch")
 
 def git_add(path: str, *args: str) -> None:

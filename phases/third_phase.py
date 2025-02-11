@@ -29,7 +29,7 @@ def third_phase(sixg_sandbox_group: str, jenkins_user: str) -> None:
     github_sites_https = get_env_var("GITHUB_SITES_HTTPS")
     sites_directory = get_env_var("SITES_DIRECTORY")
     github_library_https = get_env_var("GITHUB_LIBRARY_HTTPS")
-    github_library_branch = get_env_var("GITHUB_LIBRARY_BRANCH")
+    github_library_tag = get_env_var("GITHUB_LIBRARY_TAG")
     library_directory = get_env_var("LIBRARY_DIRECTORY")
     toolkit_service = get_env_var("OPENNEBULA_TOOLKIT_SERVICE")
     sixg_sandbox_marketplace_name = get_env_var("OPENNEBULA_SANDBOX_MARKETPLACE_NAME")
@@ -41,7 +41,7 @@ def third_phase(sixg_sandbox_group: str, jenkins_user: str) -> None:
     git_clone(github_sites_https, sites_path)
     library_path = save_temp_directory(library_directory)
     git_clone(github_library_https, library_path)
-    git_switch(library_path, github_library_branch)
+    git_switch(library_path, tag=github_library_tag)
     dummy_site_core_path = temp_path(os.path.join(sites_directory, ".dummy_site", "core.yaml"))
     data = load_yaml(file_path=dummy_site_core_path, mode="rt", encoding="utf-8")
     site_available_components = data["site_available_components"]

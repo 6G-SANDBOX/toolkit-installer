@@ -31,7 +31,7 @@ def _login_tnlcm(tnlcm_url: str, tnlcm_admin_username: str, tnlcm_admin_password
     msg("info", "Logged in to TNLCM")
     return data["access_token"]
 
-def _create_trial_network(tnlcm_url: str, site: str, access_token: str, trial_network_path: str, github_library_branch: str) -> str:
+def _create_trial_network(tnlcm_url: str, site: str, access_token: str, trial_network_path: str, github_library_tag: str) -> str:
     """
     Create the trial network in TNLCM
     
@@ -39,14 +39,14 @@ def _create_trial_network(tnlcm_url: str, site: str, access_token: str, trial_ne
     :param site: the site where the deployment is being executed, ``str``
     :param access_token: the access token, ``str``
     :param trial_network_path: the trial network path, ``str``
-    :param github_library_branch: the GitHub library branch, ``str``
+    :param github_library_tag: the GitHub library tag, ``str``
     :return: the trial network id, ``str``
     """
     msg("info", "Creating trial network")
     data = {
         "tn_id": "test",
-        "library_reference_type": "branch",
-        "library_reference_value": github_library_branch,
+        "library_reference_type": "tag",
+        "library_reference_value": github_library_tag,
         "deployment_site": site,
     }
     headers = {
@@ -129,11 +129,11 @@ def _purge_trial_network(tnlcm_url: str, tn_id: str, access_token: str) -> None:
 
 def fifth_phase(site: str, vm_tnlcm_name: str) -> None:
     msg("info", "FIFTH PHASE")
-    github_library_branch = get_env_var("GITHUB_LIBRARY_BRANCH")
+    github_library_tag = get_env_var("GITHUB_LIBRARY_TAG")
     tnlcm_port = get_env_var("TNLCM_PORT")
     tnlcm_directory = get_env_var("TNLCM_DIRECTORY")
     github_tnlcm_https = get_env_var("GITHUB_TNLCM_HTTPS")
-    github_tnlcm_branch = get_env_var("GITHUB_TNLCM_BRANCH")
+    github_tnlcm_tag = get_env_var("GITHUB_TNLCM_TAG")
     trial_network_name = get_env_var("TRIAL_NETWORK_NAME")
     jenkins_deploy_pipeline = get_env_var("JENKINS_DEPLOY_PIPELINE")
     # jenkins_destroy_pipeline = get_env_var("JENKINS_DESTROY_PIPELINE")
@@ -145,9 +145,9 @@ def fifth_phase(site: str, vm_tnlcm_name: str) -> None:
     access_token = _login_tnlcm(tnlcm_url, tnlcm_admin_username, tnlcm_admin_password)
     tnlcm_path = save_temp_directory(tnlcm_directory)
     git_clone(github_tnlcm_https, tnlcm_path)
-    git_switch(tnlcm_path, github_tnlcm_branch)
+    git_switch(tnlcm_path, tag=github_tnlcm_tag)
     trial_network_path = temp_path(os.path.join(tnlcm_directory, "tn_template_lib", trial_network_name))
-    tn_id = _create_trial_network(tnlcm_url, site, access_token, trial_network_path, github_library_branch)
+    tn_id = _create_trial_network(tnlcm_url, site, access_token, trial_network_path, github_library_tag)
     _deploy_trial_network(tnlcm_url, tn_id, access_token, jenkins_deploy_pipeline)
     # _destroy_trial_network(tnlcm_url, tn_id, access_token, jenkins_destroy_pipeline)
     # _purge_trial_network(tnlcm_url, tn_id, access_token)

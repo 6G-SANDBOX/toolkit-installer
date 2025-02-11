@@ -88,7 +88,7 @@ def fourth_phase(sites_token: str) -> str:
     sites_path = temp_path(sites_directory)
     site = _create_site(sites_path)
     git_branch(sites_path, site)
-    git_switch(sites_path, site)
+    git_switch(sites_path, branch=site)
     site_path = save_temp_directory(os.path.join(sites_path, site))
     dummy_core_path = temp_path(os.path.join(sites_directory, ".dummy_site", "core.yaml"))
     site_core_path = os.path.join(site_path, "core.yaml")
