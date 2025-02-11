@@ -4,6 +4,7 @@ from phases.utils.file import get_env_var
 from phases.utils.interactive import ask_text, ask_password, ask_confirm, ask_select
 from phases.utils.logs import msg
 from phases.utils.one import add_appliances_from_marketplace, get_vm, get_oneflow, get_oneflow_custom_attrs_values, get_onemarket, add_marketplace, get_marketplace_monitoring_interval, update_marketplace_monitoring_interval, restart_one, check_one_health, get_onegate_endpoint, add_ssh_key, get_oneflow_template_networks, get_oneflow_template_custom_attrs, instantiate_oneflow_template, get_vnets_names, get_vnet_id, chown_oneflow, get_oneflow_roles, chown_vm
+from phases.utils.string import validate_length
 from phases.utils.temp import load_temp_file, save_temp_json_file
 
 def _parse_custom_attr(attr_string: str) -> dict:
@@ -50,18 +51,6 @@ def validate_sites_token(sites_token: str) -> str | bool:
     if not any(char in special_characters for char in sites_token):
         return "The token must contain at least one special character"
 
-    return True
-
-def validate_length(value: str, max_length: int) -> str | bool:
-    """
-    Validate the length of the value and return an error message if invalid.
-
-    :param value: the value, ``str``
-    :param max_length: the maximum length, ``int``
-    :return: error message if invalid, otherwise an empty string, ``str`` or ``bool``
-    """
-    if len(value) < max_length:
-        return f"The value must be at least {max_length} characters long"
     return True
 
 def _generate_custom_attrs_values(custom_attrs: dict, jenkins_user: str) -> dict:
