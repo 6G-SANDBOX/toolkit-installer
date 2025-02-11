@@ -831,7 +831,6 @@ def add_appliances_from_marketplace(sixg_sandbox_group: str, jenkins_user: str, 
                     image_id, template_id, _ = export_appliance(appliance_name=appliance_name, datastore_id=datastore_id)
                     sleep(10)
                     rename_image(image_id=image_id[0], new_name=appliance_name)
-                    # si el estado de la imagen es 5 debe lanzar error
                     state = get_state_image(image_name=appliance_name)
                     while state != "1":
                         sleep(10)
