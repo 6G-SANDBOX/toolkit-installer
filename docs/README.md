@@ -10,7 +10,7 @@
   [![Issues][issues-shield]][issues-url]
   [![MIT License][license-shield]][license-url]
 
-  <a href="https://github.com/6G-SANDBOX/toolkit-installer"><img src="./images/logo.png" width="300" title="toolkit-installer"></a>
+  <a href="https://github.com/6G-SANDBOX/toolkit-installer"><img src="images/logo.png" width="300" title="toolkit-installer"></a>
 
   [![toolkit-installer][toolkit-installer-badge]][toolkit-installer-url]
 
@@ -45,8 +45,8 @@ Find the complete documentation and usage guides in our [docs](https://6g-sandbo
 <!-- Urls, Shields and Badges -->
 [toolkit-installer-badge]: https://img.shields.io/badge/toolkit--installer-v0.1.0-blue
 [toolkit-installer-url]: https://github.com/6G-SANDBOX/toolkit-installer/releases/tag/v0.1.0
-[python-badge]: https://img.shields.io/badge/Python-3.13.1-blue?style=for-the-badge&logo=python&logoColor=white&labelColor=3776AB
-[python-url]: https://www.python.org/downloads/release/python-3131/
+[python-badge]: https://img.shields.io/badge/Python-3.13.2-blue?style=for-the-badge&logo=python&logoColor=white&labelColor=3776AB
+[python-url]: https://www.python.org/downloads/release/python-3132/
 [contributors-shield]: https://img.shields.io/github/contributors/6G-SANDBOX/toolkit-installer.svg?style=for-the-badge
 [contributors-url]: https://github.com/6G-SANDBOX/toolkit-installer/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/6G-SANDBOX/toolkit-installer.svg?style=for-the-badge
