@@ -36,7 +36,7 @@ def third_phase(sixg_sandbox_group: str, jenkins_user: str) -> None:
     opennebula_public_marketplace_name = get_env_var("OPENNEBULA_PUBLIC_MARKETPLACE_NAME")
     opennebula_oneke_service = get_env_var("OPENNEBULA_ONEKE_SERVICE")
     sites_path = save_temp_directory(sites_directory)
-    github_sites_token = ask_text(prompt=r"Enter the token for the GitHub sites repository. Please follow the instructions indicated in the following link https://6g-sandbox.github.io/docs/toolkit-installer/run-toolkit-installer#create-site-token", default="", validate=True)
+    github_sites_token = ask_text(prompt="Enter the token for the GitHub sites repository. Please follow the instructions indicated in the following link https://6g-sandbox.github.io/docs/toolkit-installer/run-toolkit-installer#create-site-token", default="", validate=True)
     github_sites_https = github_sites_https.replace("https://", f"https://{github_sites_token}@")
     git_clone(github_sites_https, sites_path)
     library_path = save_temp_directory(library_directory)
