@@ -831,8 +831,12 @@ def add_appliances_from_marketplace(sixg_sandbox_group: str, jenkins_user: str, 
                     image_id, template_id, _ = export_appliance(appliance_name=appliance_name, datastore_id=datastore_id)
                     sleep(10)
                     rename_image(image_id=image_id[0], new_name=appliance_name)
-                    while get_state_image(image_name=appliance_name) != "1":
+                    state = get_state_image(image_name=appliance_name)
+                    while state != "1":
                         sleep(10)
+                        state = get_state_image(image_name=appliance_name)
+                        if state == "5":
+                            msg("error", f"Image {appliance_name} is in error state")
                     chown_image(image_id=image_id[0], username=jenkins_user, group_name=sixg_sandbox_group)
                     chown_template(template_id=template_id[0], username=jenkins_user, group_name=sixg_sandbox_group)
             elif appliance_type == "VM":
@@ -845,8 +849,12 @@ def add_appliances_from_marketplace(sixg_sandbox_group: str, jenkins_user: str, 
                     for i, image_id in enumerate(image_ids):
                         chown_image(image_id=image_id, username=jenkins_user, group_name=sixg_sandbox_group)
                     for image_id in image_ids:
-                        while get_state_image(image_id=image_id) != "1":
+                        state = get_state_image(image_id=image_id)
+                        while state != "1":
                             sleep(10)
+                            state = get_state_image(image_id=image_id)
+                            if state == "5":
+                                msg("error", f"Image with id {image_id} is in error state")
                     chown_template(template_id=template_id[0], username=jenkins_user, group_name=sixg_sandbox_group)
             else:
                 if get_oneflow_template(appliance_name) is None:
@@ -858,8 +866,12 @@ def add_appliances_from_marketplace(sixg_sandbox_group: str, jenkins_user: str, 
                     for i, image_id in enumerate(image_ids):
                         chown_image(image_id=image_id, username=jenkins_user, group_name=sixg_sandbox_group)
                     for image_id in image_ids:
-                        while get_state_image(image_id=image_id) != "1":
+                        state = get_state_image(image_id=image_id)
+                        while state != "1":
                             sleep(10)
+                            state = get_state_image(image_id=image_id)
+                            if state == "5":
+                                msg("error", f"Image with id {image_id} is in error state")
                     for template_id in template_ids:
                         chown_template(template_id=template_id, username=jenkins_user, group_name=sixg_sandbox_group)
                     chown_oneflow_template(oneflow_template_id=service_id, username=jenkins_user, group_name=sixg_sandbox_group)

@@ -2,33 +2,25 @@
 
 <div align="center">
 
-  # 6G-SANDBOX TOOLKIT INSTALLER <!-- omit in toc -->
+# TOOLKIT INSTALLER <!-- omit in toc -->
 
-  [![Contributors][contributors-shield]][contributors-url]
-  [![Forks][forks-shield]][forks-url]
-  [![Stargazers][stars-shield]][stars-url]
-  [![Issues][issues-shield]][issues-url]
-  [![MIT License][license-shield]][license-url]
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
 
-  <a href="https://github.com/6G-SANDBOX/toolkit-installer"><img src="./images/logo.png" width="300" title="toolkit-installer"></a>
+<a href="https://github.com/6G-SANDBOX/toolkit-installer"><img src="images/logo.png" width="300" title="toolkit-installer"></a>
 
-  [![toolkit-installer][toolkit-installer-badge]][toolkit-installer-url]
+[![toolkit-installer][toolkit-installer-badge]][toolkit-installer-url]
 
-  [Report error](https://github.com/6G-SANDBOX/toolkit-installer/issues/new?assignees=&labels=&projects=&template=bug_report.md) · [Feature request](https://github.com/6G-SANDBOX/toolkit-installer/issues/new?assignees=&labels=&projects=&template=feature_request.md)
+[Documentation](https://6g-sandbox.github.io/docs/category/toolkit-installer) • [Roadmap](https://github.com/6G-SANDBOX/toolkit-installer/issues/13) • [Report Error](https://github.com/6G-SANDBOX/toolkit-installer/issues/new?assignees=&labels=&projects=&template=bug_report.md) • [Feature Request](https://github.com/6G-SANDBOX/toolkit-installer/issues/new?assignees=&labels=&projects=&template=feature_request.md)
+
 </div>
 
 ## :wrench: About
 
 Python script that install and configure the MinIO, Jenkins and TNLCM stack on OpenNebula creating a new 6G-SANDBOX site.
-
-## :books: Documentation
-
-Find the complete documentation and usage guides in our [docs](https://6g-sandbox.github.io/docs/category/toolkit-installer).
-
-## :round_pushpin: Roadmap
-
-- Validate if the Official OpenNebula Marketplace is installed. [#11](https://github.com/6G-SANDBOX/toolkit-installer/issues/11)
-- Posibility to install a specific version of the toolkit. [#12](https://github.com/6G-SANDBOX/toolkit-installer/issues/12)
 
 ## :hammer_and_wrench: Stack
 
@@ -43,10 +35,10 @@ Find the complete documentation and usage guides in our [docs](https://6g-sandbo
 <p align="right"><a href="#readme-top">Back to top&#x1F53C;</a></p>
 
 <!-- Urls, Shields and Badges -->
-[toolkit-installer-badge]: https://img.shields.io/badge/toolkit--installer-v0.1.0-blue
-[toolkit-installer-url]: https://github.com/6G-SANDBOX/toolkit-installer/releases/tag/v0.1.0
-[python-badge]: https://img.shields.io/badge/Python-3.13.1-blue?style=for-the-badge&logo=python&logoColor=white&labelColor=3776AB
-[python-url]: https://www.python.org/downloads/release/python-3131/
+[toolkit-installer-badge]: https://img.shields.io/badge/toolkit--installer-v0.4.0-blue
+[toolkit-installer-url]: https://github.com/6G-SANDBOX/toolkit-installer/releases/tag/v0.4.0
+[python-badge]: https://img.shields.io/badge/Python-3.13.2-blue?style=for-the-badge&logo=python&logoColor=white&labelColor=3776AB
+[python-url]: https://www.python.org/downloads/release/python-3132/
 [contributors-shield]: https://img.shields.io/github/contributors/6G-SANDBOX/toolkit-installer.svg?style=for-the-badge
 [contributors-url]: https://github.com/6G-SANDBOX/toolkit-installer/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/6G-SANDBOX/toolkit-installer.svg?style=for-the-badge

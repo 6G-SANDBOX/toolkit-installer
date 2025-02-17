@@ -1,6 +1,6 @@
 [project]
 name = "toolkit-installer"
-version = "0.1.0"
+version = "0.4.0"
 description = "Installer that create a new 6G-SANDBOX site and install the tools MinIO, Jenkins and TNLCM in OpenNebula."
 readme = "docs/README.md"
 requires-python = ">=3.13"
