@@ -7,25 +7,46 @@ from phases.utils.temp import save_temp_file
 
 def first_phase() -> tuple:
     msg("info", "FIRST PHASE")
-    default_sandbox_group = get_env_var("OPENNEBULA_SANDBOX_GROUP")
-    exist_group = get_group(group_name=default_sandbox_group)
+    default_group = get_env_var("OPENNEBULA_SANDBOX_GROUP")
+    exist_group = get_group(group_name=default_group)
     if exist_group is None:
-        sixg_sandbox_group = ask_text("Enter the name for the 6G-SANDBOX group:", default=default_sandbox_group, validate=True)
-        sixg_sandbox_group_data = get_group(group_name=sixg_sandbox_group)
-        if sixg_sandbox_group_data is None:
-            _ = create_group(group_name=sixg_sandbox_group)
+        while True:
+            group_name = ask_text(
+                "Enter the name for the OpenNebula group:",
+                default=default_group,
+                validate=True
+            )
+            group_name_data = get_group(group_name=group_name)
+            if group_name_data is None:
+                _ = create_group(group_name=group_name)
+                break
     else:
-        sixg_sandbox_group = default_sandbox_group
-    default_jenkins_user = get_env_var("OPENNEBULA_JENKINS_USER")
-    exist_user = get_username(username=default_jenkins_user)
+        group_name = default_group
+    
+    default_user = get_env_var("OPENNEBULA_SANDBOX_USER")
+    exist_user = get_username(username=default_user)
     if exist_user is None:
-        jenkins_user = ask_text("Enter the username for the Jenkins user:", default=default_jenkins_user, validate=lambda v: validate_length(v, 5))
-        jenkins_user_data = get_username(username=jenkins_user)
-        if jenkins_user_data is None:
-            jenkins_password = ask_password("Enter the password for the Jenkins user:", validate=lambda v: validate_length(v, 5))
-            save_temp_file(data=jenkins_password, file_path=jenkins_user, mode="wt", encoding="utf-8")
-            _ = create_user(username=jenkins_user, password=jenkins_password)
+        while True:
+            username = ask_text(
+                "Enter the username for the OpenNebula user:",
+                default=default_user,
+                validate=lambda v: validate_length(v, 5)
+            )
+            username_data = get_username(username=username)
+            if username_data is None:
+                jenkins_password = ask_password(
+                    "Enter the password for the OpenNebula user:",
+                    validate=lambda v: validate_length(v, 5)
+                )
+                save_temp_file(
+                    data=jenkins_password,
+                    file_path=username,
+                    mode="wt",
+                    encoding="utf-8"
+                )
+                _ = create_user(username=username, password=jenkins_password)
+                break
     else:
-        jenkins_user = default_jenkins_user
-    assign_user_group(username=jenkins_user, group_name=sixg_sandbox_group)
-    return sixg_sandbox_group, jenkins_user
+        username = default_user
+    assign_user_group(username=username, group_name=group_name)
+    return group_name, username
