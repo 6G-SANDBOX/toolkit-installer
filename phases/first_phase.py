@@ -10,20 +10,42 @@ def first_phase() -> tuple:
     default_group = get_env_var("OPENNEBULA_SANDBOX_GROUP")
     exist_group = get_group(group_name=default_group)
     if exist_group is None:
-        group_name = ask_text("Enter the name for the OpenNebula group:", default=default_group, validate=lambda name: get_group(group_name=name) is None) # update
-        _ = create_group(group_name=group_name)
+        while True:
+            group_name = ask_text(
+                "Enter the name for the OpenNebula group:",
+                default=default_group,
+                validate=True
+            )
+            group_name_data = get_group(group_name=group_name)
+            if group_name_data is None:
+                _ = create_group(group_name=group_name)
+                break
     else:
         group_name = default_group
     
     default_user = get_env_var("OPENNEBULA_SANDBOX_USER")
     exist_user = get_username(username=default_user)
     if exist_user is None:
-        username = ask_text("Enter the username for the OpenNebula user:", default=default_user, validate=lambda v: validate_length(v, 5))
-        username_data = get_username(username=username)
-        if username_data is None:
-            jenkins_password = ask_password("Enter the password for the OpenNebula user:", validate=lambda v: validate_length(v, 5))
-            save_temp_file(data=jenkins_password, file_path=username, mode="wt", encoding="utf-8")
-            _ = create_user(username=username, password=jenkins_password)
+        while True:
+            username = ask_text(
+                "Enter the username for the OpenNebula user:",
+                default=default_user,
+                validate=lambda v: validate_length(v, 5)
+            )
+            username_data = get_username(username=username)
+            if username_data is None:
+                jenkins_password = ask_password(
+                    "Enter the password for the OpenNebula user:",
+                    validate=lambda v: validate_length(v, 5)
+                )
+                save_temp_file(
+                    data=jenkins_password,
+                    file_path=username,
+                    mode="wt",
+                    encoding="utf-8"
+                )
+                _ = create_user(username=username, password=jenkins_password)
+                break
     else:
         username = default_user
     assign_user_group(username=username, group_name=group_name)
