@@ -10,7 +10,7 @@ def first_phase() -> tuple:
     default_group = get_env_var("OPENNEBULA_SANDBOX_GROUP")
     exist_group = get_group(group_name=default_group)
     if exist_group is None:
-        group_name = ask_text("Enter the name for the OpenNebula group:", default=default_group, validate=lambda name: get_group(group_name=default_group) is None) # update
+        group_name = ask_text("Enter the name for the OpenNebula group:", default=default_group, validate=lambda name: get_group(group_name=name) is None) # update
         _ = create_group(group_name=group_name)
     else:
         group_name = default_group
