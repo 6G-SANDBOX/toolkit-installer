@@ -478,7 +478,20 @@ def create_group_user(username: str, password: str, group_name: str) -> int:
         msg("error", res["stderr"])
     return re.search(r"ID:\s*(\d+)", res["stdout"]).group(1)
 
-def assign_admin_user_group(username: str, group_name: str) -> None:
+def assign_user_group(username: str, group_name: str) -> None:
+    """
+    Assign the user to group
+    
+    :param username: the name of the user, ``str``
+    :param group_name: the name of the group, ``str``
+    """
+    msg("info", f"Assigning user {username} to group {group_name}")
+    res = run_command(f"oneuser chgrp \"{username}\" \"{group_name}\"")
+    if res["rc"] != 0:
+        msg("error", res["stderr"])
+    msg("info", "User assigned to group")
+
+def add_admin_user_group(username: str, group_name: str) -> None:
     """
     Assign the user to group
     
