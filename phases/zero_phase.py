@@ -5,7 +5,7 @@ from phases.utils.file import loads_toml, load_dotenv_file, get_env_var
 from phases.utils.logs import msg
 from phases.utils.one import check_one_health
 from phases.utils.temp import create_temp_directory
-from phases.utils.ubuntu import update_ubuntu_package, get_user
+from phases.utils.ubuntu import get_user
 
 def _generate_banner(message: str) -> None:
     """
