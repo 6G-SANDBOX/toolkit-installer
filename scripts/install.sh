@@ -13,6 +13,8 @@ TOOLKIT_INSTALLER_FOLDER="/opt/toolkit-installer"
 
 echo "========== Starting Pre-Checks for Script Execution =========="
 
+apt-get update
+
 echo "Checking if the script is being executed as root..."
 if [[ $EUID -ne 0 ]]; then
     echo "This script must be run as root. Please use 'sudo' or switch to the root user"
@@ -21,6 +23,7 @@ else
     echo "Script is running as root"
 fi
 
+UBUNTU_VERSION=$(lsb_release -rs)
 echo "Detecting Ubuntu version..."
 echo "Detected Ubuntu version: ${UBUNTU_VERSION}"
 if [[ "${UBUNTU_VERSION}" != "22.04" && "${UBUNTU_VERSION}" != "24.04" ]]; then
@@ -37,7 +40,6 @@ echo "========== Pre-Checks Completed Successfully =========="
 echo "========== Starting Toolkit Installation =========="
 
 echo "Updating package lists..."
-apt-get update
 
 echo "--------------- Installing Git ---------------"
 if git --version &>/dev/null; then

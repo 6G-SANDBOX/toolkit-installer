@@ -24,7 +24,6 @@ def zero_phase() -> None:
     _generate_banner(message=banner_message)
     _generate_banner(message=version)
     msg("info", "ZERO PHASE")
-    update_ubuntu_package()
     user = get_user()
     if user != "root":
         msg("error", "This script must be run as root")
