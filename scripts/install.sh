@@ -23,8 +23,8 @@ else
     echo "Script is running as root"
 fi
 
-UBUNTU_VERSION=$(lsb_release -rs)
 echo "Detecting Ubuntu version..."
+UBUNTU_VERSION=$(lsb_release -rs)
 echo "Detected Ubuntu version: ${UBUNTU_VERSION}"
 if [[ "${UBUNTU_VERSION}" != "22.04" && "${UBUNTU_VERSION}" != "24.04" ]]; then
     echo "Unsupported Ubuntu version: ${UBUNTU_VERSION}. This script only supports Ubuntu 22.04 LTS and 24.04 LTS"
