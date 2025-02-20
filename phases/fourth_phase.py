@@ -94,6 +94,7 @@ def fourth_phase(sites_token: str) -> str:
     site_core_path = os.path.join(site_path, "core.yaml")
     run_command(f"cp {dummy_core_path} {site_core_path}")
     site_core = load_yaml(site_core_path, mode="rt", encoding="utf-8")
+    msg("info", "To see the description of each field, please refer to the following link: https://github.com/6G-SANDBOX/6G-Sandbox-Sites/blob/main/.dummy_site/core.yaml")
     current_config = _update_site_config(site_core)
     current_config_yaml = object_to_yaml(current_config)
     encrypted_data = ansible_encrypt(current_config_yaml, sites_token)
