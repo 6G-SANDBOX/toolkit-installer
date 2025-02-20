@@ -65,8 +65,6 @@ def _generate_custom_attrs_values(custom_attrs: dict, jenkins_user: str) -> dict
     for custom_attr_key, custom_attr_value in custom_attrs.items():
         if custom_attr_key == "oneapp_jenkins_opennebula_username":
             params[custom_attr_key] = jenkins_user
-        elif custom_attr_key == "oneapp_jenkins_opennebula_password":
-            params[custom_attr_key] = load_temp_file(file_path=jenkins_user, mode="rt", encoding="utf-8")
         elif custom_attr_key == "oneapp_jenkins_opennebula_endpoint":
             onegate_endpoint = get_onegate_endpoint()
             params[custom_attr_key] = f"{onegate_endpoint}:2633/RPC2"
