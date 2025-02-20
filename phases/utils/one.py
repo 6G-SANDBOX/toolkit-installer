@@ -32,6 +32,19 @@ def get_onegate_endpoint() -> dict:
 
     return ip_match.group(1)
 
+## RESIZE DISK ##
+def resize_disk(vm_name: str, disk_id: int, size: int) -> None:
+    """
+    Resize the disk of a VM in OpenNebula
+
+    :param vm_name: the name of the VM, ``str``
+    :param disk_id: the id of the disk, ``int``
+    :param size: the new size of the disk, ``int``
+    """
+    res = run_command(f"onevm disk-resize \"{vm_name}\" {disk_id} {size}G")
+    if res["rc"] != 0:
+        msg("error", res["stderr"])
+
 ## NETWORKS MANAGEMENT ##
 def get_vnets() -> dict:
     """
