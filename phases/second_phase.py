@@ -67,10 +67,10 @@ def _generate_custom_attrs_values(custom_attrs: dict, jenkins_user: str) -> dict
             params[custom_attr_key] = jenkins_user
         elif custom_attr_key == "oneapp_jenkins_opennebula_endpoint":
             onegate_endpoint = get_onegate_endpoint()
-            params[custom_attr_key] = f"{onegate_endpoint}:2633/RPC2"
+            params[custom_attr_key] = f"http://{onegate_endpoint}:2633/RPC2"
         elif custom_attr_key == "oneapp_jenkins_opennebula_flow_endpoint":
             onegate_endpoint = get_onegate_endpoint()
-            params[custom_attr_key] = f"{onegate_endpoint}:2474"
+            params[custom_attr_key] = f"http://{onegate_endpoint}:2474"
         elif custom_attr_key == "oneapp_jenkins_sites_token":
             parser_custom_attr = _parse_custom_attr(custom_attr_value)
             field_type = parser_custom_attr["field_type"]
