@@ -224,7 +224,7 @@ def second_phase(sixg_sandbox_group: str, jenkins_user: str) -> tuple:
             if role["name"] == "tnlcm":
                 vm_tnlcm_name = role["nodes"][0]["vm_info"]["VM"]["NAME"]
             if role["name"] == "minio":
-                resize_disk(vm_name=role["nodes"][0]["vm_info"]["VM"]["NAME"], disk_id=0, disk_size=20)
+                resize_disk(vm_name=role["nodes"][0]["vm_info"]["VM"]["NAME"], disk_id=0, size=20)
             vm_id = role["nodes"][0]["vm_info"]["VM"]["ID"]
             chown_vm(vm_id=vm_id, username=jenkins_user, group_name=sixg_sandbox_group)
             cont += 1
