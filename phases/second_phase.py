@@ -3,7 +3,7 @@ from time import sleep
 from phases.utils.file import get_env_var
 from phases.utils.interactive import ask_text, ask_password, ask_confirm, ask_select
 from phases.utils.logs import msg
-from phases.utils.one import add_appliances_from_marketplace, get_vm, get_oneflow, get_oneflow_custom_attrs_values, get_onemarket, add_marketplace, get_marketplace_monitoring_interval, update_marketplace_monitoring_interval, restart_one, check_one_health, get_onegate_endpoint, add_ssh_key, get_oneflow_template_networks, get_oneflow_template_custom_attrs, instantiate_oneflow_template, get_vnets_names, get_vnet_id, chown_oneflow, get_oneflow_roles, chown_vm
+from phases.utils.one import add_appliances_from_marketplace, resize_disk, get_vm, get_oneflow, get_oneflow_custom_attrs_values, get_onemarket, add_marketplace, get_marketplace_monitoring_interval, update_marketplace_monitoring_interval, restart_one, check_one_health, get_onegate_endpoint, add_ssh_key, get_oneflow_template_networks, get_oneflow_template_custom_attrs, instantiate_oneflow_template, get_vnets_names, get_vnet_id, chown_oneflow, get_oneflow_roles, chown_vm
 from phases.utils.string import validate_length
 from phases.utils.temp import save_temp_json_file
 
@@ -223,6 +223,8 @@ def second_phase(sixg_sandbox_group: str, jenkins_user: str) -> tuple:
                 add_ssh_key(username=jenkins_user, jenkins_ssh_key=jenkins_ssh_key)
             if role["name"] == "tnlcm":
                 vm_tnlcm_name = role["nodes"][0]["vm_info"]["VM"]["NAME"]
+            if role["name"] == "minio":
+                resize_disk(vm_name=role["nodes"][0]["vm_info"]["VM"]["NAME"], disk_id=0, disk_size=20)
             vm_id = role["nodes"][0]["vm_info"]["VM"]["ID"]
             chown_vm(vm_id=vm_id, username=jenkins_user, group_name=sixg_sandbox_group)
             cont += 1
