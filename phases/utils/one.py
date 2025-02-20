@@ -464,7 +464,21 @@ def create_user(username: str, password: str) -> int:
     msg("info", "User created")
     return re.search(r"ID:\s*(\d+)", res["stdout"]).group(1)
 
-def assign_user_group(username: str, group_name: str) -> None:
+def create_group_user(username: str, password: str, group_name: str) -> int:
+    """
+    Create a user in OpenNebula and assign it to a group
+    
+    :param username: the user name, ``str``
+    :param password: the user password, ``str``
+    :param group_name: the name of the group, ``str``
+    :return: the id of the user, ``int``
+    """
+    res = run_command(f"onegroup create --name \"{group_name}\" --admin_user \"{username}\" --admin_password \"{password}\"")
+    if res["rc"] != 0:
+        msg("error", res["stderr"])
+    return re.search(r"ID:\s*(\d+)", res["stdout"]).group(1)
+
+def assign_admin_user_group(username: str, group_name: str) -> None:
     """
     Assign the user to group
     
@@ -472,7 +486,7 @@ def assign_user_group(username: str, group_name: str) -> None:
     :param group_name: the name of the group, ``str``
     """
     msg("info", f"Assigning user {username} to group {group_name}")
-    res = run_command(f"oneuser chgrp \"{username}\" \"{group_name}\"")
+    res = run_command(f"onegroup addadmin \"{group_name}\" \"{username}\"")
     if res["rc"] != 0:
         msg("error", res["stderr"])
     msg("info", "User assigned to group")
