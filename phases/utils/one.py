@@ -504,6 +504,20 @@ def add_ssh_key(username: str, jenkins_ssh_key: str) -> None:
         msg("error", res["stderr"])
     msg("info", "SSH key updated")
 
+def add_acl(group_id: int, resources: str) -> None:
+    """
+    Add an ACL to a group in OpenNebula
+    
+    :param group_id: the id of the group, ``int``
+    :param resources: the resources to add, ``str``
+    """
+    msg("info", f"Adding ACL to OpenNebula group {group_id}")
+    res = run_command(f"oneacl create \"@{group_id} {resources}/* USE+MANAGE+ADMIN+CREATE *\"")
+    if res["rc"] != 0:
+        msg("error", res["stderr"])
+    msg("info", "ACL added")
+    return int(re.search(r"ID:\s*(\d+)", res["stdout"]).group(1))
+
 ## TEMPLATE MANAGEMENT ##
 def get_templates() -> dict:
     """
