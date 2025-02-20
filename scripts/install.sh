@@ -66,6 +66,7 @@ curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=${UV_PATH} sh
 
 echo "--------------- Cloning toolkit installer repository ---------------"
 if [[ -d ${TOOLKIT_INSTALLER_FOLDER} ]]; then
+    git -C ${TOOLKIT_INSTALLER_FOLDER} pull
     echo "Toolkit installer repository already cloned"
 else
     echo "Cloning toolkit installer repository..."
