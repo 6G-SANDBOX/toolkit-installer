@@ -3,7 +3,7 @@ name: Feature request
 about: Suggest an idea for this project
 title: ''
 labels: ''
-assignees: ["CarlosAndreo", "dgarcia18"]
+assignees: ["CarlosAndreo"]
 
 ---
 
