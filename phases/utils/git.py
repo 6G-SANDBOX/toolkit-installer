@@ -56,8 +56,10 @@ def git_switch(path: str, branch: str = None, tag: str = None, commit: str = Non
     """
     repo = get_repo(path)
     msg("info", f"Switching to branch {branch}")
-    if tag or commit:
-        repo.git.switch("--detach", branch)
+    if tag:
+        repo.git.switch("--detach", tag)
+    elif commit:
+        repo.git.switch("--detach", commit)
     else:
         repo.git.switch(branch)
     msg("info", "Switched to branch")
