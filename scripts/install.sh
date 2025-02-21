@@ -10,6 +10,7 @@ PYTHON_BIN="python${PYTHON_VERSION}"
 UV_PATH="/opt/uv"
 UV_BIN="${UV_PATH}/uv"
 TOOLKIT_INSTALLER_FOLDER="/opt/toolkit-installer"
+TOOLKIT_INSTALLER_VERSION="v0.4.0"
 
 echo "========== Starting Pre-Checks for Script Execution =========="
 
@@ -70,7 +71,7 @@ if [[ -d ${TOOLKIT_INSTALLER_FOLDER} ]]; then
     echo "Toolkit installer repository already cloned"
 else
     echo "Cloning toolkit installer repository..."
-    git clone https://github.com/6G-SANDBOX/toolkit-installer.git ${TOOLKIT_INSTALLER_FOLDER}
+    git clone --depth 1 --branch ${TOOLKIT_INSTALLER_VERSION} -c advice.detachedHead=false https://github.com/6G-SANDBOX/toolkit-installer.git ${TOOLKIT_INSTALLER_FOLDER}
 fi
 
 echo "Installing toolkit installer dependencies using uv..."
