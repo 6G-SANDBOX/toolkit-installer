@@ -146,3 +146,5 @@ def fifth_phase(site: str, vm_tnlcm_name: str) -> None:
     _deploy_trial_network(tnlcm_url, tn_id, access_token, jenkins_deploy_pipeline)
     # _destroy_trial_network(tnlcm_url, tn_id, access_token, jenkins_destroy_pipeline)
     # _purge_trial_network(tnlcm_url, tn_id, access_token)
+    msg("info", "Toolkit installed!")
+    
