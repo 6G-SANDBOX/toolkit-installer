@@ -51,7 +51,7 @@ else
 fi
 
 echo "--------------- Installing Python ---------------"
-if python3 --version | awk '{print $2}' | grep -qE '^3\.1[3-9]|^[4-9]'; then
+if python${PYTHON_VERSION} --version &>/dev/null; then
     echo "Python ${PYTHON_VERSION} is already installed"
 else
     echo "Adding deadsnakes PPA and installing Python ${PYTHON_VERSION}..."
@@ -63,7 +63,12 @@ echo "Installing Python venv module..."
 apt install -y ${PYTHON_BIN}-venv
 
 echo "--------------- Installing uv ---------------"
-curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=${UV_PATH} sh
+if [[ -f ${UV_BIN} ]]; then
+    echo "UV is already installed"
+else
+    echo "Installing uv..."
+    curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=${UV_PATH} sh
+fi
 
 echo "--------------- Cloning toolkit installer repository ---------------"
 if [[ -d ${TOOLKIT_INSTALLER_FOLDER} ]]; then
