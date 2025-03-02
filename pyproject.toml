@@ -1,21 +1,16 @@
 [project]
 name = "toolkit-installer"
 version = "0.4.0"
-description = "Installer that create a new 6G-SANDBOX site and install the tools MinIO, Jenkins and TNLCM in OpenNebula."
-readme = "docs/README.md"
+description = "Python script that install and configure the MinIO, Jenkins and TNLCM stack on OpenNebula creating a new 6G-SANDBOX site."
+readme = "README.md"
 requires-python = ">=3.13"
 authors = [
-    { name = "Carlos Andreo", email = "c.andreo@uma.es" },
-    { name = "Daniel Garcia", email = "dgarcia@opennebula.io" },
+    { name = "Carlos Andreo", email = "c.andreo@uma.es" }
 ]
 
 dependencies = [
-    "ansible-core==2.18.2",
-    "GitPython==3.1.44",
     "questionary==2.1.0",
-    "requests==2.32.3",
-    "tomlkit==0.13.2",
-    "pyfiglet==1.0.2",
+    "requests==2.32.3", # remove: use curl
     "python-dotenv==1.0.1",
-    "ruamel.yaml==0.18.10",
+    "pyyaml==6.0.2"
 ]
