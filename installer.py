@@ -64,8 +64,11 @@ try:
     
     # permissions
     oneuser_chgrp(username=username, group_name=group_name)
+    msg(level="info", message=f"User {username} added to group {group_name}")
     onegroup_addadmin(username=username, group_name=group_name)
+    msg(level="info", message=f"User {username} added to group {group_name} as admin")
     oneacl_create(group_id=group_id, resources="CLUSTER+NET/*", rights="USE+MANAGE+ADMIN+CREATE *")
+    msg(level="info", message=f"Permissions for user {username} in group {group_name} created successfully")
 
     # marketplaces
     marketplace_monitoring_interval = get_dotenv_var(key="MARKETPLACE_MONITORING_INTERVAL")
