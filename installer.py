@@ -21,7 +21,7 @@ try:
     )
     if username == "Create new user":
         username = ask_text(
-            message="Introduce new OpenNebula username",
+            message="Introduce new OpenNebula username:",
             default="",
             validate=lambda username: (
                 "Username must be at least 8 characters long" if len(username) < 8 else
@@ -30,9 +30,10 @@ try:
             )
         )
         password = ask_password(
-            message=f"Introduce the password for user {username}",
+            message=f"Introduce the password for user {username}:",
             validate=lambda password: 
-                len(password) < 8 or "Password must be at least 8 characters long"
+                "Password must be at least 8 characters long" if len(password) < 8 else
+                True
         )
         username_id = oneuser_create(username=username, password=password)
         msg(level="info", message=f"User {username} created successfully")
@@ -48,7 +49,7 @@ try:
     )
     if group_name == "Create new group":
         group_name = ask_text(
-            message="Introduce new OpenNebula group name",
+            message="Introduce new OpenNebula group name:",
             default="",
             validate=lambda group_name: (
                 "Group name must be at least 8 characters long" if len(group_name) < 8 else
@@ -67,7 +68,7 @@ try:
     msg(level="info", message=f"User {username} added to group {group_name}")
     onegroup_addadmin(username=username, group_name=group_name)
     msg(level="info", message=f"User {username} added to group {group_name} as admin")
-    oneacl_create(group_id=group_id, resources="CLUSTER+NET/*", rights="USE+MANAGE+ADMIN+CREATE *")
+    oneacl_create(group_id=group_id, resources="NET+CLUSTER/*", rights="USE+MANAGE+ADMIN+CREATE *")
     msg(level="info", message=f"Permissions for user {username} in group {group_name} created successfully")
 
     # marketplaces
