@@ -279,6 +279,52 @@ def oneflow_template_show(oneflow_template_name: str) -> Dict | None:
         msg(level="debug", message=f"Service {oneflow_template_name} found. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
         return loads_json(data=stdout)
 
+def get_oneflow_template_roles(oneflow_template_name: str) -> List[Dict]:
+    """
+    Get the roles of a service in OpenNebula
+    
+    :param oneflow_template_name: the name of the service, ``str``
+    :return: the roles of the service, ``List[Dict]``
+    """
+    oneflow_template = oneflow_template_show(oneflow_template_name=oneflow_template_name)
+    if oneflow_template is None:
+        msg(level="error", message=f"Service {oneflow_template_name} not found")
+    if "DOCUMENT" not in oneflow_template or "TEMPLATE" not in oneflow_template["DOCUMENT"] or "BODY" not in oneflow_template["DOCUMENT"]["TEMPLATE"]:
+        msg(level="error", message=f"DOCUMENT key not found in service {oneflow_template_name} or TEMPLATE key not found in DOCUMENT or BODY key not found in TEMPLATE")
+    oneflow_template_roles = oneflow_template["DOCUMENT"]["TEMPLATE"]["BODY"]["roles"]
+    if oneflow_template_roles is None:
+        msg(level="error", message=f"Could not get roles of service {oneflow_template_name}")
+    return oneflow_template_roles
+
+def get_oneflow_template_ids(oneflow_template_name: str) -> List[int]:
+    """
+    Get the template ids of a service in OpenNebula
+
+    :param oneflow_template_name: the name of the service, ``str``
+    :return: the template ids of the service, ``List[int]``
+    """
+    oneflow_template = get_oneflow_template_roles(oneflow_template_name=oneflow_template_name)
+    oneflow_template_ids = []
+    for role in oneflow_template:
+        if "vm_template" not in role:
+            msg(level="error", message="vm_template key not found in role")
+        oneflow_template_ids.append(int(role["vm_template"]))
+    return oneflow_template_ids
+
+def get_oneflow_image_ids(oneflow_template_name: str) -> List[int]:
+    """
+    Get the image ids of a service in OpenNebula
+
+    :param oneflow_template_name: the name of the service, ``str``
+    :return: the image ids of the service, ``List[int]``
+    """
+    template_ids = get_oneflow_template_ids(oneflow_template_name=oneflow_template_name)
+    oneflow_image_ids = []
+    for template_id in template_ids:
+        image_ids = get_template_image_ids(template_id=template_id)
+        oneflow_image_ids.extend(image_ids)
+    return oneflow_image_ids
+
 def get_oneflow_template_custom_attrs(oneflow_template_name: str) -> Dict | None:
     """
     Get the custom_attrs key of a service in OpenNebula
@@ -458,7 +504,8 @@ def check_group_admin(username: str, group_name: str) -> bool:
     elif isinstance(group["GROUP"]["ADMINS"]["ID"], List):
         for user_id in group["GROUP"]["ADMINS"]["ID"]:
             user = get_username(user_id=int(user_id))
-            return user == username
+            if user == username:
+                return True
     else:
         msg(level="error", message=f"ADMINS key not found in group {group_name}")
     return False
@@ -517,7 +564,10 @@ def check_group_acl(group_id: str, resources: str, rights: str) -> bool:
         if "STRING" not in acl:
             msg(level="error", message="STRING key not found in acl")
         acl_string = f"@{group_id} {resources} {rights}"
-        return acl_string == acl["STRING"]
+        print(acl_string)
+        print(acl["STRING"])
+        if acl_string == acl["STRING"]:
+            return True
     return False
 
 def oneacl_create(group_id: int, resources: str, rights: str) -> None:
@@ -725,12 +775,69 @@ def get_template_name(template_id: int) -> str:
     template = onetemplate_show(template_id=template_id)
     if template is None:
         msg(level="error", message=f"Template with id {template_id} not found")
-    if "TEMPLATE" not in template or "NAME" not in template["TEMPLATE"]:
-        msg(level="error", message=f"TEMPLATE key not found in template id {template_id} or NAME key not found in TEMPLATE")
-    template_name = template["TEMPLATE"]["NAME"]
+    if "VMTEMPLATE" not in template or "NAME" not in template["VMTEMPLATE"]:
+        msg(level="error", message=f"VMTEMPLATE key not found in template id {template_id} or NAME key not found in VMTEMPLATE")
+    template_name = template["VMTEMPLATE"]["NAME"]
     if template_name is None:
         msg(level="error", message=f"Could not get name of template with id {template_id}")
     return template_name
+
+def get_template_image_ids(template_name: Optional[str] = None, template_id: Optional[int] = None) -> List[int]:
+    """
+    Get the image id of a template in OpenNebula
+    
+    :param template_name: the name of the template, ``str``
+    :param template_id: the id of the template, ``int``
+    :return: the list of image ids, ``List[int]``
+    """
+    if template_id is None and template_name is None:
+        msg(level="error", message="Either template_name or template_id must be provided")
+    if template_id is not None and template_name is not None:
+        msg(level="error", message="Either template_name or template_id must be provided, not both")
+    if template_id is None:
+        template = onetemplate_show(template_name=template_name)
+        if template is None:
+            msg(level="error", message=f"Template {template_name} not found")
+        if "VMTEMPLATE" not in template or "TEMPLATE" not in template["VMTEMPLATE"] or "DISK" not in template["VMTEMPLATE"]["TEMPLATE"]:
+            msg(level="error", message=f"VMTEMPLATE key not found in template {template_name} or TEMPLATE key not found in VMTEMPLATE or DISK key not found in TEMPLATE")
+        template_image_ids = template["VMTEMPLATE"]["TEMPLATE"]["DISK"]
+        image_ids = []
+        if template_image_ids is None:
+            msg(level="error", message=f"Could not get image id of template {template_name}")
+        elif isinstance(template_image_ids, Dict):
+            if "IMAGE_ID" not in template_image_ids:
+                msg(level="error", message="IMAGE_ID key not found in DISK")
+            image_ids.append(int(template_image_ids["IMAGE_ID"]))
+        elif isinstance(template_image_ids, List):
+            for disk in template_image_ids:
+                if "IMAGE_ID" not in disk:
+                    msg(level="error", message="IMAGE_ID key not found in DISK")
+                image_ids.append(int(disk["IMAGE_ID"]))
+        else:
+            msg(level="error", message="Invalid type of DISK")
+        return image_ids
+    else:
+        template = onetemplate_show(template_id=template_id)
+        if template is None:
+            msg(level="error", message=f"Template with id {template_id} not found")
+        if "VMTEMPLATE" not in template or "TEMPLATE" not in template["VMTEMPLATE"] or "DISK" not in template["VMTEMPLATE"]["TEMPLATE"]:
+            msg(level="error", message=f"VMTEMPLATE key not found in template id {template_id} or TEMPLATE key not found in VMTEMPLATE or DISK key not found in TEMPLATE")
+        template_image_ids = template["VMTEMPLATE"]["TEMPLATE"]["DISK"]
+        image_ids = []
+        if template_image_ids is None:
+            msg(level="error", message=f"Could not get image id of template with id {template_id}")
+        elif isinstance(template_image_ids, Dict):
+            if "IMAGE_ID" not in template_image_ids:
+                msg(level="error", message="IMAGE_ID key not found in DISK")
+            image_ids.append(int(template_image_ids["IMAGE_ID"]))
+        elif isinstance(template_image_ids, List):
+            for disk in template_image_ids:
+                if "IMAGE_ID" not in disk:
+                    msg(level="error", message="IMAGE_ID key not found in DISK")
+                image_ids.append(int(disk["IMAGE_ID"]))
+        else:
+            msg(level="error", message="Invalid type of DISK")
+        return image_ids
 
 def onetemplate_chown(template_name: str, username: str, group_name: str) -> None:
     """
@@ -1093,8 +1200,9 @@ def onemarketapp_add(
             if onetemplate_show(template_name=appliance_name) is None:
                 datastores_names = get_datastores_names()
                 datastore_name = ask_select(message=f"Select the datastore where you want to store the template {appliance_name}", choices=datastores_names)
-                image_ids, template_ids, _ = onemarketapp_export(appliance_name=appliance_name, datastore_name=datastore_name)
+                _, template_id, _ = onemarketapp_export(appliance_name=appliance_name, datastore_name=datastore_name)
                 sleep(5)
+                image_ids = get_template_image_ids(template_name=appliance_name)
                 for image_id in image_ids:
                     image_name = get_image_name(image_id=image_id)
                     oneimage_chown(image_name=image_name, username=username, group_name=group_name)
@@ -1107,6 +1215,7 @@ def onemarketapp_add(
                 template_name = get_template_name(template_id=template_id[0])
                 onetemplate_chown(template_name=template_name, username=username, group_name=group_name)
             else:
+                image_ids = get_template_image_ids(template_name=appliance_name)
                 for image_id in image_ids:
                     image_name = get_image_name(image_id=image_id)
                     oneimage_chown(image_name=image_name, username=username, group_name=group_name)
@@ -1115,8 +1224,9 @@ def onemarketapp_add(
             if oneflow_template_show(oneflow_template_name=appliance_name) is None:
                 datastores_names = get_datastores_names()
                 datastore_name = ask_select(message=f"Select the datastore where you want to store the service {appliance_name}", choices=datastores_names)
-                image_ids, template_ids, _ = onemarketapp_export(appliance_name=appliance_name, datastore_name=datastore_name)
+                _, template_ids, _ = onemarketapp_export(appliance_name=appliance_name, datastore_name=datastore_name)
                 sleep(5)
+                image_ids = get_oneflow_image_ids(oneflow_template_name=appliance_name)
                 for image_id in image_ids:
                     image_name = get_image_name(image_id=image_id)
                     oneimage_chown(image_name=image_name, username=username, group_name=group_name)
@@ -1130,6 +1240,8 @@ def onemarketapp_add(
                     template_name = get_template_name(template_id=template_id)
                     onetemplate_chown(template_name=template_name, username=username, group_name=group_name)
             else:
+                image_ids = get_oneflow_image_ids(oneflow_template_name=appliance_name)
+                template_ids = get_oneflow_template_ids(oneflow_template_name=appliance_name)
                 for image_id in image_ids:
                     image_name = get_image_name(image_id=image_id)
                     oneimage_chown(image_name=image_name, username=username, group_name=group_name)
