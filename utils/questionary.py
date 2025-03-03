@@ -9,13 +9,41 @@ style = Style([
     ("highlighted", "fg:#ff7700 bold underline"),
 ])
 
+# def ask_checkbox(prompt: str, choices: Any) -> Any:
+#     """
+#     Prompt the user to select multiple options from a list
+
+#     :param prompt: the question to display, ``str``
+#     :param choices: list of options to choose from, ``List[str]``
+#     :return: list of selected options, ``List[str]``
+#     """
+#     try:
+#         return checkbox(prompt, choices=choices).unsafe_ask()
+#     except KeyboardInterrupt:
+#         print("\nOperation interrupted by user")
+
+def ask_confirm(message: str, default: str = "") -> bool:
+    """
+    Prompt the user to confirm an action
+
+    :param message: the question to display, ``str``
+    :param default: default value if the user presses Enter, ``bool``
+    :return: user input, ``bool``
+    """
+    return confirm(
+        message=message,
+        default=default,
+        qmark="🔹",
+        style=style
+    ).unsafe_ask()
+
 def ask_password(message: str, default: str = "", validate: Any = None) -> str:
     """
     Prompt the user to enter a password (hidden input)
 
     :param message: the question to display, ``str``
     :param default: default value if the user presses Enter, ``str``
-    :param validate: a function to validate the user input, ``Callable[[str], bool]``
+    :param validate: custom validation function, ``Any``
     :return: user input, ``str``
     """
     return password(
@@ -47,7 +75,7 @@ def ask_text(message: str, default: str = "", validate: Any = None) -> str:
 
     :param message: the question to display, ``str``
     :param default: default value if the user presses Enter, ``str``
-    :param validate: a function to validate the user input, ``Callable[[str], bool]``
+    :param validate: custom validation function, ``Any``
     :return: user input, ``str``
     """
     return text(
@@ -57,29 +85,3 @@ def ask_text(message: str, default: str = "", validate: Any = None) -> str:
         qmark="🔹",
         style=style
     ).unsafe_ask()
-
-# def ask_checkbox(prompt: str, choices: Any) -> Any:
-#     """
-#     Prompt the user to select multiple options from a list
-
-#     :param prompt: the question to display, ``str``
-#     :param choices: list of options to choose from, ``List[str]``
-#     :return: list of selected options, ``List[str]``
-#     """
-#     try:
-#         return checkbox(prompt, choices=choices).unsafe_ask()
-#     except KeyboardInterrupt:
-#         print("\nOperation interrupted by user")
-
-# def ask_confirm(prompt: str, default: bool = True) -> bool:
-#     """
-#     Prompt the user for a yes/no confirmation
-
-#     :param prompt: the question to display, ``str``
-#     :param default: default response if the user presses Enter, ``bool``
-#     :return: user's confirmation, ``bool``
-#     """
-#     try:
-#         return confirm(prompt, default=default).unsafe_ask()
-#     except KeyboardInterrupt:
-#         print("\nOperation interrupted by user")
