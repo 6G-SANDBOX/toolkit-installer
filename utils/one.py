@@ -7,8 +7,9 @@ from typing import Dict, List, Optional, Tuple
 
 from utils.cli import run_command
 from utils.file import load_file, loads_json, save_file
-from utils.questionary import ask_password, ask_select, ask_text
 from utils.logs import msg
+from utils.parser import gb_to_mb
+from utils.questionary import ask_password, ask_select, ask_text
 from utils.temp import save_temp_file, save_temp_json_file
 
 ## CONFIG MANAGEMENT ##
@@ -65,7 +66,7 @@ def onevnet_list () -> Dict:
         msg(level="debug", message=f"Vnets found. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
         return loads_json(data=stdout)
 
-def get_vnets_names() -> List[str]:
+def get_onevnets_names() -> List[str]:
     """
     Get the names of the vnets in OpenNebula
     
@@ -83,7 +84,7 @@ def get_vnets_names() -> List[str]:
         vnets_names.append(vnet["NAME"])
     return vnets_names
 
-def get_vnet_id(vnet_name: str) -> int:
+def get_onevnet_id(vnet_name: str) -> int:
     """
     Get the id of a vnet in OpenNebula
     
@@ -117,7 +118,7 @@ def onewm_show(vm_name: str) -> Dict | None:
         msg(level="debug", message=f"VM {vm_name} found. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
         return loads_json(data=stdout)
 
-def get_vm_user_template(vm_name: str) -> Dict:
+def get_onevm_user_template(vm_name: str) -> Dict:
     """
     Get the user template of a VM in OpenNebula
     
@@ -134,7 +135,7 @@ def get_vm_user_template(vm_name: str) -> Dict:
         msg(level="error", message=f"Could not get user template of VM {vm_name}")
     return user_template
 
-def get_vm_user_template_param(vm_name: str, param: str) -> Dict:
+def get_onevm_user_template_param(vm_name: str, param: str) -> Dict:
     """
     Get the value of a user template parameter of a VM in OpenNebula
     
@@ -142,7 +143,7 @@ def get_vm_user_template_param(vm_name: str, param: str) -> Dict:
     :param param: the name of the parameter, ``str``
     :return: the value of the parameter, ``Dict``
     """
-    user_template = get_vm_user_template(vm_name=vm_name)
+    user_template = get_onevm_user_template(vm_name=vm_name)
     if param not in user_template:
         msg(level="error", message=f"Parameter {param} not found in user template of VM {vm_name}")
     value = user_template[param]
@@ -150,19 +151,42 @@ def get_vm_user_template_param(vm_name: str, param: str) -> Dict:
         msg(level="error", message=f"Could not get value of parameter {param} in user template of VM {vm_name}")
     return value
 
+def get_onevm_disk_size(vm_name: str, disk_id: int) -> int:
+    """
+    Get the size of a disk of a VM in OpenNebula
+
+    :param vm_name: the name of the VM, ``str``
+    :param disk_id: the id of the disk, ``int``
+    :return: the size of the disk, ``int``
+    """
+    vm = onewm_show(vm_name=vm_name)
+    if vm is None:
+        msg(level="error", message=f"VM {vm_name} not found")
+    if "VM" not in vm or "TEMPLATE" not in vm["VM"] or "DISK" not in vm["VM"]["TEMPLATE"]:
+        msg(level="error", message=f"VM key not found in vm {vm_name} or TEMPLATE key not found in VM or DISK key not found in TEMPLATE")
+    disks = vm["VM"]["TEMPLATE"]["DISK"]
+    for disk in disks:
+        if disk["DISK_ID"] == disk_id:
+            return int(disk["SIZE"])
+    msg(level="error", message=f"Disk {disk_id} not found in VM {vm_name}")
+
 def onevm_disk_resize(vm_name: str, disk_id: int, size: int) -> None:
     """
     Resize the disk of a VM in OpenNebula
     
     :param vm_name: the name of the VM, ``str``
     :param disk_id: the id of the disk, ``int``
-    :param size: the new size of the disk, ``int``
+    :param size: the new size of the disk in GB, ``int``
     """
-    command = f"onevm disk-resize \"{vm_name}\" {disk_id} {size}G"
+    size_mb = gb_to_mb(gb=size)
+    disk_size = get_onevm_disk_size(vm_name=vm_name, disk_id=disk_id)
+    if disk_size >= size_mb:
+        msg(level="error", message=f"Disk {disk_id} of VM {vm_name} has a size of {disk_size}M which is greater than or equal to the new size {size_mb}M to be upgraded")
+    command = f"onevm disk-resize \"{vm_name}\" {disk_id} {size_mb}M"
     stdout, stderr, rc = run_command(command=command)
     if rc != 0:
         msg(level="error", message=f"Could not resize disk of VM {vm_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
-    msg(level="debug", message=f"Disk of VM {vm_name} resized successfully. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
+    msg(level="debug", message=f"Disk of VM {vm_name} resized successfully to {size_mb}M. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
 
 def onevm_chown(vm_name: str, username: str, group_name: str) -> None:
     """
@@ -178,7 +202,7 @@ def onevm_chown(vm_name: str, username: str, group_name: str) -> None:
         msg(level="error", message=f"Could not change owner of VM {vm_name} to {username}:{group_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
     msg(level="debug", message=f"Owner of VM {vm_name} changed to {username}:{group_name}. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
 
-# def get_vm_ip(vm_name: str) -> str:
+# def get_onevm_ip(vm_name: str) -> str:
 #     """
 #     Get the IP of a VM in OpenNebula
     
@@ -208,7 +232,7 @@ def onedatastore_list() -> Dict:
         msg(level="debug", message=f"OpenNebula datastores found. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
         return loads_json(data=stdout)
 
-def get_datastores_names() -> List[str]:
+def get_onedatastores_names() -> List[str]:
     """
     Get the names of the datastores in OpenNebula
     
@@ -227,17 +251,6 @@ def get_datastores_names() -> List[str]:
     return datastores_names
 
 ## ONEFLOW MANAGEMENT ##
-# def get_oneflows() -> dict:
-#     """
-#     Get the list of services in OpenNebula
-    
-#     :return: the list of services, ``dict``
-#     """
-#     res = run_command("oneflow list -j")
-#     if res["rc"] != 0:
-#         return None
-#     return loads_json(data=res["stdout"])
-
 def oneflow_show(oneflow_name: str) -> Dict | None:
     """
     Get the details of a service in OpenNebula
@@ -364,28 +377,28 @@ def get_oneflow_id(oneflow_name: str) -> int:
         msg(level="error", message=f"Could not get id of service {oneflow_name}")
     return oneflow_id
 
-# def get_oneflow_custom_attrs_values(oneflow_name: str) -> dict:
-#     """
-#     Get the custom_attrs of a service in OpenNebula
+def get_oneflow_custom_attr_value(oneflow_name: str, attr_key: str) -> str:
+    """
+    Get the value of a custom attribute of a service in OpenNebula
     
-#     :param oneflow_name: the name of the service, ``str``
-#     :return: the custom_attrs of the service, ``dict``
-#     """
-#     oneflow = get_oneflow(oneflow_name)
-#     if oneflow is None:
-#         return None
-#     return oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]["custom_attrs_values"]
-
-# def rename_oneflow(oneflow_id: int, new_name: str) -> None:
-#     """
-#     Rename a service in OpenNebula
-    
-#     :param oneflow_id: the id of the service, ``int``
-#     :param new_name: the new name of the service, ``str``
-#     """
-#     res = run_command(f"oneflow rename {oneflow_id} \"{new_name}\"")
-#     if res["rc"] != 0:
-#         msg("error", res["stderr"])
+    :param oneflow_name: the name of the service, ``str``
+    :param attr_key: the key of the custom attribute, ``str``
+    :return: the value of the custom attribute, ``str``
+    """
+    oneflow = oneflow_show(oneflow_name=oneflow_name)
+    if oneflow is None:
+        msg(level="error", message=f"Service {oneflow_name} not found")
+    if "DOCUMENT" not in oneflow or "TEMPLATE" not in oneflow["DOCUMENT"] or "BODY" not in oneflow["DOCUMENT"]["TEMPLATE"]:
+        msg(level="error", message=f"DOCUMENT key not found in service {oneflow_name} or TEMPLATE key not found in DOCUMENT or BODY key not found in TEMPLATE")
+    if "custom_attrs_values" not in oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]:
+        msg(level="error", message=f"custom_attrs_values key not found in service {oneflow_name}")
+    custom_attrs_values = oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]["custom_attrs_values"]
+    if attr_key not in custom_attrs_values:
+        msg(level="error", message=f"Custom attribute {attr_key} not found in service {oneflow_name}")
+    attr_value = custom_attrs_values[attr_key]
+    if attr_value is None:
+        msg(level="error", message=f"Could not get value of custom attribute {attr_key} in service {oneflow_name}")
+    return attr_value
 
 def oneflow_chown(oneflow_name: str, username: str, group_name: str) -> None:
     """
@@ -460,7 +473,7 @@ def get_oneflow_image_ids(oneflow_template_name: str) -> List[int]:
     template_ids = get_oneflow_template_ids(oneflow_template_name=oneflow_template_name)
     oneflow_image_ids = []
     for template_id in template_ids:
-        image_ids = get_template_image_ids(template_id=template_id)
+        image_ids = get_onetemplate_image_ids(template_id=template_id)
         oneflow_image_ids.extend(image_ids)
     return oneflow_image_ids
 
@@ -602,9 +615,9 @@ def oneflow_template_instantiate(oneflow_template_name: str, username: str, grou
                     if input_type == "network":
                         network_name = ask_select(
                             message=description,
-                            choices=get_vnets_names()
+                            choices=get_onevnets_names()
                         )
-                        network_id = get_vnet_id(vnet_name=network_name)
+                        network_id = get_onevnet_id(vnet_name=network_name)
                         nets[network_key] = {"id": str(network_id)}
                         networks_values_list.append(nets)
                     else:
@@ -684,7 +697,7 @@ def onegroup_show(group_name: str) -> Dict | None:
         msg(level="debug", message=f"Group {group_name} found. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
         return loads_json(data=stdout)
 
-def get_group_id(group_name: str) -> int:
+def get_onegroup_id(group_name: str) -> int:
     """
     Get the id of a group in OpenNebula
     
@@ -716,7 +729,7 @@ def onegroup_list() -> Dict | None:
         msg(level="debug", message=f"OpenNebula groups found. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
         return loads_json(data=stdout)
 
-def get_groups_names() -> List[str]:
+def get_onegroups_names() -> List[str]:
     """
     Get the list of groups names in OpenNebula
     
@@ -766,11 +779,11 @@ def check_group_admin(username: str, group_name: str) -> bool:
     if "ID" not in group["GROUP"]["ADMINS"]:
         return False
     elif isinstance(group["GROUP"]["ADMINS"]["ID"], str):
-        user = get_username(user_id=int(group["GROUP"]["ADMINS"]["ID"]))
+        user = get_oneusername(user_id=int(group["GROUP"]["ADMINS"]["ID"]))
         return user == username
     elif isinstance(group["GROUP"]["ADMINS"]["ID"], List):
         for user_id in group["GROUP"]["ADMINS"]["ID"]:
-            user = get_username(user_id=int(user_id))
+            user = get_oneusername(user_id=int(user_id))
             if user == username:
                 return True
     else:
@@ -885,7 +898,7 @@ def oneuser_show(username: Optional[str] = None, user_id: Optional[int] = None) 
             msg(level="debug", message=f"User {username} found. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
             return loads_json(data=stdout)
 
-def get_username_id(username: str) -> int:
+def get_oneusername_id(username: str) -> int:
     """
     Get the id of an user in OpenNebula
 
@@ -902,7 +915,7 @@ def get_username_id(username: str) -> int:
         msg(level="error", message=f"Could not get id of user {username}")
     return int(user_id)
 
-def get_username(user_id: int) -> str:
+def get_oneusername(user_id: int) -> str:
     """
     Get the name of an user in OpenNebula
     
@@ -934,7 +947,7 @@ def oneuser_list() -> Dict | None:
         msg(level="debug", message=f"OpenNebula users found. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
         return loads_json(data=stdout)
 
-def get_usernames() -> List[str]:
+def get_oneusernames() -> List[str]:
     """
     Get the list of usernames in OpenNebula
     
@@ -985,7 +998,7 @@ def oneuser_chgrp(username: str, group_name: str) -> None:
         msg(level="error", message=f"Could not assign user {username} to group {group_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
     msg(level="debug", message=f"User {username} assigned to group {group_name}. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
 
-def get_user_public_ssh_keys(username: str) -> List[str]:
+def get_oneuser_public_ssh_keys(username: str) -> List[str]:
     """
     Get the public SSH keys of an user in OpenNebula
 
@@ -1011,7 +1024,7 @@ def oneuser_update_public_ssh_key(username: str, public_ssh_key: str) -> None:
     :param username: the name of the user, ``str``
     :param public_ssh_key: the public SSH key, ``str``
     """
-    public_ssh_keys = get_user_public_ssh_keys(username=username)
+    public_ssh_keys = get_oneuser_public_ssh_keys(username=username)
     if public_ssh_key not in public_ssh_keys:
         all_public_ssh_keys = "\n".join(public_ssh_keys)
         all_public_ssh_keys += f"\n{public_ssh_key}"
@@ -1055,7 +1068,7 @@ def onetemplate_show(template_name: Optional[str] = None, template_id: Optional[
             msg(level="debug", message=f"Template {template_name} found. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
             return loads_json(data=stdout)
 
-def get_template_name(template_id: int) -> str:
+def get_onetemplate_name(template_id: int) -> str:
     """
     Get the name of a template in OpenNebula
     
@@ -1072,7 +1085,7 @@ def get_template_name(template_id: int) -> str:
         msg(level="error", message=f"Could not get name of template with id {template_id}")
     return template_name
 
-def get_template_image_ids(template_name: Optional[str] = None, template_id: Optional[int] = None) -> List[int]:
+def get_onetemplate_image_ids(template_name: Optional[str] = None, template_id: Optional[int] = None) -> List[int]:
     """
     Get the image id of a template in OpenNebula
     
@@ -1224,7 +1237,7 @@ def oneimage_show(image_name: Optional[str] = None, image_id: Optional[int] = No
 #         return False
 #     return image_group_name == group_name
 
-def get_image_name(image_id: int) -> str:
+def get_oneimage_name(image_id: int) -> str:
     """
     Get the name of an image in OpenNebula
     
@@ -1241,7 +1254,7 @@ def get_image_name(image_id: int) -> str:
         msg(level="error", message=f"Could not get name of image with id {image_id}")
     return image_name
 
-def get_image_state(image_name: str) -> str:
+def get_oneimage_state(image_name: str) -> str:
     """
     Get the status of an image in OpenNebula
     
@@ -1359,7 +1372,7 @@ def onemarket_create(
     return None
 
 ## APPLIANCE MANAGEMENT ##
-def get_appliance(appliance_name: str, marketplace_name: str) -> Dict:
+def onemarketapp_show(appliance_name: str, marketplace_name: str) -> Dict:
     """
     Get the details of an appliance in OpenNebula
     
@@ -1389,7 +1402,7 @@ def get_type_appliance(appliance_name: str, marketplace_name: str) -> str:
     :param marketplace_name: the name of the marketplace, ``str``
     :return: the type of the appliance, ``str``
     """
-    appliance = get_appliance(appliance_name=appliance_name, marketplace_name=marketplace_name)
+    appliance = onemarketapp_show(appliance_name=appliance_name, marketplace_name=marketplace_name)
     if "MARKETPLACEAPP" not in appliance or "TYPE" not in appliance["MARKETPLACEAPP"]:
         msg(level="error", message=f"MARKETPLACEAPP key not found in appliance {appliance_name} or TYPE key not found in MARKETPLACEAPP")
     appliance_type = appliance["MARKETPLACEAPP"]["TYPE"]
@@ -1472,71 +1485,71 @@ def onemarketapp_add(
         appliance_type = get_type_appliance(appliance_name=appliance_name, marketplace_name=marketplace_name)
         if appliance_type == "IMAGE": # one image and one template
             if oneimage_show(image_name=appliance_name) is None:
-                datastores_names = get_datastores_names()
+                datastores_names = get_onedatastores_names()
                 datastore_name = ask_select(message=f"Select the datastore where you want to store the image {appliance_name}", choices=datastores_names)
                 image_id, template_id, _ = onemarketapp_export(appliance_name=appliance_name, datastore_name=datastore_name)
                 sleep(5)
-                image_name = get_image_name(image_id=image_id[0])
-                image_state = get_image_state(image_name=appliance_name)
+                image_name = get_oneimage_name(image_id=image_id[0])
+                image_state = get_oneimage_state(image_name=appliance_name)
                 while image_state != "1":
                     sleep(10)
-                    image_state = get_image_state(image_name=appliance_name)
+                    image_state = get_oneimage_state(image_name=appliance_name)
                     if image_state == "5":
                         msg(level="error", message=f"Image {appliance_name} is in error state")
-                template_name = get_template_name(template_id=template_id[0])
+                template_name = get_onetemplate_name(template_id=template_id[0])
             oneimage_chown(image_name=appliance_name, username=username, group_name=group_name)
             onetemplate_chown(template_name=appliance_name, username=username, group_name=group_name)
         elif appliance_type == "VM": # one or more images and one template
             if onetemplate_show(template_name=appliance_name) is None:
-                datastores_names = get_datastores_names()
+                datastores_names = get_onedatastores_names()
                 datastore_name = ask_select(message=f"Select the datastore where you want to store the template {appliance_name}", choices=datastores_names)
                 _, template_id, _ = onemarketapp_export(appliance_name=appliance_name, datastore_name=datastore_name)
                 sleep(5)
-                image_ids = get_template_image_ids(template_name=appliance_name)
+                image_ids = get_onetemplate_image_ids(template_name=appliance_name)
                 for image_id in image_ids:
-                    image_name = get_image_name(image_id=image_id)
+                    image_name = get_oneimage_name(image_id=image_id)
                     oneimage_chown(image_name=image_name, username=username, group_name=group_name)
-                    image_state = get_image_state(image_name=image_name)
+                    image_state = get_oneimage_state(image_name=image_name)
                     while image_state != "1":
                         sleep(10)
-                        image_state = get_image_state(image_name=image_name)
+                        image_state = get_oneimage_state(image_name=image_name)
                         if image_state == "5":
                             msg(level="error", message=f"Image {image_name} is in error state")
-                template_name = get_template_name(template_id=template_id[0])
+                template_name = get_onetemplate_name(template_id=template_id[0])
                 onetemplate_chown(template_name=template_name, username=username, group_name=group_name)
             else:
-                image_ids = get_template_image_ids(template_name=appliance_name)
+                image_ids = get_onetemplate_image_ids(template_name=appliance_name)
                 for image_id in image_ids:
-                    image_name = get_image_name(image_id=image_id)
+                    image_name = get_oneimage_name(image_id=image_id)
                     oneimage_chown(image_name=image_name, username=username, group_name=group_name)
                 onetemplate_chown(template_name=appliance_name, username=username, group_name=group_name)
         else:
             if oneflow_template_show(oneflow_template_name=appliance_name) is None:
-                datastores_names = get_datastores_names()
+                datastores_names = get_onedatastores_names()
                 datastore_name = ask_select(message=f"Select the datastore where you want to store the service {appliance_name}", choices=datastores_names)
                 _, template_ids, _ = onemarketapp_export(appliance_name=appliance_name, datastore_name=datastore_name)
                 sleep(5)
                 image_ids = get_oneflow_image_ids(oneflow_template_name=appliance_name)
                 for image_id in image_ids:
-                    image_name = get_image_name(image_id=image_id)
+                    image_name = get_oneimage_name(image_id=image_id)
                     oneimage_chown(image_name=image_name, username=username, group_name=group_name)
-                    image_state = get_image_state(image_name=image_name)
+                    image_state = get_oneimage_state(image_name=image_name)
                     while image_state != "1":
                         sleep(10)
-                        image_state = get_image_state(image_name=image_name)
+                        image_state = get_oneimage_state(image_name=image_name)
                         if image_state == "5":
                             msg(level="error", message=f"Image {image_name} is in error state")
                 for template_id in template_ids:
-                    template_name = get_template_name(template_id=template_id)
+                    template_name = get_onetemplate_name(template_id=template_id)
                     onetemplate_chown(template_name=template_name, username=username, group_name=group_name)
             else:
                 image_ids = get_oneflow_image_ids(oneflow_template_name=appliance_name)
                 template_ids = get_oneflow_template_ids(oneflow_template_name=appliance_name)
                 for image_id in image_ids:
-                    image_name = get_image_name(image_id=image_id)
+                    image_name = get_oneimage_name(image_id=image_id)
                     oneimage_chown(image_name=image_name, username=username, group_name=group_name)
                 for template_id in template_ids:
-                    template_name = get_template_name(template_id=template_id)
+                    template_name = get_onetemplate_name(template_id=template_id)
                     onetemplate_chown(template_name=template_name, username=username, group_name=group_name)
             oneflow_template_chown(oneflow_template_name=appliance_name, username=username, group_name=group_name)
 
