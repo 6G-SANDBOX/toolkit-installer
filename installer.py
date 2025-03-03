@@ -1,10 +1,10 @@
 from utils.file import load_dotenv_file
-from utils.git import git_clone
+from utils.git import git_validate_token
 from utils.logs import msg, setup_logger
 from utils.one import check_one_health, get_group_id, get_groups_names, get_oneflow_role_vm_name, get_usernames, get_username_id, get_vm_user_template_param, oneacl_create, oneflow_template_instantiate, onegroup_addadmin, onegroup_create, onemarket_create, oneuser_chgrp, oneuser_create, oneuser_update_public_ssh_key, onemarketapp_add
 from utils.os import get_dotenv_var
 from utils.questionary import ask_password, ask_select, ask_text
-from utils.temp import create_temp_directory, save_temp_directory, TEMP_DIRECTORY
+from utils.temp import create_temp_directory, TEMP_DIRECTORY
 
 try:
 
@@ -18,7 +18,6 @@ try:
     msg(level="info", message="Checking OpenNebula health")
     check_one_health()
     msg(level="info", message="OpenNebula is healthy")
-    
     sites_github_token = ask_text(
         message="Introduce the token for the 6G-SANDBOX-Sites repository:",
         validate=lambda sites_github_token: (
@@ -26,14 +25,11 @@ try:
             True
         )
     )
-
     msg(level="info", message="Creating temporary directory")
     create_temp_directory()
     msg(level="info", message=f"Temporary directory created in path: {TEMP_DIRECTORY}")
-
     msg(level="info", message="Validating 6G-Sandbox-Sites token")
-    sites_path = save_temp_directory(directory_path=get_dotenv_var(key="SITES_DIRECTORY"))
-    git_clone(https_url=get_dotenv_var(key="SITES_HTTPS_URL"), path=sites_path, token=sites_github_token)
+    git_validate_token(github_token=sites_github_token)
     msg(level="info", message="6G-Sandbox-Sites token validated successfully")
 
     # user
