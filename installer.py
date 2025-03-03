@@ -1,7 +1,7 @@
 from utils.file import load_dotenv_file
 from utils.git import git_validate_token
 from utils.logs import msg, setup_logger
-from utils.one import check_one_health, get_group_id, get_groups_names, get_oneflow_role_vm_name, get_usernames, get_username_id, get_vm_user_template_param, oneacl_create, oneflow_template_instantiate, onegroup_addadmin, onegroup_create, onemarket_create, oneuser_chgrp, oneuser_create, oneuser_update_public_ssh_key, onemarketapp_add
+from utils.one import check_one_health, get_group_id, get_groups_names, get_oneflow_role_vm_name, get_usernames, get_username_id, get_vm_user_template_param, oneacl_create, oneflow_template_instantiate, onegroup_addadmin, onegroup_create, onemarket_create, oneuser_chgrp, oneuser_create, oneuser_update_public_ssh_key, onemarketapp_add, onevm_disk_resize
 from utils.os import get_dotenv_var
 from utils.questionary import ask_password, ask_select, ask_text
 from utils.temp import create_temp_directory, TEMP_DIRECTORY
@@ -14,12 +14,12 @@ try:
     msg(level="info", message="Toolkit installer is a Python script developed for the 6G-SANDBOX project, designed to facilitate the creation of new 6G-SANDBOX sites. This script automates the installation of the MinIO, Jenkins and TNLCM stack in OpenNebula using the toolkit service. The script will guide you through the installation process. Please follow the instructions carefully")
 
     # validation
-    msg(level="info", message="As mentioned in the documentation: https://6g-sandbox.github.io/docs/toolkit-installer/installation, proceed to validate if the script is running in the OpenNebula frontend and if a token is available to modify the 6G-Sandbox-Sites repository")
+    msg(level="info", message="As mentioned in the documentation: https://6g-sandbox.github.io/docs/toolkit-installer/installation, proceed to validate if the script is running in the OpenNebula frontend and if a token is available for update the 6G-Sandbox-Sites repository")
     msg(level="info", message="Checking OpenNebula health")
     check_one_health()
     msg(level="info", message="OpenNebula is healthy")
     sites_github_token = ask_text(
-        message="Introduce the token for the 6G-SANDBOX-Sites repository:",
+        message="Introduce the token for update the 6G-SANDBOX-Sites repository:",
         validate=lambda sites_github_token: (
             "Token is required" if not sites_github_token else
             True
@@ -126,8 +126,10 @@ try:
     # TODO: save sites ansible token, we can obtain it from custom_attrs oneflow or from the tnlcm vm
     oneuser_update_public_ssh_key(username=username, public_ssh_key=jenkins_ssh_key)
     msg(level="info", message=f"Public SSH key added to user {username}")
-    # TODO: minio resize service
-
+    msg(level="info", message=f"Resizing MinIO disk {get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_ID")} to {get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_SIZE")} GB")
+    minio_vm = get_oneflow_role_vm_name(oneflow_name=get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE"), oneflow_role=get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_ROLE"))
+    onevm_disk_resize(vm_name=minio_vm, disk_id=get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_ID"), size=get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_SIZE"))
+    msg(level="info", message=f"Disk {get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_ID")} resized to {get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_SIZE")} GB")
     # sites
 
     # msg(level="info", message="Toolkit installation process completed successfully")

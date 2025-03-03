@@ -22,30 +22,17 @@ def get_oned_conf_path() -> str:
     return os.path.join("/etc", "one", "oned.conf")
 
 ## ONEGATE MANAGEMENT ##
-# def get_onegate_endpoint() -> Dict:
-#     oned_conf_path = get_oned_conf_path()
-#     oned_conf = load_file(file_path=oned_conf_path)
-#     match = re.search(r"^\s*ONEGATE_ENDPOINT\s*=\s*\"([^\"]+)\"", oned_conf, re.MULTILINE)
-#     if match is None:
-#         msg("error", "Could not find ONEGATE_ENDPOINT in oned.conf")
-#     url = match.group(1)
-#     ip_match = re.search(r"(\d{1,3}(?:\.\d{1,3}){3})", url)
-#     if ip_match is None:
-#         msg("error", "Could not extract IP from ONEGATE_ENDPOINT")
-#     return ip_match.group(1)
-
-## RESIZE DISK ##
-# def resize_disk(vm_name: str, disk_id: int, size: int) -> None:
-#     """
-#     Resize the disk of a VM in OpenNebula
-
-#     :param vm_name: the name of the VM, ``str``
-#     :param disk_id: the id of the disk, ``int``
-#     :param size: the new size of the disk, ``int``
-#     """
-#     res = run_command(f"onevm disk-resize \"{vm_name}\" {disk_id} {size}G")
-#     if res["rc"] != 0:
-#         msg("error", res["stderr"])
+def get_onegate_endpoint() -> Dict:
+    oned_conf_path = get_oned_conf_path()
+    oned_conf = load_file(file_path=oned_conf_path)
+    match = re.search(r"^\s*ONEGATE_ENDPOINT\s*=\s*\"([^\"]+)\"", oned_conf, re.MULTILINE)
+    if match is None:
+        msg(level="error", message="ONEGATE_ENDPOINT key not found in oned.conf")
+    url = match.group(1)
+    ip_match = re.search(r"(\d{1,3}(?:\.\d{1,3}){3})", url)
+    if ip_match is None:
+        msg(level="error", message="IP address not found in ONEGATE_ENDPOINT key")
+    return ip_match.group(1)
 
 ## NETWORKS MANAGEMENT ##
 def onevnet_show(vnet_name: str) -> Dict | None:
@@ -163,45 +150,19 @@ def get_vm_user_template_param(vm_name: str, param: str) -> Dict:
         msg(level="error", message=f"Could not get value of parameter {param} in user template of VM {vm_name}")
     return value
 
-# def get_vms() -> dict:
-#     """
-#     Get the list of VMs in OpenNebula
+def onevm_disk_resize(vm_name: str, disk_id: int, size: int) -> None:
+    """
+    Resize the disk of a VM in OpenNebula
     
-#     :return: the list of VMs, ``dict``
-#     """
-#     res = run_command("onevm list -j")
-#     if res["rc"] != 0:
-#         msg("error", res["stderr"])
-#     return loads_json(data=res["stdout"])
-
-# def get_vm(vm_name: str) -> dict:
-#     """
-#     Get the details of a VM in OpenNebula
-    
-#     :param vm_name: the name of the VM, ``str``
-#     :return: the details of the VM, ``dict``
-#     """
-#     msg("info", f"Getting OpenNebula VM: {vm_name}")
-#     res = run_command(f"onevm show \"{vm_name}\" -j")
-#     if res["rc"] != 0:
-#         msg("info", "VM not found")
-#         return None
-#     msg("info", "VM found")
-#     return loads_json(data=res["stdout"])
-
-# def chown_vm(vm_id: int, username: str, group_name: str) -> None:
-#     """
-#     Change the owner of a VM in OpenNebula
-    
-#     :param vm_id: the id of the VM, ``int``
-#     :param username: the name of the user, ``str``
-#     :param group_name: the name of the group, ``str``
-#     """
-#     msg("info", f"Changing owner of OpenNebula VM {vm_id} to {username}:{group_name}")
-#     res = run_command(f"onevm chown {vm_id} \"{username}\" \"{group_name}\"")
-#     if res["rc"] != 0:
-#         msg("error", res["stderr"])
-#     msg("info", "Owner of VM changed")
+    :param vm_name: the name of the VM, ``str``
+    :param disk_id: the id of the disk, ``int``
+    :param size: the new size of the disk, ``int``
+    """
+    command = f"onevm disk-resize \"{vm_name}\" {disk_id} {size}G"
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(level="error", message=f"Could not resize disk of VM {vm_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
+    msg(level="debug", message=f"Disk of VM {vm_name} resized successfully. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
 
 def onevm_chown(vm_name: str, username: str, group_name: str) -> None:
     """
