@@ -7,9 +7,9 @@ from typing import Dict, List, Optional, Tuple
 
 from utils.cli import run_command
 from utils.file import load_file, loads_json, save_file
-from utils.questionary import ask_select
+from utils.questionary import ask_password, ask_select, ask_text
 from utils.logs import msg
-from utils.temp import save_temp_file
+from utils.temp import save_temp_file, save_temp_json_file
 
 ## CONFIG MANAGEMENT ##
 def get_oned_conf_path() -> str:
@@ -48,53 +48,121 @@ def get_oned_conf_path() -> str:
 #         msg("error", res["stderr"])
 
 ## NETWORKS MANAGEMENT ##
-# def get_vnets() -> dict:
-#     """
-#     Get the list of VNets in OpenNebula
+def onevnet_show(vnet_name: str) -> Dict | None:
+    """
+    Get the details of a vnet in OpenNebula
     
-#     :return: the list of VNets, ``dict``
-#     """
-#     res = run_command("onevnet list -j")
-#     if res["rc"] != 0:
-#         return None
-#     return loads_json(data=res["stdout"])
+    :param vnet_name: the name of the vnet, ``str``
+    :return: the details of the vnet, ``Dict``
+    """
+    command = f"onevnet show \"{vnet_name}\" -j"
+    stdout, _, rc = run_command(command=command)
+    if rc != 0:
+        msg(level="debug", message=f"Vnet {vnet_name} not found. Command executed: {command}")
+        return None
+    else:
+        msg(level="debug", message=f"Vnet {vnet_name} found. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
+        return loads_json(data=stdout)
 
-# def get_vnets_names() -> list:
-#     """
-#     Get the names of the VNets in OpenNebula
+def onevnet_list () -> Dict:
+    """
+    Get the list of VNets in OpenNebula
     
-#     :return: the names of the VNets, ``list``
-#     """
-#     vnets = get_vnets()
-#     if vnets is None:
-#         return None
-#     return [vnet["NAME"] for vnet in vnets["VNET_POOL"]["VNET"]]
+    :return: the list of vnets, ``Dict``
+    """
+    command = "onevnet list -j"
+    stdout, _, rc = run_command(command=command)
+    if rc != 0:
+        msg(level="error", message=f"Vnets not found. Create a vnet in OpenNebula before adding an appliance. Command executed: {command}")
+    else:
+        msg(level="debug", message=f"Vnets found. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
+        return loads_json(data=stdout)
 
-# def get_vnet(vnet_name: str) -> dict:
-#     """
-#     Get the details of a VNet in OpenNebula
+def get_vnets_names() -> List[str]:
+    """
+    Get the names of the vnets in OpenNebula
     
-#     :param vnet_name: the name of the VNet, ``str``
-#     :return: the details of the VNet, ``dict``
-#     """
-#     res = run_command(f"onevnet show \"{vnet_name}\" -j")
-#     if res["rc"] != 0:
-#         return None
-#     return loads_json(data=res["stdout"])
+    :return: the names of the vnets, ``List[str]``
+    """
+    vnets = onevnet_list()
+    vnets_names = []
+    if "VNET_POOL" not in vnets or "VNET" not in vnets["VNET_POOL"]:
+        msg(level="error", message="VNET_POOL key not found in vnets or VNET key not found in VNET_POOL")
+    for vnet in vnets["VNET_POOL"]["VNET"]:
+        if vnet is None:
+            msg(level="error", message="Vnet is empty")
+        if "NAME" not in vnet:
+            msg(level="error", message="NAME key not found in vnet")
+        vnets_names.append(vnet["NAME"])
+    return vnets_names
 
-# def get_vnet_id(vnet_name: str) -> int:
-#     """
-#     Get the ID of a VNet in OpenNebula
+def get_vnet_id(vnet_name: str) -> int:
+    """
+    Get the id of a vnet in OpenNebula
     
-#     :param vnet_name: the name of the VNet, ``str``
-#     :return: the id of the VNet, ``int``
-#     """
-#     vnet = get_vnet(vnet_name)
-#     if vnet is None:
-#         return None
-#     return int(vnet["VNET"]["ID"])
+    :param vnet_name: the name of the vnet, ``str``
+    :return: the id of the vnet, ``int``
+    """
+    vnet = onevnet_show(vnet_name=vnet_name)
+    if vnet is None:
+        msg(level="error", message=f"Vnet {vnet_name} not found")
+    if "VNET" not in vnet or "ID" not in vnet["VNET"]:
+        msg(level="error", message=f"VNET key not found in vnet {vnet_name} or ID key not found in VNET")
+    vnet_id = vnet["VNET"]["ID"]
+    if vnet_id is None:
+        msg(level="error", message=f"Could not get id of vnet {vnet_name}")
+    return vnet_id
 
 ## VM MANAGEMENT ##
+def onewm_show(vm_name: str) -> Dict | None:
+    """
+    Get the details of a VM in OpenNebula
+    
+    :param vm_name: the name of the VM, ``str``
+    :return: the details of the VM, ``Dict``
+    """
+    command = f"onevm show \"{vm_name}\" -j"
+    stdout, _, rc = run_command(command=command)
+    if rc != 0:
+        msg(level="debug", message=f"VM {vm_name} not found. Command executed: {command}")
+        return None
+    else:
+        msg(level="debug", message=f"VM {vm_name} found. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
+        return loads_json(data=stdout)
+
+def get_vm_user_template(vm_name: str) -> Dict:
+    """
+    Get the user template of a VM in OpenNebula
+    
+    :param vm_name: the name of the VM, ``str``
+    :return: the user template of the VM, ``Dict``
+    """
+    vm = onewm_show(vm_name=vm_name)
+    if vm is None:
+        msg(level="error", message=f"VM {vm_name} not found")
+    if "VM" not in vm or "USER_TEMPLATE" not in vm["VM"]:
+        msg(level="error", message=f"VM key not found in vm {vm_name} or USER_TEMPLATE key not found in VM")
+    user_template = vm["VM"]["USER_TEMPLATE"]
+    if user_template is None:
+        msg(level="error", message=f"Could not get user template of VM {vm_name}")
+    return user_template
+
+def get_vm_user_template_param(vm_name: str, param: str) -> Dict:
+    """
+    Get the value of a user template parameter of a VM in OpenNebula
+    
+    :param vm_name: the name of the VM, ``str``
+    :param param: the name of the parameter, ``str``
+    :return: the value of the parameter, ``Dict``
+    """
+    user_template = get_vm_user_template(vm_name=vm_name)
+    if param not in user_template:
+        msg(level="error", message=f"Parameter {param} not found in user template of VM {vm_name}")
+    value = user_template[param]
+    if value is None:
+        msg(level="error", message=f"Could not get value of parameter {param} in user template of VM {vm_name}")
+    return value
+
 # def get_vms() -> dict:
 #     """
 #     Get the list of VMs in OpenNebula
@@ -134,6 +202,20 @@ def get_oned_conf_path() -> str:
 #     if res["rc"] != 0:
 #         msg("error", res["stderr"])
 #     msg("info", "Owner of VM changed")
+
+def onevm_chown(vm_name: str, username: str, group_name: str) -> None:
+    """
+    Change the owner of a VM in OpenNebula
+    
+    :param vm_name: the name of the VM, ``str``
+    :param username: the name of the user, ``str``
+    :param group_name: the name of the group, ``str``
+    """
+    command = f"onevm chown \"{vm_name}\" \"{username}\" \"{group_name}\""
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(level="error", message=f"Could not change owner of VM {vm_name} to {username}:{group_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
+    msg(level="debug", message=f"Owner of VM {vm_name} changed to {username}:{group_name}. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
 
 # def get_vm_ip(vm_name: str) -> str:
 #     """
@@ -195,35 +277,131 @@ def get_datastores_names() -> List[str]:
 #         return None
 #     return loads_json(data=res["stdout"])
 
-# def oneflow_show(oneflow_name: str) -> Dict:
-#     """
-#     Get the details of a service instantiated in OpenNebula
+def oneflow_show(oneflow_name: str) -> Dict | None:
+    """
+    Get the details of a service in OpenNebula
     
-#     :param oneflow_name: the name of the service, ``str``
-#     :return: the details of the service, ``Dict``
-#     """
-#     command = f"oneflow show \"{oneflow_name}\" -j"
-#     stdout, _, rc = run_command(command=command)
-#     if rc != 0:
-#         msg(level="debug", message=f"Service {oneflow_name} not found. Command executed: {command}")
-#         return None
-#     else:
-#         msg(level="debug", message=f"Service {oneflow_name} found. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
-#         return loads_json(data=stdout)
+    :param oneflow_name: the name of the service, ``str``
+    :return: the details of the service, ``Dict``
+    """
+    command = f"oneflow show \"{oneflow_name}\" -j"
+    stdout, _, rc = run_command(command=command)
+    if rc != 0:
+        msg(level="debug", message=f"Service {oneflow_name} not found. Command executed: {command}")
+        return None
+    else:
+        msg(level="debug", message=f"Service {oneflow_name} found. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
+        return loads_json(data=stdout)
 
-# def get_oneflow_roles(oneflow_name: str) -> dict:
-#     """
-#     Get the roles of a service in OpenNebula
+def get_oneflow_roles(oneflow_name: str) -> List:
+    """
+    Get the roles of a service in OpenNebula
     
-#     :param oneflow_name: the name of the service, ``str``
-#     :return: the roles of the service, ``dict``
-#     """
-#     msg("info", f"Getting roles of OpenNebula service {oneflow_name}")
-#     oneflow = oneflow_show(oneflow_name)
-#     if oneflow is None:
-#         return None
-#     msg("info", "Roles found")
-#     return oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]["roles"]
+    :param oneflow_name: the name of the service, ``str``
+    :return: the roles of the service, ``List``
+    """
+    oneflow = oneflow_show(oneflow_name=oneflow_name)
+    if oneflow is None:
+        msg(level="error", message=f"Service {oneflow_name} not found")
+    if "DOCUMENT" not in oneflow or "TEMPLATE" not in oneflow["DOCUMENT"] or "BODY" not in oneflow["DOCUMENT"]["TEMPLATE"]:
+        msg(level="error", message=f"DOCUMENT key not found in service {oneflow_name} or TEMPLATE key not found in DOCUMENT or BODY key not found in TEMPLATE")
+    if "roles" not in oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]:
+        msg(level="error", message=f"roles key not found in service {oneflow_name}")
+    oneflow_roles = oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]["roles"]
+    if oneflow_roles is None:
+        msg(level="error", message=f"Could not get roles of service {oneflow_name}")
+    return oneflow_roles
+
+def get_oneflow_roles_vm_names(oneflow_name: str) -> List[str]:
+    """
+    Get the names of the roles of a service in OpenNebula
+    
+    :param oneflow_name: the name of the service, ``str``
+    :return: the names of the roles of the service, ``List[str]``
+    """
+    oneflow_roles = get_oneflow_roles(oneflow_name=oneflow_name)
+    oneflow_roles_vm_names = []
+    for role in oneflow_roles:
+        if "nodes" not in role:
+            msg(level="error", message="nodes key not found in role")
+        for node in role["nodes"]:
+            if "vm_info" not in node or "VM" not in node["vm_info"]:
+                msg(level="error", message="vm_info key not found in role or VM key not found in vm_info")
+            if "NAME" not in node["vm_info"]["VM"]:
+                msg(level="error", message="NAME key not found in role")
+            vm_name = node["vm_info"]["VM"]["NAME"]
+            oneflow_roles_vm_names.append(vm_name)
+    return oneflow_roles_vm_names
+
+def get_oneflow_role(oneflow_name: str, oneflow_role: str) -> Dict:
+    """
+    Get the details of a role in a service in OpenNebula
+    
+    :param oneflow_name: the name of the service, ``str``
+    :param oneflow_role: the name of the role, ``str``
+    :return: the details of the role, ``Dict``
+    """
+    roles = get_oneflow_roles(oneflow_name=oneflow_name)
+    for role in roles:
+        if "name" not in role:
+            msg(level="error", message="name key not found in role")
+        if role["name"] == oneflow_role:
+            return role
+    msg(level="error", message=f"Role {oneflow_role} not found in service {oneflow_name}")
+
+def get_oneflow_role_vm_name(oneflow_name: str, oneflow_role: str) -> str:
+    """
+    Get the name of a role in a service in OpenNebula
+    
+    :param oneflow_name: the name of the service, ``str``
+    :param oneflow_role: the name of the role, ``str``
+    :return: the name of the role, ``str``
+    """
+    role = get_oneflow_role(oneflow_name=oneflow_name, oneflow_role=oneflow_role)
+    if "nodes" not in role:
+        msg(level="error", message=f"nodes key not found in role {oneflow_role}")
+    for node in role["nodes"]:
+        if "vm_info" not in node or "VM" not in node["vm_info"]:
+            msg(level="error", message="vm_info key not found in role or VM key not found in vm_info")
+        if "NAME" not in node["vm_info"]["VM"]:
+            msg(level="error", message="NAME key not found in role")
+        return node["vm_info"]["VM"]["NAME"]
+
+def get_oneflow_state(oneflow_name: str) -> str:
+    """
+    Get the state of a service in OpenNebula
+    
+    :param oneflow_name: the name of the service, ``str``
+    :return: the state of the service, ``str``
+    """
+    oneflow = oneflow_show(oneflow_name=oneflow_name)
+    if oneflow is None:
+        msg(level="error", message=f"Service {oneflow_name} not found")
+    if "DOCUMENT" not in oneflow or "TEMPLATE" not in oneflow["DOCUMENT"] or "BODY" not in oneflow["DOCUMENT"]["TEMPLATE"]:
+        msg(level="error", message=f"DOCUMENT key not found in service {oneflow_name} or TEMPLATE key not found in DOCUMENT or BODY key not found in TEMPLATE")
+    if "state" not in oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]:
+        msg(level="error", message=f"state key not found in service {oneflow_name}")
+    oneflow_state = oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]["state"]
+    if oneflow_state is None:
+        msg(level="error", message=f"Could not get state of service {oneflow_name}")
+    return oneflow_state
+
+def get_oneflow_id(oneflow_name: str) -> int:
+    """
+    Get the id of a service in OpenNebula
+    
+    :param oneflow_name: the name of the service, ``str``
+    :return: the id of the service, ``int``
+    """
+    oneflow = oneflow_show(oneflow_name=oneflow_name)
+    if oneflow is None:
+        msg(level="error", message=f"Service {oneflow_name} not found")
+    if "DOCUMENT" not in oneflow or "ID" not in oneflow["DOCUMENT"]:
+        msg(level="error", message=f"DOCUMENT key not found in service {oneflow_name} or ID key not found in DOCUMENT")
+    oneflow_id = oneflow["DOCUMENT"]["ID"]
+    if oneflow_id is None:
+        msg(level="error", message=f"Could not get id of service {oneflow_name}")
+    return oneflow_id
 
 # def get_oneflow_custom_attrs_values(oneflow_name: str) -> dict:
 #     """
@@ -248,19 +426,19 @@ def get_datastores_names() -> List[str]:
 #     if res["rc"] != 0:
 #         msg("error", res["stderr"])
 
-# def chown_oneflow(oneflow_id: int, username: str, group_name: str) -> None:
-#     """
-#     Change the owner of a service in OpenNebula
+def oneflow_chown(oneflow_name: str, username: str, group_name: str) -> None:
+    """
+    Change the owner of a service in OpenNebula
     
-#     :param oneflow_id: the id of the service, ``int``
-#     :param user_id: the name of the user, ``str``
-#     :param group_id: the id of the group, ``str``
-#     """
-#     msg("info", f"Changing owner of OpenNebula service {oneflow_id} to {username}:{group_name}")
-#     res = run_command(f"oneflow chown {oneflow_id} \"{username}\" \"{group_name}\"")
-#     if res["rc"] != 0:
-#         msg("error", res["stderr"])
-#    msg("info", "Owner of service changed")
+    :param oneflow_name: the name of the service, ``str``
+    :param username: the name of the user, ``str``
+    :param group_name: the name of the group, ``str``
+    """
+    command = f"oneflow chown \"{oneflow_name}\" \"{username}\" \"{group_name}\""
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(level="error", message=f"Could not change owner of service {oneflow_name} to {username}:{group_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
+    msg(level="debug", message=f"Owner of service {oneflow_name} changed to {username}:{group_name}. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
 
 ## ONEFLOW TEMPLATE MANAGEMENT ##
 def oneflow_template_show(oneflow_template_name: str) -> Dict | None:
@@ -344,34 +522,162 @@ def get_oneflow_template_custom_attrs(oneflow_template_name: str) -> Dict | None
         return None
     return custom_attrs
 
-# def get_oneflow_template_networks(oneflow_template_name: str) -> dict:
-#     """
-#     Get the networks of a service in OpenNebula
+def get_oneflow_template_networks(oneflow_template_name: str) -> Dict | None:
+    """
+    Get the networks of a service in OpenNebula
     
-#     :param oneflow_template_name: the name of the service, ``str``
-#     :return: the networks of the service, ``dict``
-#     """
-#     msg("info", f"Getting networks of OpenNebula service {oneflow_template_name}")
-#     oneflow_template = get_oneflow_template(oneflow_template_name)
-#     if oneflow_template is None:
-#         return None
-#     networks = oneflow_template["DOCUMENT"]["TEMPLATE"]["BODY"]["networks"]
-#     msg("info", "Networks found")
-#     return networks
+    :param oneflow_template_name: the name of the service, ``str``
+    :return: the networks of the service, ``Dict``
+    """
+    oneflow_template = oneflow_template_show(oneflow_template_name=oneflow_template_name)
+    if oneflow_template is None:
+        msg(level="error", message=f"Service {oneflow_template_name} not found")
+    if "DOCUMENT" not in oneflow_template or "TEMPLATE" not in oneflow_template["DOCUMENT"] or "BODY" not in oneflow_template["DOCUMENT"]["TEMPLATE"]:
+        msg(level="error", message=f"DOCUMENT key not found in service {oneflow_template_name} or TEMPLATE key not found in DOCUMENT or BODY key not found in TEMPLATE")
+    if "networks" not in oneflow_template["DOCUMENT"]["TEMPLATE"]["BODY"]:
+        msg(level="error", message=f"networks key not found in service {oneflow_template_name}")
+    networks = oneflow_template["DOCUMENT"]["TEMPLATE"]["BODY"]["networks"]
+    if networks is None:
+        return None
+    return networks
 
-# def instantiate_oneflow_template(oneflow_template_name: str, file_path: str) -> None:
-#     """
-#     Instantiate a service in OpenNebula
+def split_attr_description(attr_description: str) -> Tuple[str, str, str, str]:
+    """
+    Split the custom attribute string from the OneFlow template
     
-#     :param oneflow_template_id: the id of the service, ``int``
-#     :param file_path: the path to the file with params, ``str``
-#     """
-#     msg("info", f"Instantiating OpenNebula service {oneflow_template_name}")
-#     res = run_command(f"oneflow-template instantiate \"{oneflow_template_name}\" < {file_path}")
-#     if res["rc"] != 0:
-#         msg("error", res["stderr"])
-#     msg("info", "Service instantiated")
-#     return int(re.search(r"ID:\s*(\d+)", res["stdout"]).group(1))
+    :param attr_description: the custom attribute string, ``str``
+    :return: the parsed custom attribute as a tuple (field_type, input_type, description, default_value), ``Tuple[str, str, str, str]
+    """
+    parts = attr_description.split("|")
+    field_type = parts[0]
+    input_type = parts[1]
+    description = parts[2]
+    default_value = ""
+    if "||" in attr_description:
+        default_start_index = attr_description.index("||") + 2
+        default_value = attr_description[default_start_index:].strip()
+    return field_type, input_type, description, default_value
+
+def oneflow_template_instantiate(oneflow_template_name: str, username: str, group_name: str) -> None:
+    """
+    Instantiate a service in OpenNebula
+    
+    :param oneflow_template_id: the id of the service, ``int``
+    :param username: the name of the user, ``str``
+    :param group_name: the name of the group, ``str``
+    """
+    oneflow = oneflow_show(oneflow_name=oneflow_template_name)
+    if oneflow is None:
+        custom_attrs = get_oneflow_template_custom_attrs(oneflow_template_name=oneflow_template_name)
+        data = {}
+        custom_attrs_values = {}
+        if custom_attrs:
+            attrs = {}
+            for attr_key, attr_description in custom_attrs.items():
+                field_type, input_type, description, default_value = split_attr_description(attr_description=attr_description)
+                description = description + ":"
+                if field_type == "O":
+                    if input_type == "boolean":
+                        attr_value = ask_select(
+                            message=description,
+                            choices=["YES", "NO"]
+                        )
+                        attrs[attr_key] = attr_value
+                    elif input_type == "text" or input_type == "text64":
+                        attr_value = ask_text(
+                            message=description,
+                            default=default_value
+                        )
+                        attrs[attr_key] = attr_value
+                    elif input_type == "password":
+                        attr_value = ask_password(
+                            message=description,
+                            default=default_value
+                        )
+                        attrs[attr_key] = attr_value
+                    else:
+                        msg(level="error", message=f"Error instantiating service {oneflow_template_name}. Input type {input_type} not supported for custom attribute {attr_key}")
+                elif field_type == "M":
+                    if input_type == "boolean":
+                        attr_value = ask_select(
+                            message=description,
+                            choices=["YES", "NO"],
+                            default=default_value
+                        )
+                        attrs[attr_key] = attr_value
+                    elif input_type == "text" or input_type == "text64":
+                        attr_value = ask_text(
+                            message=description,
+                            default=default_value,
+                            validate=lambda attr_value: (
+                                "Value must not be empty" if not attr_value else
+                                True
+                            )
+                        )
+                        attrs[attr_key] = attr_value
+                    elif input_type == "password":
+                        attr_value = ask_password(
+                            message=description,
+                            default=default_value,
+                            validate=lambda attr_value: (
+                                "Value must not be empty" if not attr_value else
+                                True
+                            )
+                        )
+                        attrs[attr_key] = attr_value
+                    else:
+                        msg(level="error", message=f"Error instantiating service {oneflow_template_name}. Input type {input_type} not supported for custom attribute {attr_key}")
+                else:
+                    msg(level="error", message=f"Error instantiating service {oneflow_template_name}. Field type {field_type} not supported for custom attribute {attr_key}")
+            custom_attrs_values["custom_attrs_values"] = attrs
+        networks = get_oneflow_template_networks(oneflow_template_name=oneflow_template_name)
+        networks_values = {}
+        networks_values_list = []
+        if networks:
+            nets = {}
+            for network_key, network_description in networks.items():
+                field_type, input_type, description, default_value = split_attr_description(attr_description=network_description)
+                if field_type == "M":
+                    if input_type == "network":
+                        network_name = ask_select(
+                            message=description,
+                            choices=get_vnets_names()
+                        )
+                        network_id = get_vnet_id(vnet_name=network_name)
+                        nets[network_key] = {"id": str(network_id)}
+                        networks_values_list.append(nets)
+                    else:
+                        msg(level="error", message=f"Error instantiating service {oneflow_template_name}. Input type {input_type} not supported for network")
+                else:
+                    msg(level="error", message=f"Error instantiating service {oneflow_template_name}. Field type {field_type} not supported for network")
+            networks_values["networks_values"] = networks_values_list
+        if custom_attrs_values:
+            data.update(custom_attrs_values)
+        if networks_values:
+            data.update(networks_values)
+        if data:
+            custom_attrs_path = save_temp_json_file(data=data, file_name=f"{oneflow_template_name}_service_custom_attrs.json")
+            command = f"oneflow-template instantiate \"{oneflow_template_name}\" < \"{custom_attrs_path}\""
+        else:
+            command = f"oneflow-template instantiate \"{oneflow_template_name}\""
+        stdout, stderr, rc = run_command(command=command)
+        if rc != 0:
+            msg(level="error", message=f"Could not instantiate service {oneflow_template_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
+        msg(level="debug", message=f"Service {oneflow_template_name} instantiated. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
+        sleep(5)
+        oneflow_id = int(re.search(r"ID:\s*(\d+)", stdout).group(1))
+        oneflow_state = get_oneflow_state(oneflow_name=oneflow_template_name)
+        while oneflow_state != "2":
+            sleep(10)
+            oneflow_state = get_oneflow_state(oneflow_name=oneflow_template_name)
+    else:
+        oneflow_id = get_oneflow_id(oneflow_name=oneflow_template_name)
+    oneflow_chown(oneflow_name=oneflow_template_name, username=username, group_name=group_name)
+    oneflow_roles_vm_names = get_oneflow_roles_vm_names(oneflow_name=oneflow_template_name)
+    if oneflow_roles_vm_names:
+        for vm_name in oneflow_roles_vm_names:
+            onevm_chown(vm_name=vm_name, username=username, group_name=group_name)
+    return oneflow_id
 
 # def update_oneflow_template(oneflow_template_name: str, file_path: str) -> None:
 #     """
@@ -564,8 +870,6 @@ def check_group_acl(group_id: str, resources: str, rights: str) -> bool:
         if "STRING" not in acl:
             msg(level="error", message="STRING key not found in acl")
         acl_string = f"@{group_id} {resources} {rights}"
-        print(acl_string)
-        print(acl["STRING"])
         if acl_string == acl["STRING"]:
             return True
     return False
@@ -720,18 +1024,43 @@ def oneuser_chgrp(username: str, group_name: str) -> None:
         msg(level="error", message=f"Could not assign user {username} to group {group_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
     msg(level="debug", message=f"User {username} assigned to group {group_name}. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
 
-def oneuser_update_ssh_key(username: str, ssh_key: str) -> None:
+def get_user_public_ssh_keys(username: str) -> List[str]:
+    """
+    Get the public SSH keys of an user in OpenNebula
+
+    :param username: the name of the user, ``str``
+    :return: the public SSH keys of the user, ``List[str]``
+    """
+    user = oneuser_show(username=username)
+    if user is None:
+        msg(level="error", message=f"User {username} not found")
+    if "USER" not in user or "TEMPLATE" not in user["USER"]:
+        msg(level="error", message=f"USER key not found in user {username} or TEMPLATE key not found in USER")
+    if "SSH_PUBLIC_KEY" not in user["USER"]["TEMPLATE"]:
+        return ""
+    public_ssh_keys = user["USER"]["TEMPLATE"]["SSH_PUBLIC_KEY"]
+    if public_ssh_keys is None:
+        return ""
+    return public_ssh_keys.split("\n")
+
+def oneuser_update_public_ssh_key(username: str, public_ssh_key: str) -> None:
     """
     Update the SSH key of an user in OpenNebula
     
     :param username: the name of the user, ``str``
-    :param jenkins_ssh_key: the SSH key, ``str``
+    :param public_ssh_key: the public SSH key, ``str``
     """
-    command = f"echo \'SSH_PUBLIC_KEY=\"{ssh_key}\"\' | oneuser update \"{username}\" --append"
-    stdout, stderr, rc = run_command(command=command)
-    if rc != 0:
-        msg(level="error", message=f"Could not update SSH key of user {username} to {ssh_key}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
-    msg(level="debug", message=f"SSH key of user {username} updated to {ssh_key}. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
+    public_ssh_keys = get_user_public_ssh_keys(username=username)
+    if public_ssh_key not in public_ssh_keys:
+        all_public_ssh_keys = "\n".join(public_ssh_keys)
+        all_public_ssh_keys += f"\n{public_ssh_key}"
+        command = f"echo \'SSH_PUBLIC_KEY=\"{all_public_ssh_keys}\"\' | oneuser update \"{username}\" --append"
+        stdout, stderr, rc = run_command(command=command)
+        if rc != 0:
+            msg(level="error", message=f"Could not update SSH key of user {username} to {public_ssh_key}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
+        msg(level="debug", message=f"SSH key of user {username} updated to {public_ssh_key}. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
+    else:
+        msg(level="debug", message=f"User {username} already has SSH key {public_ssh_key}")
 
 ## TEMPLATE MANAGEMENT ##
 def onetemplate_show(template_name: Optional[str] = None, template_id: Optional[int] = None) -> Dict | None:
@@ -1050,7 +1379,7 @@ def onemarket_create(
             ENDPOINT = "{marketplace_endpoint}"
             MARKET_MAD = one
         """).strip()
-        marketplace_content_path = save_temp_file(data=marketplace_content, file_path=f"{marketplace_name}_content")
+        marketplace_content_path = save_temp_file(data=marketplace_content, file_name=f"{marketplace_name}_marketplace_content")
         command = f"onemarket create {marketplace_content_path}"
         stdout, stderr, rc = run_command(command=command)
         if rc != 0:
