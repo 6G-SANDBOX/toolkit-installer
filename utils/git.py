@@ -140,6 +140,5 @@ def git_validate_token(github_token: str) -> None:
     command = f"curl -s -o /dev/null -w \"%{{http_code}}\" -H \"Authorization: token {github_token}\" -H \"Accept: application/vnd.github.v3+json\" https://api.github.com/user"
     stdout, stderr, rc = run_command(command)
     if rc != 0 or stdout.strip() != "200":
-        msg(level="error", message=f"Failed to validate the GitHub token. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
-    
-    msg(level="debug", message=f"GitHub token validated successfully. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
+        msg(level="error", message=f"Invalid GitHub token. Command executed: {command}. Return code: {rc}")
+    msg(level="debug", message=f"GitHub token validated successfully. Command executed: {command}. Return code: {rc}")
