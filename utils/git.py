@@ -2,6 +2,7 @@ from typing import List
 
 from utils.cli import run_command
 from utils.logs import msg
+from utils.os import check_exist_directory, remove_directory
 
 def get_current_branch(path: str) -> str:
     """
@@ -51,17 +52,30 @@ def get_remotes_branches(path: str) -> List[str]:
         branches.append(line.replace("origin/", ""))
     return branches
 
-def git_clone(https_url: str, path: str) -> None:
+def git_clone(https_url: str, path: str, token: str = None) -> None:
     """
     Clone a GitHub repository to the specified path
 
     :param https_url: the URL of the GitHub repository, ``str``
     :param path: the local path to clone the repository into, ``str``
+    :param token: the token to access the repository, ``str``
     """
-    command = f"git clone {https_url} {path}"
-    stdout, stderr, rc = run_command(command)
-    if rc != 0:
-        msg(level="error", message=f"Failed to clone the GitHub repository at {https_url} to the path {path}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
+    if token:
+        remove_directory(path=path)
+        https_url = https_url.replace("https://", f"https://{token}@")
+        command = f"git clone {https_url} {path}"
+        command = f"git clone {https_url} {path}"
+        stdout, stderr, rc = run_command(command)
+        if rc != 0:
+            msg(level="error", message=f"Failed to clone the GitHub repository at {https_url} to the path {path}. Invalid token provided. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
+    else:
+        if check_exist_directory(path=path):
+            msg(level="warning", message=f"Directory {path} already exists. Skipping cloning the GitHub repository at {https_url}")
+        else:
+            command = f"git clone {https_url} {path}"
+            stdout, stderr, rc = run_command(command)
+            if rc != 0:
+                msg(level="error", message=f"Failed to clone the GitHub repository at {https_url} to the path {path}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
     msg(level="debug", message=f"GitHub repository at {https_url} cloned to the path {path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
 
 def git_switch(path: str, branch: str = None, tag: str = None, commit: str = None) -> None:
