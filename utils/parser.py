@@ -45,3 +45,12 @@ def ansible_encrypt(data_path: str, token_path: str) -> None:
     if rc != 0:
         msg(level="error", message=f"Error encrypting file: {data_path}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
     msg(level="debug", message=f"File encrypted successfully: {data_path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
+
+def gb_to_mb(gb: int) -> int:
+    """
+    Convert gigabytes to megabytes
+
+    :param gb: the value in gigabytes, ``int``
+    :return: the value in megabytes, ``int``
+    """
+    return gb * 1024
