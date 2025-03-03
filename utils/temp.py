@@ -1,17 +1,31 @@
 import json
 import os
 
-from utils.logs import msg
-
 TEMP_DIRECTORY = os.path.join(os.getcwd(), ".temp")
+
+def check_exist_directory(path: str) -> bool:
+    """
+    Check if the directory exists in temporary
+    
+    :param path: the path to the directory, ``str``
+    :return: whether the directory exists, ``bool``
+    """
+    return os.path.exists(os.path.join(TEMP_DIRECTORY, path))
+
+def check_exist_temp_directory() -> bool:
+    """
+    Check if the temporary directory exists
+    
+    :return: whether the temporary directory exists, ``bool``
+    """
+    return os.path.exists(TEMP_DIRECTORY)
 
 def create_temp_directory() -> None:
     """
     Create temporary directory if it not exist
     """
-    if not os.path.exists(path=TEMP_DIRECTORY):
+    if not check_exist_temp_directory():
         os.makedirs(name=TEMP_DIRECTORY)
-    msg(level="info", message=f"Temporary directory created in path: {TEMP_DIRECTORY}")
 
 # def load_temp_file(file_path: str, mode: str, encoding: str) -> str:
 #     """
@@ -69,18 +83,17 @@ def save_temp_json_file(data, file_name: str, mode: str = "wt", encoding: str = 
         json.dump(data, file, indent=4)
     return file_path
 
-# def save_temp_directory(directory_path: str) -> str:
-#     """
-#     Save the given directory to a temporary directory
+def save_temp_directory(directory_path: str) -> str:
+    """
+    Save the given directory to a temporary directory
     
-#     :param directory_path: the path to the directory to be saved, ``str``
-#     :return: the path to the directory where the data was saved, ``str``
-#     """
-#     temp_directory = os.path.join(TEMP_DIRECTORY, directory_path)
-#     if os.path.exists(temp_directory):
-#         shutil.rmtree(temp_directory)
-#     os.makedirs(temp_directory, exist_ok=True)
-#     return temp_directory
+    :param directory_path: the path to the directory to be saved, ``str``
+    :return: the path to the directory where the data was saved, ``str``
+    """
+    temp_directory = os.path.join(TEMP_DIRECTORY, directory_path)
+    if not os.path.exists(temp_directory):
+        os.makedirs(temp_directory)
+    return temp_directory
 
 # def temp_path(file_path: str) -> str:
 #     """
