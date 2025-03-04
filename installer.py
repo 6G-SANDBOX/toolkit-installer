@@ -2,12 +2,15 @@ from utils.file import load_dotenv_file, get_pyproject_toml_version
 from utils.git import git_team_access, git_validate_token
 from utils.logs import msg, setup_logger
 from utils.one import (
-    check_one_health, get_onegroup_id, get_onegroups_names, 
-    get_oneflow_custom_attr_value, get_oneflow_role_vm_name, 
-    get_oneusernames, get_oneusername_id, get_onevm_user_template_param, 
-    oneacl_create, oneflow_template_instantiate, onegroup_addadmin, 
-    onegroup_create, onemarket_create, oneuser_chgrp, oneuser_create, 
-    oneuser_update_public_ssh_key, onemarketapp_add, onevm_disk_resize
+    check_one_health,
+    oneacl_create,
+    oneflow_custom_attr_value, oneflow_role_vm_name,
+    oneflow_template_instantiate,
+    onegroup_addadmin, onegroup_create, onegroup_id, onegroups_names,
+    onemarket_create,
+    onemarketapp_add,
+    oneuser_chgrp, oneuser_create, oneuser_update_public_ssh_key, oneusername_id, oneusernames,
+    onevm_disk_resize, onevm_user_template_param
 )
 from utils.os import get_dotenv_var
 from utils.parser import decode_base64
@@ -37,7 +40,7 @@ try:
     toolkit_service_jenkins_role = get_dotenv_var(key="TOOLKIT_SERVICE_JENKINS_ROLE")
     toolkit_service_jenkins_ssh_key_param = get_dotenv_var(key="TOOLKIT_SERVICE_JENKINS_SSH_KEY_PARAM")
     toolkit_service_minio_disk_id = get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_ID")
-    toolkit_service_minio_disk_size = get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_SIZE")
+    toolkit_service_minio_disk_size = int(get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_SIZE"))
     github_organization_name = get_dotenv_var(key="GITHUB_ORGANIZATION_NAME")
     github_sites_team_name = get_dotenv_var(key="GITHUB_SITES_TEAM_NAME")
     github_members_token_encode = get_dotenv_var(key="GITHUB_MEMBERS_TOKEN")
@@ -56,7 +59,7 @@ try:
             "This script automates the installation of the MinIO, Jenkins and TNLCM stack in OpenNebula using the toolkit service. "
             "The script will guide you through the installation process. "
             f"Please read the official documentation https://6g-sandbox.github.io/docs/{toolkit_installer_version}/toolkit-installer/installation and follow the instructions carefully. "
-            "It is very important to complete all the requirements indicated in the documentation before running this script "
+            "It is very important to complete all the requirements indicated in the documentation before running this script"
         )
     )
 
@@ -72,7 +75,7 @@ try:
             "Proceed to validate: \n "
             "1) if the script is running in the OpenNebula frontend \n "
             f"2) if the user executing the script is a member of the {github_sites_team_name} which is a team defined in the {github_organization_name} organization: https://github.com/orgs/{github_organization_name}/teams/{github_sites_team_name} \n "
-            f"3) if the user executing the script has a token with access to the {sites_repository_name} which is a repository defined in the {github_organization_name} organization: https://github.com/{github_organization_name}/{sites_repository_name} "
+            f"3) if the user executing the script has a token with access to the {sites_repository_name} which is a repository defined in the {github_organization_name} organization: https://github.com/{github_organization_name}/{sites_repository_name}"
         )
     )
     msg(level="info", message="Checking OpenNebula health")
@@ -115,7 +118,7 @@ try:
     msg(level="info", message="Token validated successfully")
 
     # user
-    usernames = get_oneusernames()
+    usernames = oneusernames()
     msg(
         level="info",
         message="User in OpenNebula is required to manage the trial networks deployed in 6G-SANDBOX. We recommend to create a new user for this purpose"
@@ -142,11 +145,11 @@ try:
         username_id = oneuser_create(username=username, password=password)
         msg(level="info", message=f"User {username} created successfully")
     else:
-        username_id = get_oneusername_id(username=username)
+        username_id = oneusername_id(username=username)
         msg(level="info", message=f"User {username} already exists in OpenNebula")
     
     # group
-    groups_names = get_onegroups_names()
+    groups_names = onegroups_names()
     msg(
         level="info",
         message="Group in OpenNebula is required to manage the trial networks deployed in 6G-SANDBOX. We recommend to create a new group for this purpose"
@@ -167,7 +170,7 @@ try:
         group_id = onegroup_create(group_name=group_name)
         msg(level="info", message=f"Group {group_name} created successfully")
     else:
-        group_id = get_onegroup_id(group_name=group_name)
+        group_id = onegroup_id(group_name=group_name)
         msg(level="info", message=f"Group {group_name} already exists in OpenNebula")
     
     # permissions
@@ -222,15 +225,15 @@ try:
             "The public SSH key is stored in the user template of the Jenkins virtual machine."
             )
     )
-    jenkins_vm = get_oneflow_role_vm_name(
+    jenkins_vm = oneflow_role_vm_name(
         oneflow_name=marketapp_toolkit_service,
         oneflow_role=toolkit_service_jenkins_role
     )
-    jenkins_ssh_key = get_onevm_user_template_param(
+    jenkins_ssh_key = onevm_user_template_param(
         vm_name=jenkins_vm,
         param=toolkit_service_jenkins_ssh_key_param
     )
-    sites_ansible_token = get_oneflow_custom_attr_value(
+    sites_ansible_token = oneflow_custom_attr_value(
         oneflow_name=marketapp_toolkit_service,
         attr_key=toolkit_service_sites_ansible_token
     )
@@ -240,14 +243,14 @@ try:
         level="info",
         message=f"Resizing MinIO disk {toolkit_service_minio_disk_id} to {toolkit_service_minio_disk_size} GB"
     )
-    minio_vm = get_oneflow_role_vm_name(
+    minio_vm = oneflow_role_vm_name(
         oneflow_name=marketapp_toolkit_service,
         oneflow_role=toolkit_service_minio_role
     )
     onevm_disk_resize(
         vm_name=minio_vm,
         disk_id=toolkit_service_minio_disk_id,
-        size=int(toolkit_service_minio_disk_size)
+        size=toolkit_service_minio_disk_size
     )
     msg(
         level="info",
@@ -255,7 +258,6 @@ try:
     )
 
     # sites
-
 
     # msg(level="info", message="Toolkit installation process completed successfully")
 
