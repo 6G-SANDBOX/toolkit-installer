@@ -1,7 +1,14 @@
 from utils.file import load_dotenv_file
 from utils.git import git_team_access, git_validate_token
 from utils.logs import msg, setup_logger
-from utils.one import check_one_health, get_onegroup_id, get_onegroups_names, get_oneflow_custom_attr_value, get_oneflow_role_vm_name, get_oneusernames, get_oneusername_id, get_onevm_user_template_param, oneacl_create, oneflow_template_instantiate, onegroup_addadmin, onegroup_create, onemarket_create, oneuser_chgrp, oneuser_create, oneuser_update_public_ssh_key, onemarketapp_add, onevm_disk_resize
+from utils.one import (
+    check_one_health, get_onegroup_id, get_onegroups_names, 
+    get_oneflow_custom_attr_value, get_oneflow_role_vm_name, 
+    get_oneusernames, get_oneusername_id, get_onevm_user_template_param, 
+    oneacl_create, oneflow_template_instantiate, onegroup_addadmin, 
+    onegroup_create, onemarket_create, oneuser_chgrp, oneuser_create, 
+    oneuser_update_public_ssh_key, onemarketapp_add, onevm_disk_resize
+)
 from utils.os import get_dotenv_var
 from utils.questionary import ask_password, ask_select, ask_text
 from utils.temp import create_temp_directory, save_temp_directory, TEMP_DIRECTORY
@@ -10,8 +17,18 @@ try:
 
     load_dotenv_file()
     setup_logger()
-    msg(level="info", message="Proceeding to install the toolkit in OpenNebula")
-    msg(level="info", message="Toolkit installer is a Python script developed for the 6G-SANDBOX project, designed to facilitate the creation of new 6G-SANDBOX sites. This script automates the installation of the MinIO, Jenkins and TNLCM stack in OpenNebula using the toolkit service. The script will guide you through the installation process. Please follow the instructions carefully")
+    msg(
+        level="info",
+        message="Proceeding to install the toolkit in OpenNebula"
+    )
+    msg(
+        level="info",
+        message=(
+            "Toolkit installer is a Python script developed for the 6G-SANDBOX project, designed to facilitate the creation of new 6G-SANDBOX sites. "
+            "This script automates the installation of the MinIO, Jenkins and TNLCM stack in OpenNebula using the toolkit service. "
+            "The script will guide you through the installation process. Please follow the instructions carefully"
+        )
+    )
 
     # temporary directory
     msg(level="info", message="Creating temporary directory")
@@ -19,44 +36,62 @@ try:
     msg(level="info", message=f"Temporary directory created in path: {TEMP_DIRECTORY}")
 
     # validation
+    github_team_name = get_dotenv_var(key="GITHUB_SITES_TEAM_NAME")
+    github_organization_name = get_dotenv_var(key="GITHUB_ORGANIZATION_NAME")
+    sites_repository_name = get_dotenv_var(key="SITES_REPOSITORY_NAME")
     msg(
         level="info",
-        message="As mentioned in the documentation: https://6g-sandbox.github.io/docs/toolkit-installer/installation, proceed to validate: \n "
-            "1) If the script is running in the OpenNebula frontend \n "
-            "2) If the user executing the script is a member of the 6g-sandbox-sites-contributors team: https://github.com/orgs/6G-SANDBOX/teams/6gsandbox-sites-contributors \n "
-            "3) If the user executing the script has a token with access to the 6G-SANDBOX-Sites repository: https://github.com/6G-SANDBOX/6G-Sandbox-Sites "
+        message=(
+            "As mentioned in the official documentation https://6g-sandbox.github.io/docs/toolkit-installer/installation, proceed to validate: \n "
+            "1) if the script is running in the OpenNebula frontend \n "
+            f"2) if the user executing the script is a member of the {github_team_name} which is a team defined in the {github_organization_name} organization: https://github.com/orgs/{github_organization_name}/teams/{github_team_name} \n "
+            f"3) if the user executing the script has a token with access to the {sites_repository_name} which is a repository defined in the {github_organization_name} organization: https://github.com/{github_organization_name}/{sites_repository_name} "
+        )
     )
     msg(level="info", message="Checking OpenNebula health")
     check_one_health()
     msg(level="info", message="OpenNebula is healthy")
     github_username = ask_text(
-        message="Introduce the username that has been given access to the 6g-sandbox-sites-contributors team:",
+        message=f"Introduce the username that has been given access to the team {github_team_name} in the organization {github_organization_name}:",
         validate=lambda github_username: (
             "Username is required" if not github_username else
             True
         )
     )
-    github_organization_name = get_dotenv_var(key="GITHUB_ORGANIZATION_NAME")
-    github_team_name = get_dotenv_var(key="GITHUB_SITES_TEAM_NAME")
-    msg(level="info", message=f"Validating if user {github_username} has access to the team {github_team_name} in the organization {github_organization_name}")
-    git_team_access(github_token=get_dotenv_var(key="GITHUB_MEMBERS_TOKEN"), github_organization_name=github_organization_name, github_team_name=github_team_name, github_username=github_username)
-    msg(level="info", message=f"User {github_username} has access to the team {github_team_name} in the organization {github_organization_name}")
-
+    msg(
+        level="info",
+        message=f"Validating if user {github_username} has access to the team {github_team_name} in the organization {github_organization_name}"
+    )
+    git_team_access(
+        github_token=get_dotenv_var(key="GITHUB_MEMBERS_TOKEN"),
+        github_organization_name=github_organization_name,
+        github_team_name=github_team_name, github_username=github_username
+    )
+    msg(
+        level="info",
+        message=f"User {github_username} has access to the team {github_team_name} in the organization {github_organization_name}"
+    )
     sites_github_token = ask_text(
-        message="Introduce the token for the 6G-SANDBOX-Sites repository:",
+        message=f"Introduce the personal access token of the user {github_username} with access to the {sites_repository_name} repository:",
         validate=lambda sites_github_token: (
             "Token is required" if not sites_github_token else
             True
         )
     )
-    msg(level="info", message="Validating if the token provided has access to the 6G-SANDBOX-Sites repository")
-    sites_path = save_temp_directory(path=get_dotenv_var(key="SITES_REPOSITORY_NAME"))
-    git_validate_token(https_url=get_dotenv_var(key="SITES_HTTPS_URL"), path=get_dotenv_var(key="SITES_REPOSITORY_NAME"), token=sites_github_token)
+    msg(
+        level="info",
+        message=f"Validating if the personal access token of the user {github_username} with access to the {sites_repository_name} repository is correct"
+    )
+    sites_path = save_temp_directory(path=sites_repository_name)
+    git_validate_token(https_url=get_dotenv_var(key="SITES_HTTPS_URL"), path=sites_path, token=sites_github_token)
     msg(level="info", message="Token validated successfully")
 
     # user
     usernames = get_oneusernames()
-    msg(level="info", message="User in OpenNebula is required to manage the trial networks deployed in 6G-SANDBOX. We recommend to create a new user for this purpose")
+    msg(
+        level="info",
+        message="User in OpenNebula is required to manage the trial networks deployed in 6G-SANDBOX. We recommend to create a new user for this purpose"
+    )
     username = ask_select(
         message="Select an existing OpenNebula username or create a new one",
         choices=["Create new user"] + usernames
@@ -64,7 +99,6 @@ try:
     if username == "Create new user":
         username = ask_text(
             message="Introduce new OpenNebula username:",
-            default="",
             validate=lambda username: (
                 "Username must be at least 8 characters long" if len(username) < 8 else
                 "Username already exists" if username in usernames else
@@ -81,11 +115,14 @@ try:
         msg(level="info", message=f"User {username} created successfully")
     else:
         username_id = get_oneusername_id(username=username)
-        msg(level="info", message=f"User {username} already exists")
+        msg(level="info", message=f"User {username} already exists in OpenNebula")
     
     # group
     groups_names = get_onegroups_names()
-    msg(level="info", message="Group in OpenNebula is required to manage the trial networks deployed in 6G-SANDBOX. We recommend to create a new group for this purpose")
+    msg(
+        level="info",
+        message="Group in OpenNebula is required to manage the trial networks deployed in 6G-SANDBOX. We recommend to create a new group for this purpose"
+    )
     group_name = ask_select(
         message="Select an existing OpenNebula group name or create a new one",
         choices=["Create new group"] + groups_names
@@ -93,7 +130,6 @@ try:
     if group_name == "Create new group":
         group_name = ask_text(
             message="Introduce new OpenNebula group name:",
-            default="",
             validate=lambda group_name: (
                 "Group name must be at least 8 characters long" if len(group_name) < 8 else
                 "Group name already exists" if group_name in groups_names else
@@ -104,7 +140,7 @@ try:
         msg(level="info", message=f"Group {group_name} created successfully")
     else:
         group_id = get_onegroup_id(group_name=group_name)
-        msg(level="info", message=f"Group {group_name} already exists")
+        msg(level="info", message=f"Group {group_name} already exists in OpenNebula")
     
     # permissions
     oneuser_chgrp(username=username, group_name=group_name)
@@ -139,19 +175,51 @@ try:
     msg(level="info", message=f"Appliance {get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE")} added")
     
     # toolkit service
-    msg(level="info", message=f"Proceeding to instantiate the service {get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE")} in OpenNebula. The service automates the deployment of the MinIO, Jenkins and TNLCM virtual machines in OpenNebula")
+    msg(
+        level="info",
+        message=f"Proceeding to instantiate the service {get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE")} in OpenNebula. The service automates the deployment of the MinIO, Jenkins and TNLCM virtual machines in OpenNebula"
+    )
     _ = oneflow_template_instantiate(oneflow_template_name=get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE"), username=username, group_name=group_name)
     msg(level="info", message=f"Service {get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE")} instantiated successfully")
-    msg(level="info", message=f"Adding Jenkins public SSH key to user {username}. The public SSH key generated by the Jenkins virtual machine needs to be added to the user {username} in order to deploy trial networks. The public SSH key is stored in the user template of the Jenkins virtual machine")
-    jenkins_vm = get_oneflow_role_vm_name(oneflow_name=get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE"), oneflow_role=get_dotenv_var(key="TOOLKIT_SERVICE_JENKINS_ROLE"))
-    jenkins_ssh_key = get_onevm_user_template_param(vm_name=jenkins_vm, param=get_dotenv_var(key="TOOLKIT_SERVICE_JENKINS_SSH_KEY_PARAM"))
-    sites_ansible_token = get_oneflow_custom_attr_value(oneflow_name=get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE"), attr_key=get_dotenv_var(key="TOOLKIT_SERVICE_SITES_ANSIBLE_TOKEN"))
+    msg(
+        level="info",
+        message=(
+            f"Adding Jenkins public SSH key to user {username}. "
+            f"The public SSH key generated by the Jenkins virtual machine needs to be added to the user {username} in order to deploy trial networks. "
+            "The public SSH key is stored in the user template of the Jenkins virtual machine."
+            )
+    )
+    jenkins_vm = get_oneflow_role_vm_name(
+        oneflow_name=get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE"),
+        oneflow_role=get_dotenv_var(key="TOOLKIT_SERVICE_JENKINS_ROLE")
+    )
+    jenkins_ssh_key = get_onevm_user_template_param(
+        vm_name=jenkins_vm,
+        param=get_dotenv_var(key="TOOLKIT_SERVICE_JENKINS_SSH_KEY_PARAM")
+    )
+    sites_ansible_token = get_oneflow_custom_attr_value(
+        oneflow_name=get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE"),
+        attr_key=get_dotenv_var(key="TOOLKIT_SERVICE_SITES_ANSIBLE_TOKEN")
+    )
     oneuser_update_public_ssh_key(username=username, public_ssh_key=jenkins_ssh_key)
     msg(level="info", message=f"Public SSH key added to user {username}")
-    msg(level="info", message=f"Resizing MinIO disk {get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_ID")} to {get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_SIZE")} GB")
-    minio_vm = get_oneflow_role_vm_name(oneflow_name=get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE"), oneflow_role=get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_ROLE"))
-    onevm_disk_resize(vm_name=minio_vm, disk_id=get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_ID"), size=int(get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_SIZE")))
-    msg(level="info", message=f"Disk {get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_ID")} resized to {get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_SIZE")} GB")
+    msg(
+        level="info",
+        message=f"Resizing MinIO disk {get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_ID")} to {get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_SIZE")} GB"
+    )
+    minio_vm = get_oneflow_role_vm_name(
+        oneflow_name=get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE"),
+        oneflow_role=get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_ROLE")
+    )
+    onevm_disk_resize(
+        vm_name=minio_vm,
+        disk_id=get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_ID"),
+        size=int(get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_SIZE"))
+    )
+    msg(
+        level="info",
+        message=f"Disk {get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_ID")} resized to {get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_SIZE")} GB"
+    )
     # sites
 
     # msg(level="info", message="Toolkit installation process completed successfully")
