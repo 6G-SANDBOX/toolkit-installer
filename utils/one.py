@@ -274,6 +274,27 @@ def oneflow_roles(oneflow_name: str) -> List:
         msg(level="error", message=f"Could not get roles of service {oneflow_name}")
     return roles
 
+def oneflow_roles_vm_names(oneflow_name: str) -> List[str]:
+    """
+    Get the names of the roles of a service in OpenNebula
+    
+    :param oneflow_name: the name of the service, ``str``
+    :return: the names of the roles of the service, ``List[str]``
+    """
+    roles = oneflow_roles(oneflow_name=oneflow_name)
+    roles_vm_names = []
+    for role in roles:
+        if "nodes" not in role:
+            msg(level="error", message="nodes key not found in role")
+        for node in role["nodes"]:
+            if "vm_info" not in node or "VM" not in node["vm_info"]:
+                msg(level="error", message="vm_info key not found in role or VM key not found in vm_info")
+            if "NAME" not in node["vm_info"]["VM"]:
+                msg(level="error", message="NAME key not found in role")
+            vm_name = node["vm_info"]["VM"]["NAME"]
+            roles_vm_names.append(vm_name)
+    return roles_vm_names
+
 def oneflow_show(oneflow_name: str) -> Dict | None:
     """
     Get the details of a service in OpenNebula
@@ -503,7 +524,7 @@ def oneflow_template_instantiate(oneflow_template_name: str, username: str, grou
     else:
         id = oneflow_id(oneflow_name=oneflow_template_name)
     oneflow_chown(oneflow_name=oneflow_template_name, username=username, group_name=group_name)
-    roles_vm_names = oneflow_roles(oneflow_name=oneflow_template_name)
+    roles_vm_names = oneflow_roles_vm_names(oneflow_name=oneflow_template_name)
     if roles_vm_names:
         for vm_name in roles_vm_names:
             onevm_chown(vm_name=vm_name, username=username, group_name=group_name)
@@ -1342,13 +1363,14 @@ def onevm_disk_resize(vm_name: str, disk_id: int, size: int) -> None:
     disk_size = onevm_disk_size(vm_name=vm_name, disk_id=disk_id)
     if disk_size > size_mb:
         msg(level="error", message=f"Disk {disk_id} of VM {vm_name} has a size of {disk_size}M which is greater than or equal to the new size {size_mb}M to be upgraded")
-    if disk_size == size_mb:
-        msg(level="warning", message=f"Disk {disk_id} of VM {vm_name} has a size of {disk_size}M which is equal to the new size {size_mb}M to be upgraded")
-    command = f"onevm disk-resize \"{vm_name}\" {disk_id} {size_mb}M"
-    stdout, stderr, rc = run_command(command=command)
-    if rc != 0:
-        msg(level="error", message=f"Could not resize disk of VM {vm_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
-    msg(level="debug", message=f"Disk of VM {vm_name} resized successfully to {size_mb}M. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
+    elif disk_size == size_mb:
+        msg(level="debug", message=f"Disk {disk_id} of VM {vm_name} has a size of {disk_size}M which is equal to the new size {size_mb}M to be upgraded")
+    else:
+        command = f"onevm disk-resize \"{vm_name}\" {disk_id} {size_mb}M"
+        stdout, stderr, rc = run_command(command=command)
+        if rc != 0:
+            msg(level="error", message=f"Could not resize disk of VM {vm_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
+        msg(level="debug", message=f"Disk of VM {vm_name} resized successfully to {size_mb}M. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
 
 def onevm_disk_size(vm_name: str, disk_id: int) -> int:
     """
