@@ -3,7 +3,9 @@ import shutil
 
 from utils.logs import msg
 
-DOTENV_PATH = os.path.join(os.getcwd(), ".env")
+CURRENT_DIRECTORY = os.getcwd()
+DOTENV_PATH = os.path.join(CURRENT_DIRECTORY, ".env")
+PYPROJECT_TOML_PATH = os.path.join(CURRENT_DIRECTORY, "pyproject.toml")
 
 def check_exist_directory(path: str) -> bool:
     """
@@ -13,16 +15,6 @@ def check_exist_directory(path: str) -> bool:
     :return: whether the directory exists, ``bool``
     """
     return os.path.exists(path=path)
-
-def get_current_directory() -> str:
-    """
-    Get the current working directory
-    
-    :return: the current working directory, ``str``
-    """
-    current_directory = os.getcwd()
-    msg(level="debug", message=f"Current working directory: {current_directory}")
-    return current_directory
 
 def get_dotenv_var(key: str) -> str:
     """

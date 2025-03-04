@@ -1,10 +1,41 @@
 import json
+import tomlkit
 import yaml
 
 from dotenv import load_dotenv
 from typing import Dict
 
-from utils.os import DOTENV_PATH
+from utils.logs import msg
+from utils.os import DOTENV_PATH, PYPROJECT_TOML_PATH
+
+def get_pyproject_toml_project_var(key: str) -> str:
+    """
+    Get the value of a key in the project information in pyproject.toml
+
+    :param key: the key in the project information, ``str``
+    :return: the value of the key, ``str
+    """
+    pyproject_toml = loads_toml(file_path=PYPROJECT_TOML_PATH)
+    if "project" not in pyproject_toml:
+        msg(level="error", message=f"Project information not found in {PYPROJECT_TOML_PATH} toml file ")
+    project = pyproject_toml["project"]
+    if key not in project:
+        msg(level="error", message=f"Key {key} not found in project information in {PYPROJECT_TOML_PATH} toml file")
+    return project[key]
+
+def get_pyproject_toml_version() -> str:
+    """
+    Get the version of the project in pyproject.toml
+
+    :return: the version of the project, ``str``
+    """
+    return get_pyproject_toml_project_var(key="version")
+
+def load_dotenv_file() -> None:
+    """
+    Load the .env file in the current working directory
+    """
+    load_dotenv(dotenv_path=DOTENV_PATH)
 
 def load_file(file_path: str, mode: str = "rt", encoding: str = "utf-8") -> str:
     """
@@ -41,32 +72,17 @@ def loads_json(data: str) -> Dict:
         return None
     return json.loads(data)
 
-def load_dotenv_file() -> None:
+def loads_toml(file_path: str, mode: str = "rt", encoding: str = "utf-8") -> Dict:
     """
-    Load the .env file in the current working directory
-    """
-    load_dotenv(dotenv_path=DOTENV_PATH)
+    Load data from a TOML file
 
-def update_dotenv_file(key: str, value) -> None:
+    :param file_path: the path to the TOML file to be loaded, ``str``
+    :param mode: the mode in which the file is opened (e.g. rt, rb), ``str``
+    :param encoding: the file encoding (e.g. utf-8), ``str``
+    :return: the data loaded from the TOML file, ``Dict``
     """
-    Update the .env file with the given data
-    
-    :param key: the key of the environment variable, ``str``
-    :param value: the value of the environment variable, ``str``
-    """
-    lines = []
-    key_found = False
-    with open(DOTENV_PATH, "rt") as file:
-        for line in file:
-            if line.strip().startswith(f"{key}="):
-                lines.append(f"{key}=\"{value}\"\n")
-                key_found = True
-            else:
-                lines.append(line)
-
-    if key_found:
-        with open(DOTENV_PATH, "w") as file:
-            file.writelines(lines)
+    with open(file=file_path, mode=mode, encoding=encoding) as toml_file:
+        return tomlkit.loads(toml_file.read())
 
 def save_file(data, file_path: str, mode: str = "wt", encoding: str = "utf-8") -> None:
     """
@@ -91,3 +107,24 @@ def save_json(data, file_path: str, mode: str = "wt", encoding: str = "utf-8") -
     """
     with open(file=file_path, mode=mode, encoding=encoding) as json_file:
         json.dump(data, json_file, indent=4)
+
+def update_dotenv_file(key: str, value: str) -> None:
+    """
+    Update the .env file with the given data
+    
+    :param key: the key of the environment variable, ``str``
+    :param value: the value of the environment variable, ``str``
+    """
+    lines = []
+    key_found = False
+    with open(DOTENV_PATH, "rt") as file:
+        for line in file:
+            if line.strip().startswith(f"{key}="):
+                lines.append(f"{key}=\"{value}\"\n")
+                key_found = True
+            else:
+                lines.append(line)
+
+    if key_found:
+        with open(DOTENV_PATH, "wt") as file:
+            file.writelines(lines)

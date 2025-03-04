@@ -111,12 +111,3 @@ def save_temp_directory(path: str) -> str:
     if not check_exist_directory(path=path):
         os.makedirs(name=temp_directory)
     return temp_directory
-
-# def temp_path(file_path: str) -> str:
-#     """
-#     Get the path to the file in the temporary directory
-    
-#     :param file_path: the path to the file, ``str``
-#     :return: the path to the file in the temporary directory, ``str``
-#     """
-#     return os.path.join(TEMP_DIRECTORY, file_path)

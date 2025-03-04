@@ -1,4 +1,4 @@
-from utils.file import load_dotenv_file
+from utils.file import load_dotenv_file, get_pyproject_toml_version
 from utils.git import git_team_access, git_validate_token
 from utils.logs import msg, setup_logger
 from utils.one import (
@@ -22,19 +22,6 @@ try:
         level="info",
         message="Proceeding to install the toolkit in OpenNebula"
     )
-    msg(
-        level="info",
-        message=(
-            "Toolkit installer is a Python script developed for the 6G-SANDBOX project, designed to facilitate the creation of new 6G-SANDBOX sites. "
-            "This script automates the installation of the MinIO, Jenkins and TNLCM stack in OpenNebula using the toolkit service. "
-            "The script will guide you through the installation process. Please follow the instructions carefully"
-        )
-    )
-
-    # temporary directory
-    msg(level="info", message="Creating temporary directory")
-    create_temp_directory()
-    msg(level="info", message=f"Temporary directory created in path: {TEMP_DIRECTORY}")
 
     # dotenv variables
     marketplace_monitoring_interval = get_dotenv_var(key="MARKETPLACE_MONITORING_INTERVAL")
@@ -57,12 +44,32 @@ try:
     github_members_token = decode_base64(encoded_data=github_members_token_encode)
     sites_https_url = get_dotenv_var(key="SITES_HTTPS_URL")
     sites_repository_name = get_dotenv_var(key="SITES_REPOSITORY_NAME")
+
+    # pyproject metadata
+    toolkit_installer_version = get_pyproject_toml_version()
+
+    # message
+    msg(
+        level="info",
+        message=(
+            "Toolkit installer is a Python script developed for the 6G-SANDBOX project, designed to facilitate the creation of new 6G-SANDBOX sites. "
+            "This script automates the installation of the MinIO, Jenkins and TNLCM stack in OpenNebula using the toolkit service. "
+            "The script will guide you through the installation process. "
+            f"Please read the official documentation https://6g-sandbox.github.io/docs/{toolkit_installer_version}/toolkit-installer/installation and follow the instructions carefully. "
+            "It is very important to complete all the requirements indicated in the documentation before running this script "
+        )
+    )
+
+    # temporary directory
+    msg(level="info", message="Creating temporary directory")
+    create_temp_directory()
+    msg(level="info", message=f"Temporary directory created in path: {TEMP_DIRECTORY}")
     
     # validation
     msg(
         level="info",
         message=(
-            "As mentioned in the official documentation https://6g-sandbox.github.io/docs/toolkit-installer/installation, proceed to validate: \n "
+            "Proceed to validate: \n "
             "1) if the script is running in the OpenNebula frontend \n "
             f"2) if the user executing the script is a member of the {github_sites_team_name} which is a team defined in the {github_organization_name} organization: https://github.com/orgs/{github_organization_name}/teams/{github_sites_team_name} \n "
             f"3) if the user executing the script has a token with access to the {sites_repository_name} which is a repository defined in the {github_organization_name} organization: https://github.com/{github_organization_name}/{sites_repository_name} "
@@ -197,9 +204,15 @@ try:
     # toolkit service
     msg(
         level="info",
-        message=f"Proceeding to instantiate the service {marketapp_toolkit_service} in OpenNebula. The service automates the deployment of the MinIO, Jenkins and TNLCM virtual machines in OpenNebula"
+        message=(
+            f"Proceeding to instantiate the service {marketapp_toolkit_service} in OpenNebula. "
+            "The service automates the deployment of the MinIO, Jenkins and TNLCM virtual machines in OpenNebula"
+        )
     )
-    _ = oneflow_template_instantiate(oneflow_template_name=marketapp_toolkit_service, username=username, group_name=group_name)
+    _ = oneflow_template_instantiate(
+        oneflow_template_name=marketapp_toolkit_service,
+        username=username, group_name=group_name
+    ) # TODO: validate length of custom attrs values
     msg(level="info", message=f"Service {marketapp_toolkit_service} instantiated successfully")
     msg(
         level="info",
@@ -240,7 +253,9 @@ try:
         level="info",
         message=f"Disk {toolkit_service_minio_disk_id} resized to {toolkit_service_minio_disk_size} GB"
     )
+
     # sites
+
 
     # msg(level="info", message="Toolkit installation process completed successfully")
 
