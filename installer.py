@@ -27,6 +27,7 @@ try:
     )
 
     # dotenv variables
+    sandbox_documentation_url = get_dotenv_var(key="SANDBOX_DOCUMENTATION_URL")
     marketplace_monitoring_interval = get_dotenv_var(key="MARKETPLACE_MONITORING_INTERVAL")
     opennebula_public_marketplace_name = get_dotenv_var(key="OPENNEBULA_PUBLIC_MARKETPLACE_NAME")
     opennebula_public_marketplace_description = get_dotenv_var(key="OPENNEBULA_PUBLIC_MARKETPLACE_DESCRIPTION")
@@ -58,7 +59,7 @@ try:
             "Toolkit installer is a Python script developed for the 6G-SANDBOX project, designed to facilitate the creation of new 6G-SANDBOX sites. "
             "This script automates the installation of the MinIO, Jenkins and TNLCM stack in OpenNebula using the toolkit service. "
             "The script will guide you through the installation process. "
-            f"Please read the official documentation https://6g-sandbox.github.io/docs/{toolkit_installer_version}/toolkit-installer/installation and follow the instructions carefully. "
+            f"Please read the official documentation {sandbox_documentation_url}/toolkit-installer/installation and follow the instructions carefully. "
             "It is very important to complete all the requirements indicated in the documentation before running this script"
         )
     )
@@ -105,7 +106,7 @@ try:
     sites_github_token = ask_text(
         message=(
             f"Introduce the personal access token of the user {github_username} with access to the {sites_repository_name} repository. "
-            f"This token must be created as indicated in the https://6g-sandbox.github.io/docs/{toolkit_installer_version}/toolkit-installer/installation#create-site-token section of the documentation:"
+            f"This token must be created as indicated in the {sandbox_documentation_url}/toolkit-installer/installation#create-site-token section of the documentation:"
         ),
         validate=lambda sites_github_token: (
             "Token is required" if not sites_github_token else
