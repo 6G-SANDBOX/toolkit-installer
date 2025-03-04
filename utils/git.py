@@ -75,45 +75,6 @@ def git_current_branch(path: str) -> str:
     msg(level="debug", message=f"Current branch of the repository {path} found. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
     return stdout
 
-def get_team_id(github_token: str, github_organization_name: str, github_team_name: str) -> str:
-    """
-    Get the team ID
-
-    :param github_token: the GitHub token, ``str``
-    :param github_organization_name: the GitHub organization name, ``str``
-    :param github_team_name: the GitHub team name, ``str``
-    :return: the team ID, ``str``
-    """
-    command = f"curl -s -w \"%{{http_code}}\" -H \"Accept: application/vnd.github+json\" -H \"Authorization: Bearer {github_token}\" -H \"X-GitHub-Api-Version: 2022-11-28\" https://api.github.com/orgs/{github_organization_name}/teams"
-    stdout, stderr, rc = run_command(command=command)
-    teams, status_code = stdout[:-3].strip(), stdout[-3:]
-    if status_code != "200":
-        msg(level="error", message=f"Failed to get the id of team {github_team_name} in the organization {github_organization_name}. Invalid token provided. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
-    teams = loads_json(data=teams)
-    for team in teams:
-        if team["name"] == github_team_name:
-            team_id = team["id"]
-            msg(level="debug", message=f"Team {github_team_name} found with id {team_id} in the organization {github_organization_name}. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
-            return team_id
-    msg(level="error", message=f"Failed to get the id of team {github_team_name} in the organization {github_organization_name}. Team not found. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
-
-def git_team_access(github_token: str, github_organization_name: str, github_team_name: str, github_username: str) -> None:
-    """
-    Check if the user has access to the team
-
-    :param github_token: the GitHub token, ``str``
-    :param github_organization_name: the GitHub organization name, ``str``
-    :param github_team_name: the GitHub team name, ``str``
-    :param username: the GitHub username, ``str``
-    """
-    team_id = get_team_id(github_token=github_token, github_organization_name=github_organization_name, github_team_name=github_team_name)
-    command = f"curl -s -w \"%{{http_code}}\" -H \"Accept: application/vnd.github+json\" -H \"Authorization: Bearer {github_token}\" -H \"X-GitHub-Api-Version: 2022-11-28\" https://api.github.com/orgs/{github_organization_name}/team/{team_id}/memberships/{github_username}"
-    stdout, stderr, rc = run_command(command=command)
-    status_code = stdout[-3:]
-    if status_code != "200":
-        msg(level="error", message=f"Failed to validate if user {github_username} has access to the team {github_team_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
-    msg(level="debug", message=f"User {github_username} has access to the team {github_team_name}. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
-
 def git_push(path: str) -> None:
     """
     Push the committed changes to the remote repository
@@ -168,6 +129,45 @@ def git_switch(path: str, branch: str = None, tag: str = None, commit: str = Non
     if rc != 0:
         msg(level="error", message=f"Failed to switch to the branch {branch} in the repository {path}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
     msg(level="debug", message=f"Switched to the branch {branch} in the repository {path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
+
+def git_team_access(github_token: str, github_organization_name: str, github_team_name: str, github_username: str) -> None:
+    """
+    Check if the user has access to the team
+
+    :param github_token: the GitHub token, ``str``
+    :param github_organization_name: the GitHub organization name, ``str``
+    :param github_team_name: the GitHub team name, ``str``
+    :param username: the GitHub username, ``str``
+    """
+    team_id = git_team_id(github_token=github_token, github_organization_name=github_organization_name, github_team_name=github_team_name)
+    command = f"curl -s -w \"%{{http_code}}\" -H \"Accept: application/vnd.github+json\" -H \"Authorization: Bearer {github_token}\" -H \"X-GitHub-Api-Version: 2022-11-28\" https://api.github.com/orgs/{github_organization_name}/team/{team_id}/memberships/{github_username}"
+    stdout, stderr, rc = run_command(command=command)
+    status_code = stdout[-3:]
+    if status_code != "200":
+        msg(level="error", message=f"Failed to validate if user {github_username} has access to the team {github_team_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
+    msg(level="debug", message=f"User {github_username} has access to the team {github_team_name}. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
+
+def git_team_id(github_token: str, github_organization_name: str, github_team_name: str) -> str:
+    """
+    Get the team ID
+
+    :param github_token: the GitHub token, ``str``
+    :param github_organization_name: the GitHub organization name, ``str``
+    :param github_team_name: the GitHub team name, ``str``
+    :return: the team ID, ``str``
+    """
+    command = f"curl -s -w \"%{{http_code}}\" -H \"Accept: application/vnd.github+json\" -H \"Authorization: Bearer {github_token}\" -H \"X-GitHub-Api-Version: 2022-11-28\" https://api.github.com/orgs/{github_organization_name}/teams"
+    stdout, stderr, rc = run_command(command=command)
+    teams, status_code = stdout[:-3].strip(), stdout[-3:]
+    if status_code != "200":
+        msg(level="error", message=f"Failed to get the id of team {github_team_name} in the organization {github_organization_name}. Invalid token provided. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
+    teams = loads_json(data=teams)
+    for team in teams:
+        if team["name"] == github_team_name:
+            team_id = team["id"]
+            msg(level="debug", message=f"Team {github_team_name} found with id {team_id} in the organization {github_organization_name}. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
+            return team_id
+    msg(level="error", message=f"Failed to get the id of team {github_team_name} in the organization {github_organization_name}. Team not found. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
 
 def git_validate_token(https_url: str, path: str, token: str) -> None:
     """
