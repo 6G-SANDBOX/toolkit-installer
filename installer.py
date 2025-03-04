@@ -36,16 +36,35 @@ try:
     create_temp_directory()
     msg(level="info", message=f"Temporary directory created in path: {TEMP_DIRECTORY}")
 
-    # validation
-    github_team_name = get_dotenv_var(key="GITHUB_SITES_TEAM_NAME")
+    # dotenv variables
+    marketplace_monitoring_interval = get_dotenv_var(key="MARKETPLACE_MONITORING_INTERVAL")
+    opennebula_public_marketplace_name = get_dotenv_var(key="OPENNEBULA_PUBLIC_MARKETPLACE_NAME")
+    opennebula_public_marketplace_description = get_dotenv_var(key="OPENNEBULA_PUBLIC_MARKETPLACE_DESCRIPTION")
+    opennebula_public_marketplace_endpoint = get_dotenv_var(key="OPENNEBULA_PUBLIC_MARKETPLACE_ENDPOINT")
+    opennebula_sandbox_marketplace_name = get_dotenv_var(key="OPENNEBULA_SANDBOX_MARKETPLACE_NAME")
+    opennebula_sandbox_marketplace_description = get_dotenv_var(key="OPENNEBULA_SANDBOX_MARKETPLACE_DESCRIPTION")
+    opennebula_sandbox_marketplace_endpoint = get_dotenv_var(key="OPENNEBULA_SANDBOX_MARKETPLACE_ENDPOINT")
+    marketapp_toolkit_service = get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE")
+    toolkit_service_sites_ansible_token = get_dotenv_var(key="TOOLKIT_SERVICE_SITES_ANSIBLE_TOKEN")
+    toolkit_service_minio_role = get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_ROLE")
+    toolkit_service_jenkins_role = get_dotenv_var(key="TOOLKIT_SERVICE_JENKINS_ROLE")
+    toolkit_service_jenkins_ssh_key_param = get_dotenv_var(key="TOOLKIT_SERVICE_JENKINS_SSH_KEY_PARAM")
+    toolkit_service_minio_disk_id = get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_ID")
+    toolkit_service_minio_disk_size = get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_SIZE")
     github_organization_name = get_dotenv_var(key="GITHUB_ORGANIZATION_NAME")
+    github_sites_team_name = get_dotenv_var(key="GITHUB_SITES_TEAM_NAME")
+    github_members_token_encode = get_dotenv_var(key="GITHUB_MEMBERS_TOKEN")
+    github_members_token = decode_base64(encoded_data=github_members_token_encode)
+    sites_https_url = get_dotenv_var(key="SITES_HTTPS_URL")
     sites_repository_name = get_dotenv_var(key="SITES_REPOSITORY_NAME")
+    
+    # validation
     msg(
         level="info",
         message=(
             "As mentioned in the official documentation https://6g-sandbox.github.io/docs/toolkit-installer/installation, proceed to validate: \n "
             "1) if the script is running in the OpenNebula frontend \n "
-            f"2) if the user executing the script is a member of the {github_team_name} which is a team defined in the {github_organization_name} organization: https://github.com/orgs/{github_organization_name}/teams/{github_team_name} \n "
+            f"2) if the user executing the script is a member of the {github_sites_team_name} which is a team defined in the {github_organization_name} organization: https://github.com/orgs/{github_organization_name}/teams/{github_sites_team_name} \n "
             f"3) if the user executing the script has a token with access to the {sites_repository_name} which is a repository defined in the {github_organization_name} organization: https://github.com/{github_organization_name}/{sites_repository_name} "
         )
     )
@@ -53,7 +72,7 @@ try:
     check_one_health()
     msg(level="info", message="OpenNebula is healthy")
     github_username = ask_text(
-        message=f"Introduce the username that has been given access to the team {github_team_name} in the organization {github_organization_name}:",
+        message=f"Introduce the username that has been given access to the team {github_sites_team_name} in the organization {github_organization_name}:",
         validate=lambda github_username: (
             "Username is required" if not github_username else
             True
@@ -61,18 +80,17 @@ try:
     )
     msg(
         level="info",
-        message=f"Validating if user {github_username} has access to the team {github_team_name} in the organization {github_organization_name}"
+        message=f"Validating if user {github_username} has access to the team {github_sites_team_name} in the organization {github_organization_name}"
     )
-    github_members_token_encode = get_dotenv_var(key="GITHUB_MEMBERS_TOKEN")
-    github_members_token = decode_base64(encoded_data=github_members_token_encode)
     git_team_access(
         github_token=github_members_token,
         github_organization_name=github_organization_name,
-        github_team_name=github_team_name, github_username=github_username
+        github_team_name=github_sites_team_name,
+        github_username=github_username
     )
     msg(
         level="info",
-        message=f"User {github_username} has access to the team {github_team_name} in the organization {github_organization_name}"
+        message=f"User {github_username} has access to the team {github_sites_team_name} in the organization {github_organization_name}"
     )
     sites_github_token = ask_text(
         message=f"Introduce the personal access token of the user {github_username} with access to the {sites_repository_name} repository:",
@@ -86,7 +104,7 @@ try:
         message=f"Validating if the personal access token of the user {github_username} with access to the {sites_repository_name} repository is correct"
     )
     sites_path = save_temp_directory(path=sites_repository_name)
-    git_validate_token(https_url=get_dotenv_var(key="SITES_HTTPS_URL"), path=sites_path, token=sites_github_token)
+    git_validate_token(https_url=sites_https_url, path=sites_path, token=sites_github_token)
     msg(level="info", message="Token validated successfully")
 
     # user
@@ -154,36 +172,35 @@ try:
     msg(level="info", message=f"Permissions for user {username} in group {group_name} created successfully")
 
     # marketplaces
-    marketplace_monitoring_interval = get_dotenv_var(key="MARKETPLACE_MONITORING_INTERVAL")
     _ = onemarket_create(
-        marketplace_name=get_dotenv_var(key="OPENNEBULA_PUBLIC_MARKETPLACE_NAME"),
-        marketplace_description=get_dotenv_var(key="OPENNEBULA_PUBLIC_MARKETPLACE_DESCRIPTION"),
-        marketplace_endpoint=get_dotenv_var(key="OPENNEBULA_PUBLIC_MARKETPLACE_ENDPOINT"),
+        marketplace_name=opennebula_public_marketplace_name,
+        marketplace_description=opennebula_public_marketplace_description,
+        marketplace_endpoint=opennebula_public_marketplace_endpoint,
         marketplace_monitoring_interval=marketplace_monitoring_interval
     )
-    msg(level="info", message=f"Marketplace {get_dotenv_var(key="OPENNEBULA_PUBLIC_MARKETPLACE_NAME")} created successfully")
+    msg(level="info", message=f"Marketplace {opennebula_public_marketplace_name} created successfully")
     _ = onemarket_create(
-        marketplace_name=get_dotenv_var(key="OPENNEBULA_SANDBOX_MARKETPLACE_NAME"),
-        marketplace_description=get_dotenv_var(key="OPENNEBULA_SANDBOX_MARKETPLACE_DESCRIPTION"),
-        marketplace_endpoint=get_dotenv_var(key="OPENNEBULA_SANDBOX_MARKETPLACE_ENDPOINT"),
+        marketplace_name=opennebula_sandbox_marketplace_name,
+        marketplace_description=opennebula_sandbox_marketplace_description,
+        marketplace_endpoint=opennebula_sandbox_marketplace_endpoint,
         marketplace_monitoring_interval=marketplace_monitoring_interval
     )
-    msg(level="info", message=f"Marketplace {get_dotenv_var(key="OPENNEBULA_SANDBOX_MARKETPLACE_NAME")} created successfully")
+    msg(level="info", message=f"Marketplace {opennebula_sandbox_marketplace_name} created successfully")
     onemarketapp_add(
         group_name=group_name,
         username=username,
-        marketplace_name=get_dotenv_var(key="OPENNEBULA_SANDBOX_MARKETPLACE_NAME"),
-        appliances=[get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE")]
+        marketplace_name=opennebula_sandbox_marketplace_name,
+        appliances=[marketapp_toolkit_service]
     )
-    msg(level="info", message=f"Appliance {get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE")} added")
+    msg(level="info", message=f"Marketapp/appliance {marketapp_toolkit_service} added")
     
     # toolkit service
     msg(
         level="info",
-        message=f"Proceeding to instantiate the service {get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE")} in OpenNebula. The service automates the deployment of the MinIO, Jenkins and TNLCM virtual machines in OpenNebula"
+        message=f"Proceeding to instantiate the service {marketapp_toolkit_service} in OpenNebula. The service automates the deployment of the MinIO, Jenkins and TNLCM virtual machines in OpenNebula"
     )
-    _ = oneflow_template_instantiate(oneflow_template_name=get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE"), username=username, group_name=group_name)
-    msg(level="info", message=f"Service {get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE")} instantiated successfully")
+    _ = oneflow_template_instantiate(oneflow_template_name=marketapp_toolkit_service, username=username, group_name=group_name)
+    msg(level="info", message=f"Service {marketapp_toolkit_service} instantiated successfully")
     msg(
         level="info",
         message=(
@@ -193,35 +210,35 @@ try:
             )
     )
     jenkins_vm = get_oneflow_role_vm_name(
-        oneflow_name=get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE"),
-        oneflow_role=get_dotenv_var(key="TOOLKIT_SERVICE_JENKINS_ROLE")
+        oneflow_name=marketapp_toolkit_service,
+        oneflow_role=toolkit_service_jenkins_role
     )
     jenkins_ssh_key = get_onevm_user_template_param(
         vm_name=jenkins_vm,
-        param=get_dotenv_var(key="TOOLKIT_SERVICE_JENKINS_SSH_KEY_PARAM")
+        param=toolkit_service_jenkins_ssh_key_param
     )
     sites_ansible_token = get_oneflow_custom_attr_value(
-        oneflow_name=get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE"),
-        attr_key=get_dotenv_var(key="TOOLKIT_SERVICE_SITES_ANSIBLE_TOKEN")
+        oneflow_name=marketapp_toolkit_service,
+        attr_key=toolkit_service_sites_ansible_token
     )
     oneuser_update_public_ssh_key(username=username, public_ssh_key=jenkins_ssh_key)
     msg(level="info", message=f"Public SSH key added to user {username}")
     msg(
         level="info",
-        message=f"Resizing MinIO disk {get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_ID")} to {get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_SIZE")} GB"
+        message=f"Resizing MinIO disk {toolkit_service_minio_disk_id} to {toolkit_service_minio_disk_size} GB"
     )
     minio_vm = get_oneflow_role_vm_name(
-        oneflow_name=get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE"),
-        oneflow_role=get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_ROLE")
+        oneflow_name=marketapp_toolkit_service,
+        oneflow_role=toolkit_service_minio_role
     )
     onevm_disk_resize(
         vm_name=minio_vm,
-        disk_id=get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_ID"),
-        size=int(get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_SIZE"))
+        disk_id=toolkit_service_minio_disk_id,
+        size=int(toolkit_service_minio_disk_size)
     )
     msg(
         level="info",
-        message=f"Disk {get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_ID")} resized to {get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_SIZE")} GB"
+        message=f"Disk {toolkit_service_minio_disk_id} resized to {toolkit_service_minio_disk_size} GB"
     )
     # sites
 
