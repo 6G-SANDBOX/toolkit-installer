@@ -10,6 +10,7 @@ from utils.one import (
     oneuser_update_public_ssh_key, onemarketapp_add, onevm_disk_resize
 )
 from utils.os import get_dotenv_var
+from utils.parser import decode_base64
 from utils.questionary import ask_password, ask_select, ask_text
 from utils.temp import create_temp_directory, save_temp_directory, TEMP_DIRECTORY
 
@@ -62,8 +63,10 @@ try:
         level="info",
         message=f"Validating if user {github_username} has access to the team {github_team_name} in the organization {github_organization_name}"
     )
+    github_members_token_encode = get_dotenv_var(key="GITHUB_MEMBERS_TOKEN")
+    github_members_token = decode_base64(encoded_data=github_members_token_encode)
     git_team_access(
-        github_token=get_dotenv_var(key="GITHUB_MEMBERS_TOKEN"),
+        github_token=github_members_token,
         github_organization_name=github_organization_name,
         github_team_name=github_team_name, github_username=github_username
     )
