@@ -1,10 +1,10 @@
 from utils.file import load_dotenv_file
-from utils.git import git_team_access
+from utils.git import git_team_access, git_validate_token
 from utils.logs import msg, setup_logger
 from utils.one import check_one_health, get_onegroup_id, get_onegroups_names, get_oneflow_custom_attr_value, get_oneflow_role_vm_name, get_oneusernames, get_oneusername_id, get_onevm_user_template_param, oneacl_create, oneflow_template_instantiate, onegroup_addadmin, onegroup_create, onemarket_create, oneuser_chgrp, oneuser_create, oneuser_update_public_ssh_key, onemarketapp_add, onevm_disk_resize
 from utils.os import get_dotenv_var
 from utils.questionary import ask_password, ask_select, ask_text
-from utils.temp import create_temp_directory, TEMP_DIRECTORY
+from utils.temp import create_temp_directory, save_temp_directory, TEMP_DIRECTORY
 
 try:
 
@@ -13,8 +13,19 @@ try:
     msg(level="info", message="Proceeding to install the toolkit in OpenNebula")
     msg(level="info", message="Toolkit installer is a Python script developed for the 6G-SANDBOX project, designed to facilitate the creation of new 6G-SANDBOX sites. This script automates the installation of the MinIO, Jenkins and TNLCM stack in OpenNebula using the toolkit service. The script will guide you through the installation process. Please follow the instructions carefully")
 
+    # temporary directory
+    msg(level="info", message="Creating temporary directory")
+    create_temp_directory()
+    msg(level="info", message=f"Temporary directory created in path: {TEMP_DIRECTORY}")
+
     # validation
-    msg(level="info", message="As mentioned in the documentation: https://6g-sandbox.github.io/docs/toolkit-installer/installation, proceed to validate if the script is running in the OpenNebula frontend and if the user executing the script is a member of the 6g-sandbox-sites-contributors team https://github.com/orgs/6G-SANDBOX/teams/6gsandbox-sites-contributors")
+    msg(
+        level="info",
+        message="As mentioned in the documentation: https://6g-sandbox.github.io/docs/toolkit-installer/installation, proceed to validate: \n "
+            "1) If the script is running in the OpenNebula frontend \n "
+            "2) If the user executing the script is a member of the 6g-sandbox-sites-contributors team: https://github.com/orgs/6G-SANDBOX/teams/6gsandbox-sites-contributors \n "
+            "3) If the user executing the script has a token with access to the 6G-SANDBOX-Sites repository: https://github.com/6G-SANDBOX/6G-Sandbox-Sites "
+    )
     msg(level="info", message="Checking OpenNebula health")
     check_one_health()
     msg(level="info", message="OpenNebula is healthy")
@@ -26,15 +37,22 @@ try:
         )
     )
     github_organization_name = get_dotenv_var(key="GITHUB_ORGANIZATION_NAME")
-    github_team_name = get_dotenv_var(key="SITES_TEAM_NAME")
+    github_team_name = get_dotenv_var(key="GITHUB_SITES_TEAM_NAME")
     msg(level="info", message=f"Validating if user {github_username} has access to the team {github_team_name} in the organization {github_organization_name}")
-    git_team_access(github_token=get_dotenv_var(key="SITES_TOKEN"), github_organization_name=github_organization_name, github_team_name=github_team_name, github_username=github_username)
+    git_team_access(github_token=get_dotenv_var(key="GITHUB_MEMBERS_TOKEN"), github_organization_name=github_organization_name, github_team_name=github_team_name, github_username=github_username)
     msg(level="info", message=f"User {github_username} has access to the team {github_team_name} in the organization {github_organization_name}")
 
-    # temporary directory
-    msg(level="info", message="Creating temporary directory")
-    create_temp_directory()
-    msg(level="info", message=f"Temporary directory created in path: {TEMP_DIRECTORY}")
+    sites_github_token = ask_text(
+        message="Introduce the token for the 6G-SANDBOX-Sites repository:",
+        validate=lambda sites_github_token: (
+            "Token is required" if not sites_github_token else
+            True
+        )
+    )
+    msg(level="info", message="Validating if the token provided has access to the 6G-SANDBOX-Sites repository")
+    sites_path = save_temp_directory(path=get_dotenv_var(key="SITES_REPOSITORY_NAME"))
+    git_validate_token(https_url=get_dotenv_var(key="SITES_HTTPS_URL"), path=get_dotenv_var(key="SITES_REPOSITORY_NAME"), token=sites_github_token)
+    msg(level="info", message="Token validated successfully")
 
     # user
     usernames = get_oneusernames()

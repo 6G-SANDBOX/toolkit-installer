@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 
 TEMP_DIRECTORY = os.path.join(os.getcwd(), ".temp")
 
@@ -53,6 +54,22 @@ def create_temp_directory() -> None:
 #     with open(file_path, mode=mode, encoding=encoding) as file:
 #         return json.load(file)
 
+def remove_directory(path: str) -> None:
+    """
+    Remove the directory
+    
+    :param path: the path to the directory, ``str``
+    """
+    if check_exist_directory(path=path):
+        shutil.rmtree(os.path.join(TEMP_DIRECTORY, path))
+
+def remove_temp_directory() -> None:
+    """
+    Remove temporary directory
+    """
+    if check_exist_temp_directory():
+        shutil.rmtree(TEMP_DIRECTORY)
+
 def save_temp_file(data, file_name: str, mode: str = "wt", encoding: str = "utf-8") -> str:
     """
     Save the given data to a temporary file
@@ -83,16 +100,16 @@ def save_temp_json_file(data, file_name: str, mode: str = "wt", encoding: str = 
         json.dump(data, file, indent=4)
     return file_path
 
-def save_temp_directory(directory_path: str) -> str:
+def save_temp_directory(path: str) -> str:
     """
     Save the given directory to a temporary directory
     
-    :param directory_path: the path to the directory to be saved, ``str``
+    :param path: the path to the directory to be saved, ``str``
     :return: the path to the directory where the data was saved, ``str``
     """
-    temp_directory = os.path.join(TEMP_DIRECTORY, directory_path)
-    if not os.path.exists(temp_directory):
-        os.makedirs(temp_directory)
+    temp_directory = os.path.join(TEMP_DIRECTORY, path)
+    if not check_exist_directory(path=path):
+        os.makedirs(name=temp_directory)
     return temp_directory
 
 # def temp_path(file_path: str) -> str:

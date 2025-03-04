@@ -4,6 +4,7 @@ from utils.cli import run_command
 from utils.file import loads_json
 from utils.logs import msg
 from utils.os import check_exist_directory
+from utils.temp import remove_directory
 
 def git_add(path: str) -> None:
     """
@@ -17,13 +18,16 @@ def git_add(path: str) -> None:
         msg(level="error", message=f"Failed to add files to the staging area in the repository {path}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
     msg(level="debug", message=f"Files added to the staging area in the repository {path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
 
-def git_clone(https_url: str, path: str) -> None:
+def git_clone(https_url: str, path: str, token: str = None) -> None:
     """
     Clone a GitHub repository to the specified path
 
     :param https_url: the URL of the GitHub repository, ``str``
     :param path: the local path to clone the repository into, ``str``
+    :param token: the token to access the repository, ``str``
     """
+    if token:
+        https_url = https_url.replace("https://", f"https://{token}@")
     if not check_exist_directory(path=path):
         command = f"git clone {https_url} {path}"
         stdout, stderr, rc = run_command(command=command)
@@ -164,3 +168,15 @@ def git_switch(path: str, branch: str = None, tag: str = None, commit: str = Non
     if rc != 0:
         msg(level="error", message=f"Failed to switch to the branch {branch} in the repository {path}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
     msg(level="debug", message=f"Switched to the branch {branch} in the repository {path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
+
+def git_validate_token(https_url: str, path: str, token: str) -> None:
+    """
+    Validate the GitHub token
+
+    :param https_url: the URL of the GitHub repository, ``str``
+    :param path: the local path to clone the repository into, ``str``
+    :param token: the token to access the repository, ``str``
+    """
+    remove_directory(path=path)
+    git_clone(https_url=https_url, path=path, token=token)
+    remove_directory(path=path)
