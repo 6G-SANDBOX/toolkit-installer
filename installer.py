@@ -103,7 +103,10 @@ try:
         message=f"User {github_username} has access to the team {github_sites_team_name} in the organization {github_organization_name}"
     )
     sites_github_token = ask_text(
-        message=f"Introduce the personal access token of the user {github_username} with access to the {sites_repository_name} repository:",
+        message=(
+            f"Introduce the personal access token of the user {github_username} with access to the {sites_repository_name} repository. "
+            f"This token must be created as indicated in the https://6g-sandbox.github.io/docs/{toolkit_installer_version}/toolkit-installer/installation#create-site-token section of the documentation:"
+        ),
         validate=lambda sites_github_token: (
             "Token is required" if not sites_github_token else
             True
