@@ -1,4 +1,4 @@
-from utils.file import load_dotenv_file, get_pyproject_toml_version
+from utils.file import load_dotenv_file
 from utils.git import git_team_access, git_validate_token
 from utils.logs import msg, setup_logger
 from utils.one import (
@@ -49,9 +49,6 @@ try:
     sites_https_url = get_dotenv_var(key="SITES_HTTPS_URL")
     sites_repository_name = get_dotenv_var(key="SITES_REPOSITORY_NAME")
 
-    # pyproject metadata
-    toolkit_installer_version = get_pyproject_toml_version()
-
     # message
     msg(
         level="info",
@@ -94,10 +91,10 @@ try:
         message=f"Validating if user {github_username} has access to the team {github_sites_team_name} in the organization {github_organization_name}"
     )
     git_team_access(
-        github_token=github_members_token,
-        github_organization_name=github_organization_name,
-        github_team_name=github_sites_team_name,
-        github_username=github_username
+        token=github_members_token,
+        organization_name=github_organization_name,
+        team_name=github_sites_team_name,
+        username=github_username
     )
     msg(
         level="info",
@@ -117,8 +114,12 @@ try:
         level="info",
         message=f"Validating if the personal access token of the user {github_username} with access to the {sites_repository_name} repository is correct"
     )
-    sites_path = save_temp_directory(path=sites_repository_name)
-    git_validate_token(https_url=sites_https_url, path=sites_path, token=sites_github_token)
+    git_validate_token(
+        token=sites_github_token,
+        organization_name=github_organization_name,
+        repository_name=sites_repository_name,
+        username=github_username
+    )
     msg(level="info", message="Token validated successfully")
 
     # user

@@ -1,35 +1,10 @@
 import json
-import tomlkit
 import yaml
 
 from dotenv import load_dotenv
 from typing import Dict
 
-from utils.logs import msg
-from utils.os import DOTENV_PATH, PYPROJECT_TOML_PATH
-
-def get_pyproject_toml_project_var(key: str) -> str:
-    """
-    Get the value of a key in the project information in pyproject.toml
-
-    :param key: the key in the project information, ``str``
-    :return: the value of the key, ``str
-    """
-    pyproject_toml = loads_toml(file_path=PYPROJECT_TOML_PATH)
-    if "project" not in pyproject_toml:
-        msg(level="error", message=f"Project information not found in {PYPROJECT_TOML_PATH} toml file ")
-    project = pyproject_toml["project"]
-    if key not in project:
-        msg(level="error", message=f"Key {key} not found in project information in {PYPROJECT_TOML_PATH} toml file")
-    return project[key]
-
-def get_pyproject_toml_version() -> str:
-    """
-    Get the version of the project in pyproject.toml
-
-    :return: the version of the project, ``str``
-    """
-    return get_pyproject_toml_project_var(key="version")
+from utils.os import DOTENV_PATH
 
 def load_dotenv_file() -> None:
     """
@@ -71,18 +46,6 @@ def loads_json(data: str) -> Dict:
     if data is None or data == "":
         return None
     return json.loads(data)
-
-def loads_toml(file_path: str, mode: str = "rt", encoding: str = "utf-8") -> Dict:
-    """
-    Load data from a TOML file
-
-    :param file_path: the path to the TOML file to be loaded, ``str``
-    :param mode: the mode in which the file is opened (e.g. rt, rb), ``str``
-    :param encoding: the file encoding (e.g. utf-8), ``str``
-    :return: the data loaded from the TOML file, ``Dict``
-    """
-    with open(file=file_path, mode=mode, encoding=encoding) as toml_file:
-        return tomlkit.loads(toml_file.read())
 
 def save_file(data, file_path: str, mode: str = "wt", encoding: str = "utf-8") -> None:
     """
