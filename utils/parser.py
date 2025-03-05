@@ -6,6 +6,7 @@ from utils.logs import msg
 
 from typing import Dict
 
+
 def object_to_yaml(data: Dict) -> str:
     """
     Convert a dictionary to a YAML string
@@ -14,6 +15,7 @@ def object_to_yaml(data: Dict) -> str:
     :return: the YAML string, ``str``
     """
     return yaml.dump(data, default_flow_style=False)
+
 
 def encode_base64(data: str) -> str:
     """
@@ -24,6 +26,7 @@ def encode_base64(data: str) -> str:
     """
     return base64.b64encode(data.encode("utf-8")).decode("utf-8")
 
+
 def decode_base64(encoded_data: str) -> str:
     """
     Decode a Base64 encoded string
@@ -32,6 +35,7 @@ def decode_base64(encoded_data: str) -> str:
     :return: the decoded data as bytes, ``str``
     """
     return base64.b64decode(encoded_data).decode("utf-8")
+
 
 def ansible_encrypt(data_path: str, token_path: str) -> None:
     """
@@ -43,8 +47,15 @@ def ansible_encrypt(data_path: str, token_path: str) -> None:
     command = f"ansible-vault encrypt {data_path} --vault-password={token_path}"
     stdout, stderr, rc = run_command(command)
     if rc != 0:
-        msg(level="error", message=f"Error encrypting file: {data_path}. Command executed: {command}. Error received: {stderr}. Return code: {rc}")
-    msg(level="debug", message=f"File encrypted successfully: {data_path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}")
+        msg(
+            level="error",
+            message=f"Error encrypting file: {data_path}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+    msg(
+        level="debug",
+        message=f"File encrypted successfully: {data_path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+    )
+
 
 def gb_to_mb(gb: int) -> int:
     """

@@ -1,13 +1,15 @@
 from questionary import checkbox, confirm, password, select, text, Style
 from typing import Any, List
 
-style = Style([
-    ("qmark", "fg:#ff7700 bold"),
-    ("question", "fg:#00ffcc bold"),
-    ("answer", "fg:#ffff00 bold"),
-    ("pointer", "fg:#ff7700 bold"),
-    ("highlighted", "fg:#ff7700 bold underline"),
-])
+style = Style(
+    [
+        ("qmark", "fg:#ff7700 bold"),
+        ("question", "fg:#00ffcc bold"),
+        ("answer", "fg:#ffff00 bold"),
+        ("pointer", "fg:#ff7700 bold"),
+        ("highlighted", "fg:#ff7700 bold underline"),
+    ]
+)
 
 # def ask_checkbox(prompt: str, choices: Any) -> Any:
 #     """
@@ -22,6 +24,7 @@ style = Style([
 #     except KeyboardInterrupt:
 #         print("\nOperation interrupted by user")
 
+
 def ask_confirm(message: str, default: str = "") -> bool:
     """
     Prompt the user to confirm an action
@@ -31,11 +34,9 @@ def ask_confirm(message: str, default: str = "") -> bool:
     :return: user input, ``bool``
     """
     return confirm(
-        message=message,
-        default=default,
-        qmark="🔹",
-        style=style
+        message=message, default=default, qmark="🔹", style=style
     ).unsafe_ask()
+
 
 def ask_password(message: str, default: str = "", validate: Any = None) -> str:
     """
@@ -47,12 +48,9 @@ def ask_password(message: str, default: str = "", validate: Any = None) -> str:
     :return: user input, ``str``
     """
     return password(
-        message=message,
-        default=default,
-        validate=validate,
-        qmark="🔹",
-        style=style
+        message=message, default=default, validate=validate, qmark="🔹", style=style
     ).unsafe_ask()
+
 
 def ask_select(message: str, choices: List[str]) -> str:
     """
@@ -63,11 +61,9 @@ def ask_select(message: str, choices: List[str]) -> str:
     :return: selected option, ``str``
     """
     return select(
-        message=message,
-        choices=choices,
-        qmark="🔹",
-        style=style
+        message=message, choices=choices, qmark="🔹", style=style
     ).unsafe_ask()
+
 
 def ask_text(message: str, default: str = "", validate: Any = None) -> str:
     """
@@ -79,9 +75,5 @@ def ask_text(message: str, default: str = "", validate: Any = None) -> str:
     :return: user input, ``str``
     """
     return text(
-        message=message,
-        default=default,
-        validate=validate,
-        qmark="🔹",
-        style=style
+        message=message, default=default, validate=validate, qmark="🔹", style=style
     ).unsafe_ask()

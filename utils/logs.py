@@ -12,11 +12,12 @@ LOG_LEVELS_AND_FORMATS = {
 
 RESET_COLOR = "\x1b[0m"
 
+
 class CustomFormatter(logging.Formatter):
     """
     Logging formatter with color support
     """
-    
+
     def __init__(self, fmt):
         super().__init__()
         self.fmt = fmt
@@ -26,6 +27,7 @@ class CustomFormatter(logging.Formatter):
         log_fmt = log_color + self.fmt + RESET_COLOR
         formatter = logging.Formatter(log_fmt)
         return formatter.format(record)
+
 
 def msg(level: str, message: str) -> None:
     """
@@ -50,13 +52,16 @@ def msg(level: str, message: str) -> None:
     if level in {"ERROR", "CRITICAL"}:
         sys.exit(1)
 
+
 def setup_logger() -> None:
     """
     Configures the global logger with color formatting
     """
     log_format = "[%(asctime)s] - [%(levelname)s] - %(message)s"
     log_level_name = os.getenv("TOOLKIT_INSTALLER_LOG_LEVEL", "INFO").upper()
-    _, log_level = LOG_LEVELS_AND_FORMATS.get(log_level_name, LOG_LEVELS_AND_FORMATS["INFO"])
+    _, log_level = LOG_LEVELS_AND_FORMATS.get(
+        log_level_name, LOG_LEVELS_AND_FORMATS["INFO"]
+    )
 
     logger = logging.getLogger("toolkit")
 
