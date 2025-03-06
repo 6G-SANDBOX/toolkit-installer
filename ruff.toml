@@ -30,6 +30,7 @@ exclude = [
 # Same as Black.
 line-length = 88
 indent-width = 4
+extend-select = ["I"]
 
 [format]
 # Like Black, use double quotes for strings.
