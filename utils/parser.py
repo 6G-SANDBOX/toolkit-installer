@@ -1,10 +1,10 @@
 import base64
+from typing import Dict
+
 import yaml
 
 from utils.cli import run_command
 from utils.logs import msg
-
-from typing import Dict
 
 
 def object_to_yaml(data: Dict) -> str:

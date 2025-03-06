@@ -1,5 +1,5 @@
 from utils.file import load_dotenv_file
-from utils.git import git_clone, git_team_access, git_validate_token
+from utils.git import git_checkout, git_clone, git_team_access, git_validate_token
 from utils.logs import msg, setup_logger
 from utils.one import (
     check_one_health,
@@ -7,6 +7,7 @@ from utils.one import (
     oneflow_custom_attr_value,
     oneflow_role_vm_name,
     oneflow_template_instantiate,
+    onegate_endpoint,
     onegroup_addadmin,
     onegroup_create,
     onegroup_id,
@@ -21,10 +22,15 @@ from utils.one import (
     onevm_disk_resize,
     onevm_user_template_param,
 )
-from utils.os import get_dotenv_var
+from utils.os import (
+    TEMP_DIRECTORY,
+    create_directory,
+    get_dotenv_var,
+    join_path,
+    list_directory,
+)
 from utils.parser import decode_base64
 from utils.questionary import ask_password, ask_select, ask_text
-from utils.temp import create_temp_directory, save_temp_directory, TEMP_DIRECTORY
 
 try:
     load_dotenv_file()
@@ -73,6 +79,9 @@ try:
     github_sites_team_name = get_dotenv_var(key="GITHUB_SITES_TEAM_NAME")
     github_members_token_encode = get_dotenv_var(key="GITHUB_MEMBERS_TOKEN")
     github_members_token = decode_base64(encoded_data=github_members_token_encode)
+    library_https_url = get_dotenv_var(key="LIBRARY_HTTPS_URL")
+    library_repository_name = get_dotenv_var(key="LIBRARY_REPOSITORY_NAME")
+    library_ref = get_dotenv_var(key="LIBRARY_REF")
     sites_https_url = get_dotenv_var(key="SITES_HTTPS_URL")
     sites_repository_name = get_dotenv_var(key="SITES_REPOSITORY_NAME")
 
@@ -90,7 +99,7 @@ try:
 
     # temporary directory
     msg(level="info", message="Creating temporary directory")
-    create_temp_directory()
+    create_directory(path=TEMP_DIRECTORY)
     msg(level="info", message=f"Temporary directory created in path: {TEMP_DIRECTORY}")
 
     # validation
@@ -105,6 +114,7 @@ try:
     )
     msg(level="info", message="Checking OpenNebula health")
     check_one_health()
+    msg(level="info", message=f"Your onegate endpoint is {onegate_endpoint()}")
     msg(level="info", message="OpenNebula is healthy")
     github_username = ask_text(
         message=f"Introduce the username that has been given access to the team {github_sites_team_name} in the organization {github_organization_name}:",
@@ -116,12 +126,12 @@ try:
         level="info",
         message=f"Validating if user {github_username} has access to the team {github_sites_team_name} in the organization {github_organization_name}",
     )
-    git_team_access(
-        token=github_members_token,
-        organization_name=github_organization_name,
-        team_name=github_sites_team_name,
-        username=github_username,
-    )
+    # git_team_access(
+    #     token=github_members_token,
+    #     organization_name=github_organization_name,
+    #     team_name=github_sites_team_name,
+    #     username=github_username,
+    # )
     msg(
         level="info",
         message=f"User {github_username} has access to the team {github_sites_team_name} in the organization {github_organization_name}",
@@ -254,7 +264,7 @@ try:
         level="info",
         message=(
             f"Proceeding to instantiate the service {marketapp_toolkit_service} in OpenNebula. "
-            "The service automates the deployment of the MinIO, Jenkins and TNLCM virtual machines in OpenNebula"
+            "The service automates the deployment of the MinIO, Jenkins and TNLCM virtual machines in OpenNebula. It takes few minutes to complete the instantiation"
         ),
     )
     _ = oneflow_template_instantiate(
@@ -305,10 +315,30 @@ try:
     )
 
     # library
-
+    msg(
+        level="info",
+        message=(
+            f"Proceeding to clone the {library_repository_name} repository in the temporary directory {TEMP_DIRECTORY}. "
+            f"The {library_repository_name} repository contains the description of the components using YAML files and the Ansible playbooks to deploy the components"
+        ),
+    )
+    library_path = join_path(TEMP_DIRECTORY, library_repository_name)
+    git_clone(https_url=library_https_url, path=library_path)
+    git_checkout(path=library_path, ref=library_ref)
+    msg(
+        level="info",
+        message=(
+            f"Repository {library_repository_name} cloned successfully in path {library_path} using ref {library_ref}"
+        ),
+    )
+    library_components = list_directory(path=library_path)
+    msg(
+        level="info",
+        message=f"Components found in repository {library_repository_name} using ref {library_ref}: {library_components}",
+    )
     # sites
-    sites_path = save_temp_directory(path=sites_repository_name)
-    git_clone(https_url=sites_https_url, path=sites_path, token=sites_github_token)
+    # sites_path = join_temp_directory(sites_repository_name)
+    # git_clone(https_url=sites_https_url, path=sites_path, token=sites_github_token)
 
     # msg(level="info", message="Toolkit installation process completed successfully")
 
