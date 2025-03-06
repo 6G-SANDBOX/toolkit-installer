@@ -1,20 +1,19 @@
 import os
 import re
-
 from textwrap import dedent
 from time import sleep
 from typing import Dict, List, Optional, Tuple
 
 from utils.cli import run_command
-from utils.file import load_file, loads_json, save_file
+from utils.file import load_file, loads_json, save_file, save_json_file
 from utils.logs import msg
+from utils.os import TEMP_DIRECTORY, join_path
 from utils.parser import gb_to_mb
 from utils.questionary import (
     ask_password,
     ask_select,
     ask_text,
 )
-from utils.temp import save_temp_file, save_temp_json_file
 
 
 ## OPENNEBULA MANAGEMENT ##
@@ -481,12 +480,12 @@ def oneflow_show(oneflow_name: str) -> Dict | None:
         return loads_json(data=stdout)
 
 
-def oneflow_state(oneflow_name: str) -> str:
+def oneflow_state(oneflow_name: str) -> int:
     """
     Get the state of a service in OpenNebula
 
     :param oneflow_name: the name of the service, ``str``
-    :return: the state of the service, ``str``
+    :return: the state of the service, ``int``
     """
     oneflow = oneflow_show(oneflow_name=oneflow_name)
     if oneflow is None:
@@ -779,10 +778,10 @@ def oneflow_template_instantiate(
         if networks_values:
             data.update(networks_values)
         if data:
-            custom_attrs_path = save_temp_json_file(
-                data=data,
-                file_name=f"{oneflow_template_name}_service_custom_attrs.json",
+            custom_attrs_path = join_path(
+                TEMP_DIRECTORY, f"{oneflow_template_name}_service_custom_attrs.json"
             )
+            save_json_file(data=data, file_path=custom_attrs_path)
             command = f'oneflow-template instantiate "{oneflow_template_name}" < "{custom_attrs_path}"'
         else:
             command = f'oneflow-template instantiate "{oneflow_template_name}"'
@@ -799,8 +798,12 @@ def oneflow_template_instantiate(
         sleep(5)
         id = int(re.search(r"ID:\s*(\d+)", stdout).group(1))
         state = oneflow_state(oneflow_name=oneflow_template_name)
-        while state != "2":
-            sleep(10)
+        msg(
+            level="info",
+            message=f"Instantiating service {oneflow_template_name} in OpenNebula... It takes a few minutes",
+        )
+        while state != 2:
+            sleep(20)
             state = oneflow_state(oneflow_name=oneflow_template_name)
     else:
         id = oneflow_id(oneflow_name=oneflow_template_name)
@@ -1323,9 +1326,12 @@ def onemarket_create(
             ENDPOINT = "{marketplace_endpoint}"
             MARKET_MAD = one
         """).strip()
-        marketplace_content_path = save_temp_file(
+        marketplace_content_path = join_path(
+            TEMP_DIRECTORY, f"{marketplace_name}_marketplace_content"
+        )
+        save_file(
             data=marketplace_content,
-            file_name=f"{marketplace_name}_marketplace_content",
+            file_name=marketplace_content_path,
         )
         command = f"onemarket create {marketplace_content_path}"
         stdout, stderr, rc = run_command(command=command)
