@@ -1,8 +1,8 @@
 import json
-import yaml
-
-from dotenv import load_dotenv
 from typing import Dict
+
+import yaml
+from dotenv import load_dotenv
 
 from utils.os import DOTENV_PATH
 
@@ -65,7 +65,9 @@ def save_file(data, file_path: str, mode: str = "wt", encoding: str = "utf-8") -
         file.write(data)
 
 
-def save_json(data, file_path: str, mode: str = "wt", encoding: str = "utf-8") -> None:
+def save_json_file(
+    data, file_path: str, mode: str = "wt", encoding: str = "utf-8"
+) -> None:
     """
     Save the data to a JSON file
 
