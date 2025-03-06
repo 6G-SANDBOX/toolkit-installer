@@ -1,5 +1,6 @@
-from questionary import checkbox, confirm, password, select, text, Style
-from typing import Any, List
+from typing import Any, List, Optional
+
+from questionary import Style, checkbox, confirm, password, select, text
 
 style = Style(
     [
@@ -11,18 +12,30 @@ style = Style(
     ]
 )
 
-# def ask_checkbox(prompt: str, choices: Any) -> Any:
-#     """
-#     Prompt the user to select multiple options from a list
 
-#     :param prompt: the question to display, ``str``
-#     :param choices: list of options to choose from, ``List[str]``
-#     :return: list of selected options, ``List[str]``
-#     """
-#     try:
-#         return checkbox(prompt, choices=choices).unsafe_ask()
-#     except KeyboardInterrupt:
-#         print("\nOperation interrupted by user")
+def ask_checkbox(
+    message: str,
+    choices: List[str],
+    default: Optional[str] = None,
+    validate: Any = None,
+) -> Any:
+    """
+    Prompt the user to select multiple options from a list
+
+    :param message: the question to display, ``str``
+    :param choices: list of options to choose from, ``List[str]``
+    :param default: default value if the user presses Enter, ``Optional[str]``
+    :param validate: custom validation function, ``Any``
+    :return: list of selected options, ``List[str]``
+    """
+    return checkbox(
+        message=message,
+        choices=choices,
+        default=default,
+        validate=validate,
+        qmark="🔹",
+        style=style,
+    ).unsafe_ask()
 
 
 def ask_confirm(message: str, default: str = "") -> bool:
