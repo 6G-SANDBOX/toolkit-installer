@@ -25,6 +25,26 @@ def git_add(path: str) -> None:
     )
 
 
+def git_checkout(path: str, ref: str) -> None:
+    """
+    Checkout the specified branch, tag or commit
+
+    :param path: the path to the repository, ``str``
+    :param ref: the branch or commit to checkout, ``str``
+    """
+    if not check_exist_directory(path=path):
+        msg(
+            level="error",
+            message=f"Repository {path} does not exist. Cannot checkout branch, tag or commit {ref}",
+        )
+    command = f"git -C {path} checkout {ref} --"
+    stdout, _, rc = run_command(command=command)
+    msg(
+        level="debug",
+        message=f"Checkout branch, tag or commit {ref} in the repository {path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+    )
+
+
 def git_clone(https_url: str, path: str, token: str = None) -> None:
     """
     Clone a GitHub repository to the specified path
