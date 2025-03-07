@@ -93,23 +93,24 @@ def git_commit(path: str, message: str) -> None:
     )
 
 
-def git_create_branch(path: str, branch: str) -> None:
+def git_create_branch(path: str, new_branch: str, base_branch: str) -> None:
     """
     Create a new branch in the repository
 
     :param path: the path to the repository, ``str``
-    :param branch: the branch to create, ``str``
+    :param new_branch: the name of the new branch, ``str``
+    :param base_branch: the name of the base branch, ``str``
     """
-    command = f"git -C {path} branch {branch}"
+    command = f"git -C {path} switch -c {new_branch} {base_branch}"
     stdout, stderr, rc = run_command(command=command)
     if rc != 0:
         msg(
             level="error",
-            message=f"Failed to create a new branch {branch} in the repository {path}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+            message=f"Failed to create a new branch {new_branch} in the repository {path}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
         )
     msg(
         level="debug",
-        message=f"New branch {branch} created in the repository {path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+        message=f"New branch {new_branch} created in the repository {path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
     )
 
 
