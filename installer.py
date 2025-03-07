@@ -1,26 +1,56 @@
-from utils.file import load_dotenv_file
-from utils.git import git_checkout, git_clone, git_team_access, git_validate_token
+import sys
+
+from utils.file import load_dotenv_file, load_yaml
+from utils.git import (
+    git_checkout,
+    git_clone,
+    git_create_branch,
+    git_remotes_branches,
+    git_team_access,
+    git_validate_token,
+)
 from utils.logs import msg, setup_logger
 from utils.one import (
     check_one_health,
     oneacl_create,
+    oneflow_chown,
     oneflow_custom_attr_value,
     oneflow_role_vm_name,
+    oneflow_roles_vm_names,
+    oneflow_show,
+    oneflow_state,
     oneflow_template_instantiate,
     onegate_endpoint,
     onegroup_addadmin,
     onegroup_create,
     onegroup_id,
     onegroups_names,
+    oneimage_chown,
+    oneimage_delete,
+    oneimage_show,
+    oneimages_names,
     onemarket_create,
+    onemarket_endpoint,
     onemarketapp_add,
+    onemarketapp_description,
+    onemarketapp_name,
+    onemarkets_names,
+    onetemplate_chown,
+    onetemplate_delete,
+    onetemplate_instantiate,
+    onetemplate_show,
+    onetemplates_names,
     oneuser_chgrp,
     oneuser_create,
     oneuser_update_public_ssh_key,
     oneusername_id,
     oneusernames,
+    onevm_chown,
     onevm_disk_resize,
+    onevm_show,
+    onevm_terminate_hard,
     onevm_user_template_param,
+    onevms_names,
 )
 from utils.os import (
     TEMP_DIRECTORY,
@@ -28,22 +58,21 @@ from utils.os import (
     get_dotenv_var,
     join_path,
     list_directory,
+    remove_directory,
+    remove_file,
+    rename_directory,
 )
 from utils.parser import decode_base64
-from utils.questionary import ask_password, ask_select, ask_text
+from utils.questionary import ask_confirm, ask_password, ask_select, ask_text
 
 try:
     load_dotenv_file()
     setup_logger()
-    msg(level="info", message="Proceeding to install the toolkit in OpenNebula")
 
     # dotenv variables
     sandbox_documentation_url = get_dotenv_var(key="SANDBOX_DOCUMENTATION_URL")
     marketplace_monitoring_interval = get_dotenv_var(
         key="MARKETPLACE_MONITORING_INTERVAL"
-    )
-    opennebula_public_marketplace_name = get_dotenv_var(
-        key="OPENNEBULA_PUBLIC_MARKETPLACE_NAME"
     )
     opennebula_public_marketplace_description = get_dotenv_var(
         key="OPENNEBULA_PUBLIC_MARKETPLACE_DESCRIPTION"
@@ -51,16 +80,13 @@ try:
     opennebula_public_marketplace_endpoint = get_dotenv_var(
         key="OPENNEBULA_PUBLIC_MARKETPLACE_ENDPOINT"
     )
-    opennebula_sandbox_marketplace_name = get_dotenv_var(
-        key="OPENNEBULA_SANDBOX_MARKETPLACE_NAME"
-    )
     opennebula_sandbox_marketplace_description = get_dotenv_var(
         key="OPENNEBULA_SANDBOX_MARKETPLACE_DESCRIPTION"
     )
     opennebula_sandbox_marketplace_endpoint = get_dotenv_var(
         key="OPENNEBULA_SANDBOX_MARKETPLACE_ENDPOINT"
     )
-    marketapp_toolkit_service = get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE")
+    marketapp_toolkit_service_url = get_dotenv_var(key="MARKETAPP_TOOLKIT_SERVICE_URL")
     toolkit_service_sites_ansible_token = get_dotenv_var(
         key="TOOLKIT_SERVICE_SITES_ANSIBLE_TOKEN"
     )
@@ -73,8 +99,10 @@ try:
     toolkit_service_minio_disk_size = int(
         get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_SIZE")
     )
-    marketapp_technitium = get_dotenv_var(key="MARKETAPP_TECHNITIUM")
-    marketapp_route_manager_api = get_dotenv_var(key="MARKETAPP_ROUTE_MANAGER_API")
+    marketapp_technitium_url = get_dotenv_var(key="MARKETAPP_TECHNITIUM_URL")
+    marketapp_route_manager_api_url = get_dotenv_var(
+        key="MARKETAPP_ROUTE_MANAGER_API_URL"
+    )
     github_organization_name = get_dotenv_var(key="GITHUB_ORGANIZATION_NAME")
     github_sites_team_name = get_dotenv_var(key="GITHUB_SITES_TEAM_NAME")
     github_members_token_encode = get_dotenv_var(key="GITHUB_MEMBERS_TOKEN")
@@ -89,11 +117,12 @@ try:
     msg(
         level="info",
         message=(
+            f"Proceeding to install 6G-SANDBOX toolkit in OpenNebula. "
             "Toolkit installer is a Python script developed for the 6G-SANDBOX project, designed to facilitate the creation of new 6G-SANDBOX sites. "
             "This script automates the installation of the MinIO, Jenkins and TNLCM stack in OpenNebula using the toolkit service. "
-            "The script will guide you through the installation process. "
             f"Please read the official documentation {sandbox_documentation_url}/toolkit-installer/installation and follow the instructions carefully. "
-            "It is very important to complete all the requirements indicated in the documentation before running this script"
+            "It is very important to complete all the requirements indicated in the documentation before running this script. "
+            "The script will guide you through the installation process. If you skip using Ctrl+C, the script will be interrupted and later you can continue from where you left off"
         ),
     )
 
@@ -126,12 +155,13 @@ try:
         level="info",
         message=f"Validating if user {github_username} has access to the team {github_sites_team_name} in the organization {github_organization_name}",
     )
-    # git_team_access(
-    #     token=github_members_token,
-    #     organization_name=github_organization_name,
-    #     team_name=github_sites_team_name,
-    #     username=github_username,
-    # )
+    # TODO: uncomment
+    git_team_access(
+        token=github_members_token,
+        organization_name=github_organization_name,
+        team_name=github_sites_team_name,
+        username=github_username,
+    )
     msg(
         level="info",
         message=f"User {github_username} has access to the team {github_sites_team_name} in the organization {github_organization_name}",
@@ -231,51 +261,128 @@ try:
     )
 
     # marketplaces
-    _ = onemarket_create(
-        marketplace_name=opennebula_public_marketplace_name,
-        marketplace_description=opennebula_public_marketplace_description,
-        marketplace_endpoint=opennebula_public_marketplace_endpoint,
-        marketplace_monitoring_interval=marketplace_monitoring_interval,
+    opennebula_public_marketplace_name = ask_select(
+        message="Select the OpenNebula Public marketplace. You can create a new OpenNebula Public marketplace or select an existing one",
+        choices=["Create new OpenNebula Public marketplace"] + onemarkets_names(),
     )
-    msg(
-        level="info",
-        message=f"Marketplace {opennebula_public_marketplace_name} created successfully",
+    if opennebula_public_marketplace_name == "Create new OpenNebula Public marketplace":
+        opennebula_public_marketplace_name = ask_text(
+            message="Introduce new OpenNebula Public marketplace name:",
+            validate=lambda opennebula_public_marketplace_name: (
+                "Marketplace name must be at least 8 characters long"
+                if len(opennebula_public_marketplace_name) < 8
+                else "Marketplace name already exists"
+                if opennebula_public_marketplace_name in onemarkets_names()
+                else True
+            ),
+        )
+        _ = onemarket_create(
+            marketplace_name=opennebula_public_marketplace_name,
+            marketplace_description=opennebula_public_marketplace_description,
+            marketplace_endpoint=opennebula_public_marketplace_endpoint,
+            marketplace_monitoring_interval=marketplace_monitoring_interval,
+        )
+        msg(
+            level="info",
+            message=f"Marketplace {opennebula_public_marketplace_name} created successfully",
+        )
+    else:
+        if (
+            onemarket_endpoint(marketplace_name=opennebula_public_marketplace_name)
+            != opennebula_public_marketplace_endpoint
+        ):
+            msg(
+                level="error",
+                message=(
+                    f"Marketplace indicated {opennebula_public_marketplace_name} not match with the correct endpoint of the OpenNebula Public marketplace"
+                ),
+            )
+    opennebula_sandbox_marketplace_name = ask_select(
+        message="Select the 6G-SANDBOX marketplace. You can create a new 6G-SANDBOX marketplace or select an existing one",
+        choices=["Create new 6G-SANDBOX marketplace"] + onemarkets_names(),
     )
-    _ = onemarket_create(
-        marketplace_name=opennebula_sandbox_marketplace_name,
-        marketplace_description=opennebula_sandbox_marketplace_description,
-        marketplace_endpoint=opennebula_sandbox_marketplace_endpoint,
-        marketplace_monitoring_interval=marketplace_monitoring_interval,
+    if opennebula_sandbox_marketplace_name == "Create new 6G-SANDBOX marketplace":
+        opennebula_sandbox_marketplace_name = ask_text(
+            message="Introduce new 6G-SANDBOX marketplace name:",
+            validate=lambda opennebula_sandbox_marketplace_name: (
+                "Marketplace name must be at least 8 characters long"
+                if len(opennebula_sandbox_marketplace_name) < 8
+                else "Marketplace name already exists"
+                if opennebula_sandbox_marketplace_name in onemarkets_names()
+                else True
+            ),
+        )
+        _ = onemarket_create(
+            marketplace_name=opennebula_sandbox_marketplace_name,
+            marketplace_description=opennebula_sandbox_marketplace_description,
+            marketplace_endpoint=opennebula_sandbox_marketplace_endpoint,
+            marketplace_monitoring_interval=marketplace_monitoring_interval,
+        )
+        msg(
+            level="info",
+            message=f"Marketplace {opennebula_sandbox_marketplace_name} created successfully",
+        )
+    else:
+        if (
+            onemarket_endpoint(marketplace_name=opennebula_sandbox_marketplace_name)
+            != opennebula_sandbox_marketplace_endpoint
+        ):
+            msg(
+                level="error",
+                message=(
+                    f"Marketplace indicated {opennebula_sandbox_marketplace_name} not match with the correct endpoint of the 6G-SANDBOX marketplace"
+                ),
+            )
+
+    # toolkit service
+    marketapp_toolkit_service_name = onemarketapp_name(
+        appliance_url=marketapp_toolkit_service_url
     )
-    msg(
-        level="info",
-        message=f"Marketplace {opennebula_sandbox_marketplace_name} created successfully",
+    marketapp_toolkit_service_description = onemarketapp_description(
+        appliance_url=marketapp_toolkit_service_url
     )
     onemarketapp_add(
         group_name=group_name,
         username=username,
         marketplace_name=opennebula_sandbox_marketplace_name,
-        appliances=[marketapp_toolkit_service],
+        appliances=[marketapp_toolkit_service_name],
     )
-    msg(level="info", message=f"Marketapp/appliance {marketapp_toolkit_service} added")
-
-    # toolkit service
     msg(
         level="info",
         message=(
-            f"Proceeding to instantiate the service {marketapp_toolkit_service} in OpenNebula. "
-            "The service automates the deployment of the MinIO, Jenkins and TNLCM virtual machines in OpenNebula. It takes few minutes to complete the instantiation"
+            f"Searching if there is a service instantiated with the name {marketapp_toolkit_service_name} in OpenNebula in RUNNING state. If not the script will proceed with the steps to instantiate the service"
         ),
     )
-    _ = oneflow_template_instantiate(
-        oneflow_template_name=marketapp_toolkit_service,
+    if (
+        oneflow_show(oneflow_name=marketapp_toolkit_service_name) is None
+        or oneflow_state(oneflow_name=marketapp_toolkit_service_name) != 2
+    ):
+        msg(
+            level="info",
+            message=(
+                f"Service {marketapp_toolkit_service_name} not found or not in RUNNING state. Proceeding to instantiate the service"
+            ),
+        )
+        oneflow_template_instantiate(
+            oneflow_template_name=marketapp_toolkit_service_name
+        )  # TODO: validate length of custom attrs values
+        msg(
+            level="info",
+            message=f"Service {marketapp_toolkit_service_name} instantiated successfully",
+        )
+    oneflow_chown(
+        oneflow_name=marketapp_toolkit_service_name,
         username=username,
         group_name=group_name,
-    )  # TODO: validate length of custom attrs values
-    msg(
-        level="info",
-        message=f"Service {marketapp_toolkit_service} instantiated successfully",
     )
+    roles_vm_names = oneflow_roles_vm_names(oneflow_name=marketapp_toolkit_service_name)
+    if roles_vm_names:
+        for vm_name in roles_vm_names:
+            onevm_chown(
+                vm_name=vm_name,
+                username=username,
+                group_name=group_name,
+            )
     msg(
         level="info",
         message=(
@@ -285,14 +392,14 @@ try:
         ),
     )
     jenkins_vm = oneflow_role_vm_name(
-        oneflow_name=marketapp_toolkit_service,
+        oneflow_name=marketapp_toolkit_service_name,
         oneflow_role=toolkit_service_jenkins_role,
     )
     jenkins_ssh_key = onevm_user_template_param(
         vm_name=jenkins_vm, param=toolkit_service_jenkins_ssh_key_param
     )
     sites_ansible_token = oneflow_custom_attr_value(
-        oneflow_name=marketapp_toolkit_service,
+        oneflow_name=marketapp_toolkit_service_name,
         attr_key=toolkit_service_sites_ansible_token,
     )
     oneuser_update_public_ssh_key(username=username, public_ssh_key=jenkins_ssh_key)
@@ -302,7 +409,8 @@ try:
         message=f"Resizing MinIO disk with id {toolkit_service_minio_disk_id} to {toolkit_service_minio_disk_size} GB",
     )
     minio_vm = oneflow_role_vm_name(
-        oneflow_name=marketapp_toolkit_service, oneflow_role=toolkit_service_minio_role
+        oneflow_name=marketapp_toolkit_service_name,
+        oneflow_role=toolkit_service_minio_role,
     )
     onevm_disk_resize(
         vm_name=minio_vm,
@@ -314,31 +422,259 @@ try:
         message=f"Disk with id {toolkit_service_minio_disk_id} resized to {toolkit_service_minio_disk_size} GB",
     )
 
-    # library
-    msg(
-        level="info",
-        message=(
-            f"Proceeding to clone the {library_repository_name} repository in the temporary directory {TEMP_DIRECTORY}. "
-            f"The {library_repository_name} repository contains the description of the components using YAML files and the Ansible playbooks to deploy the components"
-        ),
+    # technitium
+    marketapp_technitium_name = onemarketapp_name(
+        appliance_url=marketapp_technitium_url
     )
-    library_path = join_path(TEMP_DIRECTORY, library_repository_name)
-    git_clone(https_url=library_https_url, path=library_path)
-    git_checkout(path=library_path, ref=library_ref)
-    msg(
-        level="info",
-        message=(
-            f"Repository {library_repository_name} cloned successfully in path {library_path} using ref {library_ref}"
-        ),
+    marketapp_technitium_description = onemarketapp_description(
+        appliance_url=marketapp_technitium_url
     )
-    library_components = list_directory(path=library_path)
-    msg(
-        level="info",
-        message=f"Components found in repository {library_repository_name} using ref {library_ref}: {library_components}",
+    is_technitium = ask_confirm(
+        message=f"Do yo have {marketapp_technitium_name} instantiated in OpenNebula?",
     )
+    if is_technitium:
+        msg(
+            level="info",
+            message=f"Since you have an instance of {marketapp_technitium_name} in OpenNebula, can you provide the name of the template, image and virtual machine?",
+        )
+        technitium_template_name = ask_select(
+            message=f"Select the {marketapp_technitium_name} template",
+            choices=onetemplates_names(),
+        )
+        technitium_image_name = ask_select(
+            message=f"Select the {marketapp_technitium_name} image",
+            choices=oneimages_names(),
+        )
+        technitium_vm_name = ask_select(
+            message=f"Select the {marketapp_technitium_name} virtual machine",
+            choices=onevms_names(),
+        )
+        oneimage_chown(
+            image_name=technitium_image_name,
+            username=username,
+            group_name=group_name,
+        )
+        onetemplate_chown(
+            template_name=technitium_template_name,
+            username=username,
+            group_name=group_name,
+        )
+        onevm_chown(
+            vm_name=technitium_vm_name,
+            username=username,
+            group_name=group_name,
+        )
+    else:
+        technitium_template_data = onetemplate_show(
+            template_name=marketapp_technitium_name
+        )
+        technitium_image_data = oneimage_show(image_name=marketapp_technitium_name)
+        techinitium_vm_data = onevm_show(vm_name=marketapp_technitium_name)
+        if (
+            technitium_template_data is not None
+            and technitium_image_data is None
+            and techinitium_vm_data is None
+        ):
+            onetemplate_delete(template_name=marketapp_technitium_name)
+        if (
+            technitium_template_data is None
+            and technitium_image_data is not None
+            and techinitium_vm_data is None
+        ):
+            oneimage_delete(image_name=marketapp_technitium_name)
+        if (
+            technitium_template_data is None
+            and technitium_image_data is None
+            and techinitium_vm_data is not None
+        ):
+            onevm_terminate_hard(vm_name=marketapp_technitium_name)
+        if (
+            technitium_template_data is not None
+            and technitium_image_data is None
+            and techinitium_vm_data is not None
+        ):
+            onevm_terminate_hard(vm_name=marketapp_technitium_name)
+            onetemplate_delete(template_name=marketapp_technitium_name)
+        if (
+            technitium_template_data is None
+            and technitium_image_data is not None
+            and techinitium_vm_data is not None
+        ):
+            onevm_terminate_hard(vm_name=marketapp_technitium_name)
+            oneimage_delete(image_name=marketapp_technitium_name)
+        if (
+            technitium_template_data is None
+            and technitium_image_data is None
+            and techinitium_vm_data is None
+        ):
+            add_technitium = ask_confirm(
+                message=(
+                    f"Do you want to add the {marketapp_technitium_name} appliance? It is optional, you can use 8.8.8.8 or 1.1.1.1 to resolve DNS queries. \n"
+                    f"{marketapp_technitium_description}"
+                ),
+                default=False,
+            )
+            if add_technitium:
+                msg(
+                    level="info",
+                    message=(
+                        f"Proceeding to add the appliance {marketapp_technitium_name} in OpenNebula"
+                    ),
+                )
+                _ = onemarketapp_add(
+                    group_name=group_name,
+                    username=username,
+                    marketplace_name=opennebula_sandbox_marketplace_name,
+                    appliances=[marketapp_technitium_name],
+                )
+                msg(
+                    level="info",
+                    message=(
+                        f"Appliance {marketapp_technitium_name} added successfully"
+                    ),
+                )
+            else:
+                msg(
+                    level="info",
+                    message=(
+                        f"Appliance {marketapp_technitium_name} not added. You can add it later in the OpenNebula Sunstone interface"
+                    ),
+                )
+        sys.exit(1)
+        if (
+            technitium_template_data is not None
+            and technitium_image_data is not None
+            and techinitium_vm_data is None
+        ):
+            oneimage_chown(
+                image_name=marketapp_technitium_name,
+                username=username,
+                group_name=group_name,
+            )
+            onetemplate_chown(
+                template_name=marketapp_technitium_name,
+                username=username,
+                group_name=group_name,
+            )
+            instantiate_technitium = ask_confirm(
+                message=(
+                    f"Do you want to instantiate the appliance {marketapp_technitium_name} in OpenNebula?",
+                ),
+                default=False,
+            )
+            if instantiate_technitium:
+                onetemplate_instantiate(
+                    template_name=marketapp_technitium_name
+                )  # TODO: implement
+                msg(
+                    level="info",
+                    message=(
+                        f"Appliance {marketapp_technitium_name} instantiated successfully"
+                    ),
+                )
+                onevm_chown(
+                    vm_name=marketapp_technitium_name,
+                    username=username,
+                    group_name=group_name,
+                )
+            else:
+                msg(
+                    level="info",
+                    message=(
+                        f"Appliance {marketapp_technitium_name} not instantiated. You can instantiate it later in the OpenNebula Sunstone interface"
+                    ),
+                )
+    # TODO: route manager, detect if they are already instantiated
+
     # sites
-    # sites_path = join_temp_directory(sites_repository_name)
-    # git_clone(https_url=sites_https_url, path=sites_path, token=sites_github_token)
+    msg(
+        level="info",
+        message=(
+            f"Proceeding to clone the {sites_repository_name} repository in the temporary directory {TEMP_DIRECTORY}. "
+            f"The {sites_repository_name} repository contains the static information about the infrastructure, systems and available equipment of each site"
+        ),
+    )
+    sites_path = join_path(TEMP_DIRECTORY, sites_repository_name)
+    git_clone(https_url=sites_https_url, path=sites_path, token=sites_github_token)
+    sites = git_remotes_branches(path=sites_path)
+    site = ask_select(
+        message="Select an existing site or create a new one. If you select a site that already exists, please note that you will be prompted for the ansible key to decrypt the site",
+        choices=["Create new site"] + sites,
+    )
+    if site != "Create new site":
+        git_checkout(path=sites_path, ref=site)
+        # TODO: possibility to update the site configuration with ansible-edit... ask for the ansible password
+        # TODO: detect the components that are already in the site. Read site core.yaml and check the components that are already there an also possibility to update the definition
+    else:
+        site = ask_text(
+            message="Introduce new site name:",
+            validate=lambda site: (
+                "Site name must be at least 3 characters long"
+                if len(site) < 3
+                else "Site name already exists"
+                if site in sites
+                else True
+            ),
+        )
+        git_create_branch(path=sites_path, new_branch=site, base_branch="main")
+        remove_directory(path=join_path(sites_path, ".github"))
+        remove_file(path=join_path(sites_path, "README.md"))
+        dummy_site_path = join_path(sites_path, ".dummy_site")
+        site_path = join_path(sites_path, site)
+        rename_directory(
+            new_path=dummy_site_path,
+            old_path=site_path,
+        )
+        core_site_path = join_path(site_path, "core.yaml")
+        core_site_data = load_yaml(file_path=core_site_path)
+
+        # library
+        msg(
+            level="info",
+            message=(
+                f"Proceeding to clone the {library_repository_name} repository in the temporary directory {TEMP_DIRECTORY}. "
+                f"The {library_repository_name} repository contains the description of the components using YAML files and the Ansible playbooks to deploy the components"
+            ),
+        )
+        library_path = join_path(TEMP_DIRECTORY, library_repository_name)
+        git_clone(https_url=library_https_url, path=library_path)
+        git_checkout(path=library_path, ref=library_ref)
+        msg(
+            level="info",
+            message=(
+                f"Repository {library_repository_name} cloned successfully in path {library_path} using ref {library_ref}"
+            ),
+        )
+        library_components = list_directory(path=library_path)
+        if not library_components:
+            msg(
+                level="error",
+                message=f"No components found in repository {library_repository_name} using ref {library_ref}",
+            )
+        msg(
+            level="info",
+            message=f"Components found in repository {library_repository_name} using ref {library_ref}: {library_components}",
+        )
+        for component in library_components:
+            component_data = load_yaml(
+                file_path=join_path(library_path, component, ".tnlcm", "public.yaml")
+            )
+            if "metadata" not in component_data:
+                msg(
+                    level="error",
+                    message=f"Metadata not found in component {component} in repository {library_repository_name} using ref {library_ref}",
+                )
+            metadata = component_data["metadata"]
+            if "long_description" not in metadata:
+                msg(
+                    level="error",
+                    message=f"Long description not found in component {component} in repository {library_repository_name} using ref {library_ref}",
+                )
+            long_description = metadata["long_description"]
+            add_component = ask_confirm(
+                message="Do you want to add this component to your site? Very important to know the availability of the component in the site. Ask to the administrator of the site",
+                default=False,
+            )
 
     # msg(level="info", message="Toolkit installation process completed successfully")
 
