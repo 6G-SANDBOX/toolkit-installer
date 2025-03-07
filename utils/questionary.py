@@ -38,7 +38,7 @@ def ask_checkbox(
     ).unsafe_ask()
 
 
-def ask_confirm(message: str, default: str = "") -> bool:
+def ask_confirm(message: str, default: bool = False) -> bool:
     """
     Prompt the user to confirm an action
 
