@@ -78,3 +78,24 @@ def remove_directory(path: str) -> None:
     """
     if check_exist_directory(path=path):
         shutil.rmtree(path)
+
+
+def remove_file(file_path: str) -> None:
+    """
+    Remove the file
+
+    :param file_path: the path to the file, ``str``
+    """
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+
+def rename_directory(old_path: str, new_path: str) -> None:
+    """
+    Rename the directory
+
+    :param old_path: the old path to the directory, ``str``
+    :param new_path: the new path to the directory, ``str``
+    """
+    if check_exist_directory(path=old_path):
+        shutil.move(old_path, new_path)
