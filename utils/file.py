@@ -2,16 +2,6 @@ import json
 from typing import Dict
 
 import yaml
-from dotenv import load_dotenv
-
-from utils.os import DOTENV_PATH
-
-
-def load_dotenv_file() -> None:
-    """
-    Load the .env file in the current working directory
-    """
-    load_dotenv(dotenv_path=DOTENV_PATH)
 
 
 def load_file(file_path: str, mode: str = "rt", encoding: str = "utf-8") -> str:
@@ -78,25 +68,3 @@ def save_json_file(
     """
     with open(file=file_path, mode=mode, encoding=encoding) as json_file:
         json.dump(data, json_file, indent=4)
-
-
-def update_dotenv_file(key: str, value: str) -> None:
-    """
-    Update the .env file with the given data
-
-    :param key: the key of the environment variable, ``str``
-    :param value: the value of the environment variable, ``str``
-    """
-    lines = []
-    key_found = False
-    with open(DOTENV_PATH, "rt") as file:
-        for line in file:
-            if line.strip().startswith(f"{key}="):
-                lines.append(f'{key}="{value}"\n')
-                key_found = True
-            else:
-                lines.append(line)
-
-    if key_found:
-        with open(DOTENV_PATH, "wt") as file:
-            file.writelines(lines)
