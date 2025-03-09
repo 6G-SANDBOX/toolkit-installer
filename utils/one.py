@@ -10,6 +10,7 @@ from utils.logs import msg
 from utils.os import TEMP_DIRECTORY, join_path
 from utils.parser import gb_to_mb
 from utils.questionary import (
+    ask_confirm,
     ask_password,
     ask_select,
     ask_text,
@@ -557,22 +558,6 @@ def oneflows_names() -> List[str]:
     return oneflows_names
 
 
-def oneflows_names_running() -> List[str]:
-    """
-    Get the names of the running services in OpenNebula
-
-    :return: the names of the running services, ``List[str]``
-    """
-    oneflow_names = oneflows_names()
-    oneflows_running = []
-    if oneflows_names:
-        for oneflow_name in oneflow_names:
-            state = oneflow_state(oneflow_name=oneflow_name)
-            if state == 2:
-                oneflows_running.append(oneflow_name)
-    return oneflows_running
-
-
 ## ONEFLOW TEMPLATE MANAGEMENT ##
 def oneflow_template_chown(
     oneflow_template_name: str,
@@ -700,11 +685,15 @@ def split_attr_description(
     )
 
 
-def oneflow_template_instantiate(oneflow_template_name: str) -> None:
+def oneflow_template_instantiate(
+    oneflow_template_name: str, username: str, group_name: str
+) -> None:
     """
     Instantiate a service in OpenNebula
 
     :param oneflow_template_name: the name of the service, ``str``
+    :param username: the name of the user, ``str``
+    :param group_name: the name of the group, ``str``
     """
     custom_attrs = oneflow_template_custom_attrs(
         oneflow_template_name=oneflow_template_name
@@ -853,6 +842,40 @@ def oneflow_template_instantiate(oneflow_template_name: str) -> None:
         sleep(20)
         state = oneflow_state(oneflow_name=oneflow_template_name)
     # id = oneflow_id(oneflow_name=oneflow_template_name)
+    roles_vm_names = oneflow_roles_vm_names(oneflow_name=oneflow_template_name)
+    if roles_vm_names:
+        for vm_name in roles_vm_names:
+            onevm_chown(
+                vm_name=vm_name,
+                username=username,
+                group_name=group_name,
+            )
+    oneflow_template_chown(
+        oneflow_template_name=oneflow_template_name,
+        username=username,
+        group_name=group_name,
+    )
+    oneflow_chown(
+        oneflow_name=oneflow_template_name,
+        username=username,
+        group_name=group_name,
+    )
+    image_ids = oneflow_template_image_ids(oneflow_template_name=oneflow_template_name)
+    template_ids = oneflow_template_ids(oneflow_template_name=oneflow_template_name)
+    for template_id in template_ids:
+        template_name = onetemplate_name(template_id=template_id)
+        onetemplate_chown(
+            template_name=template_name,
+            username=username,
+            group_name=group_name,
+        )
+    for image_id in image_ids:
+        image_name = oneimage_name(image_id=image_id)
+        oneimage_chown(
+            image_name=image_name,
+            username=username,
+            group_name=group_name,
+        )
 
 
 def oneflow_template_networks(
@@ -1568,23 +1591,36 @@ def onemarketapp_add(
     group_name: str,
     username: str,
     marketplace_name: str,
-    appliances: List[str],
-) -> None:
+    appliance_url: str,
+) -> bool:
     """
     Add appliances from a marketplace in OpenNebula
 
     :param group_name: the name of the group, ``str``
     :param username: the name of the user, ``str``
     :param marketplace_name: the name of the marketplace, ``str``
-    :param appliances: the list of appliances, ``List[str]``
+    :param appliance_url: the URL of the appliance, ``str``
+    :return: if the appliance has been added, ``bool``
     """
-    for appliance_name in appliances:
-        appliance_type = onemarketapp_type(
-            appliance_name=appliance_name,
-            marketplace_name=marketplace_name,
-        )
-        if appliance_type == "IMAGE":  # one image and one template
-            if oneimage_show(image_name=appliance_name) is None:
+    is_added = False
+    appliance_name = onemarketapp_name(appliance_url=appliance_url)
+    appliance_description = onemarketapp_description(appliance_url=appliance_url)
+    appliance_type = onemarketapp_type(
+        appliance_name=appliance_name,
+        marketplace_name=marketplace_name,
+    )
+    if appliance_type == "IMAGE":  # one image and one template
+        template_data = onetemplate_show(template_name=appliance_name)
+        image_data = oneimage_show(image_name=appliance_name)
+        if template_data is None and image_data is None:
+            add_appliance = ask_confirm(
+                message=(
+                    f"No image and template has been found with the name {appliance_name}. Do you want to add {appliance_name} appliance?"
+                    f"{appliance_description}"
+                ),
+                default=False,
+            )
+            if add_appliance:
                 datastores_names = onedatastores_names()
                 datastore_name = ask_select(
                     message=f"Select the datastore where you want to store the image {appliance_name}",
@@ -1606,18 +1642,35 @@ def onemarketapp_add(
                             message=f"Image {appliance_name} is in error state",
                         )
                 template_name = onetemplate_name(template_id=template_id[0])
-            oneimage_chown(
-                image_name=appliance_name,
-                username=username,
-                group_name=group_name,
-            )
+        if template_data is not None and image_data is not None:
             onetemplate_chown(
                 template_name=appliance_name,
                 username=username,
                 group_name=group_name,
             )
-        elif appliance_type == "VM":  # one or more images and one template
-            if onetemplate_show(template_name=appliance_name) is None:
+            oneimage_chown(
+                image_name=appliance_name,
+                username=username,
+                group_name=group_name,
+            )
+            is_added = True
+        else:
+            msg(
+                level="error",
+                message=f"Could not add {appliance_name} appliance. Check in the Sunstone interface if you have the image, but not the template or if you have the template and not the image",
+            )
+    elif appliance_type == "VM":  # one or more images and one template
+        template_data = onetemplate_show(template_name=appliance_name)
+        image_ids = onetemplate_image_ids(template_name=appliance_name)
+        if template_data is None and len(image_ids) == 0:
+            add_appliance = ask_confirm(
+                message=(
+                    f"No image and template has been found with the name {appliance_name}. Do you want to add {appliance_name} appliance?"
+                    f"{appliance_description}"
+                ),
+                default=False,
+            )
+            if add_appliance:
                 datastores_names = onedatastores_names()
                 datastore_name = ask_select(
                     message=f"Select the datastore where you want to store the template {appliance_name}",
@@ -1646,27 +1699,43 @@ def onemarketapp_add(
                                 message=f"Image {image_name} is in error state",
                             )
                 template_name = onetemplate_name(template_id=template_id[0])
-                onetemplate_chown(
-                    template_name=template_name,
+        if template_data is not None and len(image_ids) > 0:
+            onetemplate_chown(
+                template_name=appliance_name,
+                username=username,
+                group_name=group_name,
+            )
+            for image_id in image_ids:
+                oneimage_chown(
+                    image_name=oneimage_name(image_id=image_id),
                     username=username,
                     group_name=group_name,
                 )
-            else:
-                image_ids = onetemplate_image_ids(template_name=appliance_name)
-                for image_id in image_ids:
-                    image_name = oneimage_name(image_id=image_id)
-                    oneimage_chown(
-                        image_name=image_name,
-                        username=username,
-                        group_name=group_name,
-                    )
-                onetemplate_chown(
-                    template_name=appliance_name,
-                    username=username,
-                    group_name=group_name,
-                )
+            is_added = True
         else:
-            if oneflow_template_show(oneflow_template_name=appliance_name) is None:
+            msg(
+                level="error",
+                message=f"Could not add {appliance_name} appliance. Check in the Sunstone interface if you have the images, but not the template or if you have the template and not the images",
+            )
+    else:
+        oneflow_template_data = oneflow_template_show(
+            oneflow_template_name=appliance_name
+        )
+        image_ids = oneflow_template_image_ids(oneflow_template_name=appliance_name)
+        template_ids = oneflow_template_ids(oneflow_template_name=appliance_name)
+        if (
+            oneflow_template_data is None
+            and len(image_ids) == 0
+            and len(template_ids) == 0
+        ):
+            add_appliance = ask_confirm(
+                message=(
+                    f"No image and template has been found with the name {appliance_name}. Do you want to add {appliance_name} appliance?"
+                    f"{appliance_description}"
+                ),
+                default=False,
+            )
+            if add_appliance:
                 datastores_names = onedatastores_names()
                 datastore_name = ask_select(
                     message=f"Select the datastore where you want to store the service {appliance_name}",
@@ -1680,6 +1749,13 @@ def onemarketapp_add(
                 image_ids = oneflow_template_image_ids(
                     oneflow_template_name=appliance_name
                 )
+                for template_id in template_ids:
+                    template_name = onetemplate_name(template_id=template_id)
+                    onetemplate_chown(
+                        template_name=template_name,
+                        username=username,
+                        group_name=group_name,
+                    )
                 for image_id in image_ids:
                     image_name = oneimage_name(image_id=image_id)
                     oneimage_chown(
@@ -1696,31 +1772,109 @@ def onemarketapp_add(
                                 level="error",
                                 message=f"Image {image_name} is in error state",
                             )
+            if (
+                oneflow_template_data is not None
+                and len(image_ids) > 0
+                and len(template_ids) > 0
+            ):
+                oneflow_template_chown(
+                    oneflow_template_name=appliance_name,
+                    username=username,
+                    group_name=group_name,
+                )
                 for template_id in template_ids:
-                    template_name = onetemplate_name(template_id=template_id)
                     onetemplate_chown(
-                        template_name=template_name,
+                        template_name=onetemplate_name(template_id=template_id),
                         username=username,
                         group_name=group_name,
                     )
-            else:
-                image_ids = oneflow_template_image_ids(
-                    oneflow_template_name=appliance_name
-                )
-                template_ids = oneflow_template_ids(
-                    oneflow_template_name=appliance_name
-                )
                 for image_id in image_ids:
-                    image_name = oneimage_name(image_id=image_id)
                     oneimage_chown(
-                        image_name=image_name,
+                        image_name=oneimage_name(image_id=image_id),
                         username=username,
                         group_name=group_name,
                     )
-                for template_id in template_ids:
-                    template_name = onetemplate_name(template_id=template_id)
-                    onetemplate_chown(
-                        template_name=template_name,
+                is_added = True
+            else:
+                msg(
+                    level="error",
+                    message=f"Could not add {appliance_name} appliance. Check in the Sunstone interface if you have the images, but not the template or if you have the template and not the images",
+                )
+    return is_added
+
+
+def onemarketapp_instantiate(
+    appliance_url: str, group_name: str, marketplace_name: str, username: str
+) -> bool:
+    """
+    Ask if user has instantiated an appliance in OpenNebula
+
+    :param appliance_url: the URL of the appliance, ``str``
+    :param group_name: the name of the group, ``str``
+    :param marketplace_name: the name of the marketplace, ``str``
+    :param username: the name of the user, ``str``
+    :return: if the appliance has been instantiated, ``bool``
+    """
+    is_instantiated = False
+    appliance_name = onemarketapp_name(appliance_url=appliance_url)
+    appliance_type = onemarketapp_type(
+        appliance_name=appliance_name,
+        marketplace_name=marketplace_name,
+    )
+    instantiate_appliance = ask_confirm(
+        message=f"Do yo have {appliance_name} instantiated in OpenNebula?",
+        default=False,
+    )
+    if instantiate_appliance:
+        if appliance_type == "IMAGE" or appliance_type == "VM":
+            msg(
+                level="info",
+                message=f"Since you have an instance of {appliance_name} in OpenNebula, can you select the name of the virtual machine?",
+            )
+            vm_name = ask_select(
+                message=f"Select the {appliance_name} virtual machine",
+                choices=onevms_names(),
+            )
+            if onevm_state(vm_name=vm_name) != "3":  # 3 means running
+                msg(
+                    level="error",
+                    message=f"Virtual machine {vm_name} is not in RUNNING state",
+                )
+            onevm_chown(
+                vm_name=vm_name,
+                username=username,
+                group_name=group_name,
+            )
+            template_id = onevm_template_id(vm_name=vm_name)
+            template_name = onetemplate_name(template_id=template_id)
+            onetemplate_chown(
+                template_name=template_name, username=username, group_name=group_name
+            )
+            image_ids = onetemplate_image_ids(template_name=template_name)
+            for image_id in image_ids:
+                image_name = oneimage_name(image_id=image_id)
+                oneimage_chown(
+                    image_name=image_name, username=username, group_name=group_name
+                )
+        else:
+            msg(
+                level="info",
+                message=f"Since you have an instance of {appliance_name} in OpenNebula, can you select the name of the service instantiated?",
+            )
+            service_name = ask_select(
+                message=f"Select the {appliance_name} service",
+                choices=oneflows_names(),
+            )
+            if oneflow_state(oneflow_name=service_name) != 2:  # 2 means running
+                msg(
+                    level="error",
+                    message=f"Service {service_name} is not in RUNNING state",
+                )
+            roles_vm_names = oneflow_roles_vm_names(oneflow_name=appliance_name)
+            if roles_vm_names:
+                for vm_name in roles_vm_names:
+                    onevm_chown(
+                        vm_name=vm_name,
                         username=username,
                         group_name=group_name,
                     )
@@ -1729,6 +1883,71 @@ def onemarketapp_add(
                 username=username,
                 group_name=group_name,
             )
+            oneflow_chown(
+                oneflow_name=service_name,
+                username=username,
+                group_name=group_name,
+            )
+            image_ids = oneflow_template_image_ids(oneflow_template_name=appliance_name)
+            template_ids = oneflow_template_ids(oneflow_template_name=appliance_name)
+            for template_id in template_ids:
+                template_name = onetemplate_name(template_id=template_id)
+                onetemplate_chown(
+                    template_name=template_name,
+                    username=username,
+                    group_name=group_name,
+                )
+            for image_id in image_ids:
+                image_name = oneimage_name(image_id=image_id)
+                oneimage_chown(
+                    image_name=image_name,
+                    username=username,
+                    group_name=group_name,
+                )
+        is_instantiated = True
+    else:
+        is_added = onemarketapp_add(
+            group_name=group_name,
+            username=username,
+            marketplace_name=marketplace_name,
+            appliance_url=appliance_url,
+        )
+        if not is_added:
+            msg(
+                level="error",
+                message=f"Could not instantiate appliance {appliance_name}. Add the appliance to OpenNebula first",
+            )
+        instantiate_appliance = ask_confirm(
+            message=(
+                f"Do you want to instantiate the appliance {appliance_name} in OpenNebula?",
+            ),
+            default=False,
+        )
+        if instantiate_appliance:
+            if appliance_type == "IMAGE" or appliance_type == "VM":
+                template_id = onetemplate_instantiate(template_name=appliance_name)
+                template_name = onetemplate_name(template_id=template_id)
+                onetemplate_chown(
+                    template_name=template_name,
+                    username=username,
+                    group_name=group_name,
+                )
+                image_ids = onetemplate_image_ids(template_name=template_name)
+                for image_id in image_ids:
+                    image_name = oneimage_name(image_id=image_id)
+                    oneimage_chown(
+                        image_name=image_name,
+                        username=username,
+                        group_name=group_name,
+                    )
+            else:
+                oneflow_template_instantiate(
+                    oneflow_template_name=appliance_name,
+                    group_name=group_name,
+                    username=username,
+                )
+            is_instantiated = True
+    return is_instantiated
 
 
 def onemarketapp_export(
@@ -2691,6 +2910,35 @@ def onevm_list() -> Dict | None:
         return loads_json(data=stdout)
 
 
+def onevm_template_id(vm_name: str) -> str:
+    """
+    Get the id of a template of a VM in OpenNebula
+
+    :param vm_name: the name of the VM, ``str``
+    :return: the id of the template, ``str``
+    """
+    vm = onevm_show(vm_name=vm_name)
+    if vm is None:
+        msg(level="error", message=f"VM {vm_name} not found")
+    if "VM" not in vm or "TEMPLATE" not in vm["VM"]:
+        msg(
+            level="error",
+            message=f"VM key not found in vm {vm_name} or TEMPLATE key not found in VM",
+        )
+    if "TEMPLATE_ID" not in vm["VM"]["TEMPLATE"]:
+        msg(
+            level="error",
+            message="TEMPLATE_ID key not found in TEMPLATE",
+        )
+    template_id = vm["VM"]["TEMPLATE"]["TEMPLATE_ID"]
+    if template_id is None:
+        msg(
+            level="error",
+            message=f"Could not get template id of VM {vm_name}",
+        )
+    return template_id
+
+
 def onevm_terminate_hard(vm_name: str) -> None:
     """
     Remove a VM in OpenNebula
@@ -2828,6 +3076,39 @@ def onevms_names() -> List[str]:
                 message="NAME key not found in vm",
             )
         vms_names.append(vm["NAME"])
+    return vms_names
+
+
+def onevms_running() -> List[str]:
+    """
+    Get the names of the running VMs in OpenNebula
+
+    :return: the names of the running VMs, ``List[str]``
+    """
+    vms = onevm_list()
+    vms_names = []
+    if vms is None:
+        return []
+    if "VM_POOL" not in vms or "VM" not in vms["VM_POOL"]:
+        msg(
+            level="error",
+            message="VM_POOL key not found in vms or VM key not found in VM_POOL",
+        )
+    for vm in vms["VM_POOL"]["VM"]:
+        if vm is None:
+            msg(level="error", message="VM is empty")
+        if "NAME" not in vm:
+            msg(
+                level="error",
+                message="NAME key not found in vm",
+            )
+        if "STATE" not in vm:
+            msg(
+                level="error",
+                message="STATE key not found in vm",
+            )
+        if vm["STATE"] == "3":
+            vms_names.append(vm["NAME"])
     return vms_names
 
 
