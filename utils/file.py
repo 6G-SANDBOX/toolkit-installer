@@ -3,6 +3,20 @@ from typing import Dict
 
 import yaml
 
+from utils.logs import msg
+from utils.os import is_file
+
+
+def is_encrypted_ansible(file_path: str) -> bool:
+    """
+    Check if a file is an Ansible Vault encrypted file
+
+    :param file_path: the path to the file to be checked, ``str``
+    :return: whether the file is an Ansible Vault encrypted file, ``bool``
+    """
+    file = load_file(file_path=file_path)
+    return file.startswith("$ANSIBLE_VAULT;")
+
 
 def load_file(file_path: str, mode: str = "rt", encoding: str = "utf-8") -> str:
     """
@@ -13,6 +27,8 @@ def load_file(file_path: str, mode: str = "rt", encoding: str = "utf-8") -> str:
     :param encoding: the file encoding (e.g. utf-8), ``str``
     :return: the content of the file, ``str``
     """
+    if not is_file(path=file_path):
+        msg(level="error", message=f"File not found: {file_path}")
     with open(file=file_path, mode=mode, encoding=encoding) as file:
         return file.read()
 
@@ -26,6 +42,8 @@ def load_yaml(file_path: str, mode: str = "rt", encoding: str = "utf-8") -> Dict
     :param encoding: the file encoding (e.g. utf-8), ``str``
     :return: the data loaded from the YAML file, ``Dict``
     """
+    if not is_file(path=file_path):
+        msg(level="error", message=f"File not found: {file_path}")
     with open(file=file_path, mode=mode, encoding=encoding) as yaml_file:
         return yaml.safe_load(stream=yaml_file)
 
