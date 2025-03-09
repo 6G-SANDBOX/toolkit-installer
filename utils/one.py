@@ -2320,7 +2320,7 @@ def onetemplate_instantiate(template_name: str) -> None:
 
     :param template_name: the name of the template, ``str``
     """
-    # TODO: waiting to command
+    # TODO: waiting this issue: https://github.com/OpenNebula/one/issues/6975
     user_inputs = onetemplate_user_inputs(template_name=template_name)
     if user_inputs:
         attrs = {}
