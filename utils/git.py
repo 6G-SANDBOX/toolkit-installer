@@ -12,6 +12,11 @@ def git_add(path: str) -> None:
 
     :param path: the path to the repository, ``str``
     """
+    if not exist_directory(path=path):
+        msg(
+            level="error",
+            message=f"Repository {path} does not exist. Cannot add files to the staging area",
+        )
     command = f"git -C {path} add ."
     stdout, stderr, rc = run_command(command=command)
     if rc != 0:
@@ -23,6 +28,42 @@ def git_add(path: str) -> None:
         level="debug",
         message=f"Files added to the staging area in the repository {path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
     )
+
+
+def git_branches(path: str) -> List[str]:
+    """
+    Get the list of local and remotes branches in the repository
+
+    :param path: the path to the repository, ``str``
+    :return: the list of branches, ``List[str]``
+    """
+    if not exist_directory(path=path):
+        msg(
+            level="error",
+            message=f"Repository {path} does not exist. Cannot get the list of branches",
+        )
+    command = f"git -C {path} branch -a"
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="error",
+            message=f"Failed to get the list of branches in the repository {path}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+    msg(
+        level="debug",
+        message=f"List of branches in the repository {path} found. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+    )
+
+    branches = set()
+    for line in stdout.splitlines():
+        line = line.strip().replace("*", "").strip()
+        if "HEAD" in line:
+            continue
+        if line.startswith("remotes/origin/"):
+            line = line[len("remotes/origin/") :]
+        branches.add(line)
+
+    return sorted(branches)
 
 
 def git_checkout(path: str, ref: str) -> None:
@@ -42,6 +83,30 @@ def git_checkout(path: str, ref: str) -> None:
     msg(
         level="debug",
         message=f"Checkout branch, tag or commit {ref} in the repository {path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+    )
+
+
+def git_clean_fd(path: str) -> None:
+    """
+    Clean the repository
+
+    :param path: the path to the repository, ``str``
+    """
+    if not exist_directory(path=path):
+        msg(
+            level="error",
+            message=f"Repository {path} does not exist. Cannot clean the repository",
+        )
+    command = f"git -C {path} clean -fd"
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="error",
+            message=f"Failed to clean the repository {path}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+    msg(
+        level="debug",
+        message=f"Repository {path} cleaned. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
     )
 
 
@@ -80,6 +145,11 @@ def git_commit(path: str, message: str) -> None:
     :param path: the path to the repository, ``str``
     :param message: the commit message, ``str``
     """
+    if not exist_directory(path=path):
+        msg(
+            level="error",
+            message=f"Repository {path} does not exist. Cannot commit the staged files",
+        )
     command = f'git -C {path} commit -m "{message}"'
     stdout, stderr, rc = run_command(command=command)
     if rc != 0:
@@ -101,6 +171,11 @@ def git_create_branch(path: str, new_branch: str, base_branch: str) -> None:
     :param new_branch: the name of the new branch, ``str``
     :param base_branch: the name of the base branch, ``str``
     """
+    if not exist_directory(path=path):
+        msg(
+            level="error",
+            message=f"Repository {path} does not exist. Cannot create a new branch {new_branch}",
+        )
     command = f"git -C {path} switch -c {new_branch} {base_branch}"
     stdout, stderr, rc = run_command(command=command)
     if rc != 0:
@@ -121,6 +196,11 @@ def git_current_branch(path: str) -> str:
     :param path: the path to the repository, ``str``
     :return: the current branch, ``str``
     """
+    if not exist_directory(path=path):
+        msg(
+            level="error",
+            message=f"Repository {path} does not exist. Cannot get the current branch",
+        )
     command = f"git -C {path} branch --show-current"
     stdout, stderr, rc = run_command(command=command)
     if rc != 0:
@@ -135,14 +215,64 @@ def git_current_branch(path: str) -> str:
     return stdout
 
 
+def git_detect_changes(path: str) -> bool:
+    """
+    Detect changes in the repository
+
+    :param path: the path to the repository, ``str``
+    :return: ``True`` if changes detected, ``False`` otherwise
+    """
+    if not exist_directory(path=path):
+        msg(
+            level="error",
+            message=f"Repository {path} does not exist. Cannot detect changes",
+        )
+    command = f"git -C {path} status --porcelain"
+    stdout, _, rc = run_command(command=command)
+    msg(
+        level="debug",
+        message=f"Changes detected in the repository {path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+    )
+    return bool(stdout)
+
+
+def git_fetch_prune(path: str) -> None:
+    """
+    Fetch and prune the remote branches
+
+    :param path: the path to the repository, ``str``
+    """
+    if not exist_directory(path=path):
+        msg(
+            level="error",
+            message=f"Repository {path} does not exist. Cannot fetch and prune the remote branches",
+        )
+    command = f"git -C {path} fetch --prune"
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="error",
+            message=f"Failed to fetch and prune the remote branches in the repository {path}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+    msg(
+        level="debug",
+        message=f"Remote branches fetched and pruned in the repository {path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+    )
+
+
 def git_pull(path: str) -> None:
     """
     Pull the changes from the remote repository
 
     :param path: the path to the repository, ``str``
     """
+    if not exist_directory(path=path):
+        msg(
+            level="error",
+            message=f"Repository {path} does not exist. Cannot pull changes from the remote repository",
+        )
     command = f"git -C {path} pull"
-    stdout, stderr, rc = run_command(command=command)
+    stdout, _, rc = run_command(command=command)
     msg(
         level="debug",
         message=f"Changes pulled from the remote repository {path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
@@ -155,6 +285,11 @@ def git_push(path: str) -> None:
 
     :param path: the path to the repository, ``str``
     """
+    if not exist_directory(path=path):
+        msg(
+            level="error",
+            message=f"Repository {path} does not exist. Cannot push the committed changes to the remote repository",
+        )
     command = f"git -C {path} push"
     stdout, stderr, rc = run_command(command=command)
     if rc != 0:
@@ -168,34 +303,6 @@ def git_push(path: str) -> None:
     )
 
 
-def git_remotes_branches(path: str) -> List[str]:
-    """
-    Get the list of branches in the remote repository
-
-    :param path: the path to the repository, ``str``
-    :return: the list of branches, ``List[str]``
-    """
-    command = f"git -C {path} branch -r"
-    stdout, stderr, rc = run_command(command=command)
-    if rc != 0:
-        msg(
-            level="error",
-            message=f"Failed to get the list of branches in the remote repository {path}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
-        )
-    msg(
-        level="debug",
-        message=f"List of branches in the remote repository {path} found. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
-    )
-
-    branches = []
-    for line in stdout.splitlines():
-        line = line.strip()
-        if "HEAD" in line:
-            continue
-        branches.append(line.replace("origin/", ""))
-    return branches
-
-
 def git_switch(
     path: str, branch: str = None, tag: str = None, commit: str = None
 ) -> None:
@@ -207,6 +314,11 @@ def git_switch(
     :param tag: the tag to switch, ``str``
     :param commit: the commit to switch, ``str``
     """
+    if not exist_directory(path=path):
+        msg(
+            level="error",
+            message=f"Repository {path} does not exist. Cannot switch to the branch {branch}",
+        )
     if branch and tag is None and commit is None:
         command = f"git -C {path} switch {branch}"
     elif tag and branch is None and commit is None:
