@@ -2,7 +2,14 @@ import sys
 
 from dotenv import load_dotenv
 
-from utils.file import is_encrypted_ansible, load_yaml, save_file
+from utils.file import (
+    SITES_SKIP_KEYS,
+    is_encrypted_ansible,
+    load_yaml,
+    read_site_yaml,
+    save_file,
+    save_yaml_file,
+)
 from utils.git import (
     git_branches,
     git_checkout,
@@ -37,6 +44,8 @@ from utils.one import (
     oneusername_id,
     oneusernames,
     onevm_disk_resize,
+    onevm_ip,
+    onevm_user_input,
     onevm_user_template_param,
 )
 from utils.os import (
@@ -92,6 +101,7 @@ try:
     appliance_route_manager_api_url = get_dotenv_var(
         key="APPLIANCE_ROUTE_MANAGER_API_URL"
     )
+    route_manager_api_token_param = get_dotenv_var(key="ROUTE_MANAGER_API_TOKEN_PARAM")
     github_organization_name = get_dotenv_var(key="GITHUB_ORGANIZATION_NAME")
     github_sites_team_name = get_dotenv_var(key="GITHUB_SITES_TEAM_NAME")
     github_members_token_encode = get_dotenv_var(key="GITHUB_MEMBERS_TOKEN")
@@ -316,6 +326,7 @@ try:
     appliance_toolkit_service_name = onemarketapp_name(
         appliance_url=appliance_toolkit_service_url
     )
+    # FIX: we need the name of the appliance to get the IP in case of is instantiated
     is_toolkit_service_instantiated = onemarketapp_instantiate(
         appliance_url=appliance_toolkit_service_url,
         group_name=group_name,
@@ -325,7 +336,7 @@ try:
     if not is_toolkit_service_instantiated:
         msg(
             level="error",
-            message=f"Appliance {appliance_toolkit_service_name} not instantiated and is mandatory",
+            message=f"Appliance {appliance_toolkit_service_name} not instantiated and is MANDATORY",
         )
     msg(
         level="info",
@@ -374,38 +385,46 @@ try:
     )
 
     # technitium
-    # appliance_technitium_name = onemarketapp_name(
-    #     appliance_url=appliance_technitium_url
-    # )
-    # is_technitium_instantiated = onemarketapp_instantiate(
-    #     appliance_url=appliance_technitium_url,
-    #     group_name=group_name,
-    #     marketplace_name=opennebula_sandbox_marketplace_name,
-    #     username=username,
-    # )
-    # if not is_technitium_instantiated:
-    #     msg(
-    #         level="warning",
-    #         message=f"Appliance {appliance_technitium_name} not instantiated and is optional",
-    #     )
+    appliance_technitium_name = onemarketapp_name(
+        appliance_url=appliance_technitium_url
+    )
+    is_technitium_instantiated, appliance_technitium_name = onemarketapp_instantiate(
+        appliance_url=appliance_technitium_url,
+        group_name=group_name,
+        marketplace_name=opennebula_sandbox_marketplace_name,
+        username=username,
+    )
+    if not is_technitium_instantiated:
+        msg(
+            level="warning",
+            message=f"Appliance {appliance_technitium_name} not instantiated and is optional",
+        )
 
     # route-manager-api
-    # appliance_route_manager_api_name = onemarketapp_name(
-    #     appliance_url=appliance_route_manager_api_url
-    # )
-    # is_route_manager_api_instantiated = onemarketapp_instantiate(
-    #     appliance_url=appliance_route_manager_api_url,
-    #     group_name=group_name,
-    #     marketplace_name=opennebula_sandbox_marketplace_name,
-    #     username=username,
-    # )
-    # if not is_route_manager_api_instantiated:
-    #     msg(
-    #         level="warning",
-    #         message=(
-    #             f"Appliance {appliance_route_manager_api_name} not instantiated and is optional"
-    #         ),
-    #     )
+    appliance_route_manager_api_name = onemarketapp_name(
+        appliance_url=appliance_route_manager_api_url
+    )
+    is_route_manager_api_instantiated, appliance_route_manager_api_name = (
+        onemarketapp_instantiate(
+            appliance_url=appliance_route_manager_api_url,
+            group_name=group_name,
+            marketplace_name=opennebula_sandbox_marketplace_name,
+            username=username,
+        )
+    )
+    route_manager_api_token = None
+    if is_route_manager_api_instantiated:
+        route_manager_api_token = onevm_user_input(
+            vm_name=appliance_route_manager_api_name,
+            user_input=route_manager_api_token_param,
+        )
+    if not is_route_manager_api_instantiated:
+        msg(
+            level="warning",
+            message=(
+                f"Appliance {appliance_route_manager_api_name} not instantiated and is optional"
+            ),
+        )
 
     # sites
     # TODO: logs messages
@@ -461,6 +480,42 @@ try:
         )
         core_site_path = join_path(site_path, "core.yaml")
         core_site_data = load_yaml(file_path=core_site_path)
+    read_site_yaml(data=core_site_data)
+    for sites_key in SITES_SKIP_KEYS:
+        if sites_key not in core_site_data:
+            msg(
+                level="error",
+                message=f"Key {sites_key} not found in site {site} in repository {sites_repository_name}",
+            )
+    if is_technitium_instantiated:
+        core_site_data["site_dns"] = onevm_ip(vm_name=appliance_technitium_name)
+    else:
+        core_site_data["site_dns"] = "8.8.8.8,1.1.1.1"
+    core_site_data["site_hypervisor"] = "one"
+    core_site_data["site_onegate"] = onegate_endpoint()
+    site_s3_server = core_site_data["site_s3_server"]
+    if "endpoint" not in site_s3_server:
+        msg(
+            level="error",
+            message=f"Endpoint not found in site_s3_server in site {site} in repository {sites_repository_name}",
+        )
+    site_s3_server["endpoint"] = f"https://{onevm_ip(vm_name=minio_vm)}:9000"
+    if is_route_manager_api_instantiated:
+        if "api_endpoint" not in core_site_data["site_routemanager"]:
+            msg(
+                level="error",
+                message=f"API endpoint not found in site_routemanager in site {site} in repository {sites_repository_name}",
+            )
+        core_site_data["site_routemanager"]["api_endpoint"] = onevm_ip(
+            vm_name=appliance_route_manager_api_name
+        )
+        if "token" not in core_site_data["site_routemanager"]:
+            msg(
+                level="error",
+                message=f"Token not found in site_routemanager in site {site} in repository {sites_repository_name}",
+            )
+        core_site_data["site_routemanager"]["token"] = route_manager_api_token
+    save_yaml_file(data=core_site_data, file_path=core_site_path)
 
     sys.exit(1)
 
@@ -513,7 +568,9 @@ try:
             message=f"Do you want to add {component} component to your site? Very important to know the availability of the component in the site. Ask to the administrator of the site",
             default=False,
         )
-        # TODO: check if the component is already in the site
+        if add_component:
+            # TODO: check if the component is already in the site
+            pass
 
     # msg(level="info", message="Toolkit installation process completed successfully")
 

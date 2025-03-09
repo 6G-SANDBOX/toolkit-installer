@@ -1,10 +1,20 @@
 import json
-from typing import Dict
+from typing import Dict, List
 
 import yaml
 
 from utils.logs import msg
 from utils.os import is_file
+from utils.questionary import ask_confirm, ask_text
+
+SITES_SKIP_KEYS = {
+    "site_dns",
+    "site_hypervisor",
+    "site_onegate",
+    "site_s3_server",
+    "site_routemanager",
+    "site_available_components",
+}
 
 
 def is_encrypted_ansible(file_path: str) -> bool:
@@ -60,6 +70,42 @@ def loads_json(data: str) -> Dict:
     return json.loads(data)
 
 
+def read_site_yaml(data: Dict) -> Dict:
+    """
+    Read the given data as YAML
+
+    :param data: the YAML data to be read, ``Dict``
+    :return: the YAML data read, ``Dict``
+    """
+    aux = {}
+    for key, value in data.items():
+        if key in SITES_SKIP_KEYS:
+            continue
+        elif isinstance(value, Dict):
+            msg(level="info", message=f"Reading nested fields in {key}:")
+            aux[key] = read_site_yaml(value)
+        elif isinstance(value, List):
+            aux[key] = [
+                int(item.strip())
+                for item in ask_text(
+                    message=f"Reading the value of {key} separated by commas. For example: 0, 1, 2:",
+                    default=str(value),
+                ).split(",")
+            ]
+        elif isinstance(value, str):
+            aux[key] = ask_text(message=f"Reading the value of {key}:", default=value)
+        elif isinstance(value, int):
+            aux[key] = int(
+                ask_text(message=f"Enter the value of {key}:", default=str(value))
+            )
+        elif isinstance(value, bool):
+            new_value = ask_confirm(message=f"Enter the value of {key}:", default=value)
+            aux[key] = new_value
+        else:
+            aux[key] = value
+    return aux
+
+
 def save_file(data, file_path: str, mode: str = "wt", encoding: str = "utf-8") -> None:
     """
     Save the given data to a file
@@ -86,3 +132,18 @@ def save_json_file(
     """
     with open(file=file_path, mode=mode, encoding=encoding) as json_file:
         json.dump(data, json_file, indent=4)
+
+
+def save_yaml_file(
+    data, file_path: str, mode: str = "wt", encoding: str = "utf-8"
+) -> None:
+    """
+    Save the data to a YAML file
+
+    :param data: the data to be saved (must be serializable to YAML)
+    :param file_path: the file path where the data will be saved, ``str``
+    :param mode: the mode in which the file is opened (e.g. wt, wb), ``str``
+    :param encoding: the file encoding (e.g. utf-8), ``str``
+    """
+    with open(file=file_path, mode=mode, encoding=encoding) as yaml_file:
+        yaml.dump(data, yaml_file, default_flow_style=False, sort_keys=False)

@@ -1642,6 +1642,8 @@ def onemarketapp_add(
                             message=f"Image {appliance_name} is in error state",
                         )
                 template_name = onetemplate_name(template_id=template_id[0])
+        template_data = onetemplate_show(template_name=appliance_name)
+        image_data = oneimage_show(image_name=appliance_name)
         if template_data is not None and image_data is not None:
             onetemplate_chown(
                 template_name=appliance_name,
@@ -1699,6 +1701,8 @@ def onemarketapp_add(
                                 message=f"Image {image_name} is in error state",
                             )
                 template_name = onetemplate_name(template_id=template_id[0])
+        template_data = onetemplate_show(template_name=appliance_name)
+        image_ids = onetemplate_image_ids(template_name=appliance_name)
         if template_data is not None and len(image_ids) > 0:
             onetemplate_chown(
                 template_name=appliance_name,
@@ -1772,6 +1776,11 @@ def onemarketapp_add(
                                 level="error",
                                 message=f"Image {image_name} is in error state",
                             )
+            oneflow_template_data = oneflow_template_show(
+                oneflow_template_name=appliance_name
+            )
+            image_ids = oneflow_template_image_ids(oneflow_template_name=appliance_name)
+            template_ids = oneflow_template_ids(oneflow_template_name=appliance_name)
             if (
                 oneflow_template_data is not None
                 and len(image_ids) > 0
@@ -1816,6 +1825,7 @@ def onemarketapp_instantiate(
     :return: if the appliance has been instantiated, ``bool``
     """
     is_instantiated = False
+    appliance_target_name = None
     appliance_name = onemarketapp_name(appliance_url=appliance_url)
     appliance_type = onemarketapp_type(
         appliance_name=appliance_name,
@@ -1856,6 +1866,7 @@ def onemarketapp_instantiate(
                 oneimage_chown(
                     image_name=image_name, username=username, group_name=group_name
                 )
+            appliance_target_name = vm_name
         else:
             msg(
                 level="info",
@@ -1904,6 +1915,7 @@ def onemarketapp_instantiate(
                     username=username,
                     group_name=group_name,
                 )
+            appliance_target_name = service_name
         is_instantiated = True
     else:
         is_added = onemarketapp_add(
@@ -1918,9 +1930,7 @@ def onemarketapp_instantiate(
                 message=f"Could not instantiate appliance {appliance_name}. Add the appliance to OpenNebula first",
             )
         instantiate_appliance = ask_confirm(
-            message=(
-                f"Do you want to instantiate the appliance {appliance_name} in OpenNebula?",
-            ),
+            message=f"Do you want to instantiate the appliance {appliance_name} in OpenNebula?",
             default=False,
         )
         if instantiate_appliance:
@@ -1947,7 +1957,8 @@ def onemarketapp_instantiate(
                     username=username,
                 )
             is_instantiated = True
-    return is_instantiated
+        appliance_target_name = appliance_name
+    return is_instantiated, appliance_target_name
 
 
 def onemarketapp_export(
@@ -2022,7 +2033,7 @@ def onemarketapp_curl(appliance_url: str) -> Dict:
     if status_code != "200":
         msg(
             level="error",
-            message=f"Could not get appliance data from url {appliance_url}. Error received: {stderr}. Return code: {rc}",
+            message=f"Could not get appliance data from url {appliance_url}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
         )
     return loads_json(data=data)
 
@@ -2888,6 +2899,36 @@ def onevm_disk_size(vm_name: str, disk_id: int) -> int:
     )
 
 
+def onevm_ip(vm_name: str) -> str:
+    """
+    Get the IP of a VM in OpenNebula
+
+    :param vm_name: the name of the VM, ``str``
+    :return: the IP of the VM, ``str``
+    """
+    vm = onevm_show(vm_name=vm_name)
+    if vm is None:
+        msg(level="error", message=f"VM {vm_name} not found")
+    if "VM" not in vm or "TEMPLATE" not in vm["VM"]:
+        msg(
+            level="error",
+            message=f"VM key not found in vm {vm_name} or TEMPLATE key not found in VM",
+        )
+    if "NIC" not in vm["VM"]["TEMPLATE"]:
+        msg(
+            level="error",
+            message="NIC key not found in TEMPLATE",
+        )
+    nics = vm["VM"]["TEMPLATE"]["NIC"]
+    for nic in nics:
+        if "IP" in nic:
+            return nic["IP"]
+    msg(
+        level="error",
+        message=f"IP not found in VM {vm_name}",
+    )
+
+
 def onevm_list() -> Dict | None:
     """
     Get the list of VMs in OpenNebula
@@ -3005,6 +3046,33 @@ def onevm_state(vm_name: str) -> str:
     return vm_state
 
 
+def onevm_user_input(vm_name, user_input: str) -> str:
+    """
+    Get the value of a user input in a VM in OpenNebula
+
+    :param vm_name: the name of the VM, ``str``
+    :param user_input: the name of the user input, ``str``
+    :return: the value of the user input, ``str``
+    """
+    vm = onevm_show(vm_name=vm_name)
+    if vm is None:
+        msg(
+            level="error",
+            message=f"VM {vm_name} not found",
+        )
+    if "VM" not in vm or "USER_TEMPLATE" not in vm["VM"]:
+        msg(
+            level="error",
+            message=f"VM key not found in VM {vm_name} or USER_TEMPLATE key not found in VM",
+        )
+    if user_input not in vm["VM"]["USER_TEMPLATE"]:
+        msg(
+            level="error",
+            message=f"User input {user_input} not found in VM {vm_name}",
+        )
+    return vm["VM"]["USER_TEMPLATE"][user_input]
+
+
 def onevm_user_template(vm_name: str) -> Dict:
     """
     Get the user template of a VM in OpenNebula
@@ -3110,22 +3178,6 @@ def onevms_running() -> List[str]:
         if vm["STATE"] == "3":
             vms_names.append(vm["NAME"])
     return vms_names
-
-
-# def onevm_ip(vm_name: str) -> str:
-#     """
-#     Get the IP of a VM in OpenNebula
-
-#     :param vm_name: the name of the VM, ``str``
-#     :return: the id of the VM, ``str``
-#     """
-#     vm = get_vm(vm_name)
-#     msg("info", f"Getting IP of OpenNebula VM {vm_name}")
-#     if vm is None:
-#         return None
-#     vm_ip = vm["VM"]["TEMPLATE"]["NIC"][0]["IP"]
-#     msg("info", f"IP of VM {vm_name} is {vm_ip}")
-#     return vm_ip
 
 
 ## NETWORKS MANAGEMENT ##
