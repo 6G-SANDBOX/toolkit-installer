@@ -10,7 +10,7 @@ PYPROJECT_TOML_PATH = os.path.join(CURRENT_DIRECTORY, "pyproject.toml")
 TEMP_DIRECTORY = os.path.join(os.getcwd(), ".temp")
 
 
-def check_exist_directory(path: str) -> bool:
+def exist_directory(path: str) -> bool:
     """
     Check if the directory exists
 
@@ -18,16 +18,6 @@ def check_exist_directory(path: str) -> bool:
     :return: whether the directory exists, ``bool``
     """
     return os.path.exists(path=path)
-
-
-def create_directory(path: str) -> None:
-    """
-    Create the directory
-
-    :param path: the path to the directory, ``str``
-    """
-    if not check_exist_directory(path=path):
-        os.makedirs(path)
 
 
 def get_dotenv_var(key: str) -> str:
@@ -42,6 +32,26 @@ def get_dotenv_var(key: str) -> str:
         msg(level="error", message=f"Environment variable {key} not found")
     msg(level="debug", message=f"Environment variable {key} value: {value}")
     return value
+
+
+def is_directory(path: str) -> bool:
+    """
+    Check if the path is a directory
+
+    :param path: the path to the directory, ``str``
+    :return: whether the path is a directory, ``bool``
+    """
+    return os.path.isdir(path)
+
+
+def is_file(path: str) -> bool:
+    """
+    Check if the path is a file
+
+    :param path: the path to the file, ``str``
+    :return: whether the path is a file, ``bool``
+    """
+    return os.path.isfile(path)
 
 
 def join_path(*args) -> str:
@@ -70,13 +80,22 @@ def list_directory(path: str) -> List[str]:
     return directories
 
 
+def make_directory(path: str) -> None:
+    """
+    Create the directory
+
+    :param path: the path to the directory, ``str``
+    """
+    os.makedirs(path, exist_ok=True)
+
+
 def remove_directory(path: str) -> None:
     """
     Remove the directory
 
     :param path: the path to the directory, ``str``
     """
-    if check_exist_directory(path=path):
+    if is_directory(path=path):
         shutil.rmtree(path)
 
 
@@ -97,5 +116,5 @@ def rename_directory(old_path: str, new_path: str) -> None:
     :param old_path: the old path to the directory, ``str``
     :param new_path: the new path to the directory, ``str``
     """
-    if check_exist_directory(path=old_path):
+    if is_directory(path=old_path):
         shutil.move(old_path, new_path)
