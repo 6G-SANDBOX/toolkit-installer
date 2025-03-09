@@ -3,7 +3,7 @@ from typing import List
 from utils.cli import run_command
 from utils.file import loads_json
 from utils.logs import msg
-from utils.os import check_exist_directory
+from utils.os import exist_directory
 
 
 def git_add(path: str) -> None:
@@ -32,7 +32,7 @@ def git_checkout(path: str, ref: str) -> None:
     :param path: the path to the repository, ``str``
     :param ref: the branch or commit to checkout, ``str``
     """
-    if not check_exist_directory(path=path):
+    if not exist_directory(path=path):
         msg(
             level="error",
             message=f"Repository {path} does not exist. Cannot checkout branch, tag or commit {ref}",
@@ -55,7 +55,7 @@ def git_clone(https_url: str, path: str, token: str = None) -> None:
     """
     if token:
         https_url = https_url.replace("https://", f"https://{token}@")
-    if not check_exist_directory(path=path):
+    if not exist_directory(path=path):
         command = f"git clone {https_url} {path}"
         stdout, stderr, rc = run_command(command=command)
         if rc != 0:
@@ -133,6 +133,20 @@ def git_current_branch(path: str) -> str:
         message=f"Current branch of the repository {path} found. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
     )
     return stdout
+
+
+def git_pull(path: str) -> None:
+    """
+    Pull the changes from the remote repository
+
+    :param path: the path to the repository, ``str``
+    """
+    command = f"git -C {path} pull"
+    stdout, stderr, rc = run_command(command=command)
+    msg(
+        level="debug",
+        message=f"Changes pulled from the remote repository {path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+    )
 
 
 def git_push(path: str) -> None:
