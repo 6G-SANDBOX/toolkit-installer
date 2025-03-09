@@ -2,12 +2,16 @@ import sys
 
 from dotenv import load_dotenv
 
-from utils.file import load_yaml
+from utils.file import is_encrypted_ansible, load_yaml, save_file
 from utils.git import (
+    git_branches,
     git_checkout,
+    git_clean_fd,
     git_clone,
     git_create_branch,
-    git_remotes_branches,
+    git_current_branch,
+    git_detect_changes,
+    git_fetch_prune,
     git_team_access,
     git_validate_token,
 )
@@ -46,7 +50,7 @@ from utils.os import (
     remove_file,
     rename_directory,
 )
-from utils.parser import decode_base64
+from utils.parser import ansible_decrypt, decode_base64
 from utils.questionary import ask_confirm, ask_password, ask_select, ask_text
 
 try:
@@ -342,6 +346,13 @@ try:
         oneflow_name=appliance_toolkit_service_name,
         attr_key=toolkit_service_sites_ansible_token,
     )
+    sites_ansible_token_path = join_path(
+        TEMP_DIRECTORY, toolkit_service_sites_ansible_token
+    )
+    save_file(
+        data=sites_ansible_token,
+        file_path=sites_ansible_token_path,
+    )
     oneuser_update_public_ssh_key(username=username, public_ssh_key=jenkins_ssh_key)
     msg(level="info", message=f"Public SSH key added to user {username}")
     msg(
@@ -362,42 +373,42 @@ try:
         message=f"Disk with id {toolkit_service_minio_disk_id} resized to {toolkit_service_minio_disk_size} GB",
     )
 
-    sys.exit(1)
     # technitium
-    appliance_technitium_name = onemarketapp_name(
-        appliance_url=appliance_technitium_url
-    )
-    is_technitium_instantiated = onemarketapp_instantiate(
-        appliance_url=appliance_technitium_url,
-        group_name=group_name,
-        marketplace_name=opennebula_sandbox_marketplace_name,
-        username=username,
-    )
-    if not is_technitium_instantiated:
-        msg(
-            level="warning",
-            message=f"Appliance {appliance_technitium_name} not instantiated and is optional",
-        )
+    # appliance_technitium_name = onemarketapp_name(
+    #     appliance_url=appliance_technitium_url
+    # )
+    # is_technitium_instantiated = onemarketapp_instantiate(
+    #     appliance_url=appliance_technitium_url,
+    #     group_name=group_name,
+    #     marketplace_name=opennebula_sandbox_marketplace_name,
+    #     username=username,
+    # )
+    # if not is_technitium_instantiated:
+    #     msg(
+    #         level="warning",
+    #         message=f"Appliance {appliance_technitium_name} not instantiated and is optional",
+    #     )
 
     # route-manager-api
-    appliance_route_manager_api_name = onemarketapp_name(
-        appliance_url=appliance_route_manager_api_url
-    )
-    is_route_manager_api_instantiated = onemarketapp_instantiate(
-        appliance_url=appliance_route_manager_api_url,
-        group_name=group_name,
-        marketplace_name=opennebula_sandbox_marketplace_name,
-        username=username,
-    )
-    if not is_route_manager_api_instantiated:
-        msg(
-            level="warning",
-            message=(
-                f"Appliance {appliance_route_manager_api_name} not instantiated and is optional"
-            ),
-        )
+    # appliance_route_manager_api_name = onemarketapp_name(
+    #     appliance_url=appliance_route_manager_api_url
+    # )
+    # is_route_manager_api_instantiated = onemarketapp_instantiate(
+    #     appliance_url=appliance_route_manager_api_url,
+    #     group_name=group_name,
+    #     marketplace_name=opennebula_sandbox_marketplace_name,
+    #     username=username,
+    # )
+    # if not is_route_manager_api_instantiated:
+    #     msg(
+    #         level="warning",
+    #         message=(
+    #             f"Appliance {appliance_route_manager_api_name} not instantiated and is optional"
+    #         ),
+    #     )
 
     # sites
+    # TODO: logs messages
     msg(
         level="info",
         message=(
@@ -407,18 +418,25 @@ try:
     )
     sites_path = join_path(TEMP_DIRECTORY, sites_repository_name)
     git_clone(https_url=sites_https_url, path=sites_path, token=sites_github_token)
-    # TODO: check if there are changes in the local repository
-    # TODO: maybe git pull required if no changes in local repository
-    sites = git_remotes_branches(path=sites_path)
-    # TODO: add to sites the branches that are in local repository
+    git_fetch_prune(path=sites_path)
+    sites = git_branches(path=sites_path)
     site = ask_select(
         message="Select an existing site or create a new one. If you select a site that already exists, please note that you will be prompted for the ansible key to decrypt the site",
         choices=["Create new site"] + sites,
     )
     if site != "Create new site":
+        current_branch = git_current_branch(path=sites_path)
+        if current_branch != site and git_detect_changes(path=sites_path):
+            git_clean_fd(path=sites_path)
         git_checkout(path=sites_path, ref=site)
-        # TODO: possibility to update the site configuration with ansible-edit... ask for the ansible password
-        # TODO: detect the components that are already in the site. Read site core.yaml and check the components that are already there an also possibility to update the definition
+        site_path = join_path(sites_path, site)
+        core_site_path = join_path(site_path, "core.yaml")
+        if is_encrypted_ansible(file_path=core_site_path):
+            ansible_decrypt(
+                data_path=core_site_path,
+                token_path=sites_ansible_token_path,
+            )
+        core_site_data = load_yaml(file_path=core_site_path)
     else:
         site = ask_text(
             message="Introduce new site name:",
@@ -430,65 +448,72 @@ try:
                 else True
             ),
         )
+        if git_detect_changes(path=sites_path):
+            git_clean_fd(path=sites_path)
         git_create_branch(path=sites_path, new_branch=site, base_branch="main")
         remove_directory(path=join_path(sites_path, ".github"))
-        remove_file(path=join_path(sites_path, "README.md"))
+        remove_file(file_path=join_path(sites_path, "README.md"))
         dummy_site_path = join_path(sites_path, ".dummy_site")
         site_path = join_path(sites_path, site)
         rename_directory(
-            new_path=dummy_site_path,
-            old_path=site_path,
+            new_path=site_path,
+            old_path=dummy_site_path,
         )
         core_site_path = join_path(site_path, "core.yaml")
         core_site_data = load_yaml(file_path=core_site_path)
 
-        # library
+    sys.exit(1)
+
+    # library
+    # TODO: logs messages
+    msg(
+        level="info",
+        message=(
+            f"Proceeding to clone the {library_repository_name} repository in the temporary directory {TEMP_DIRECTORY}. "
+            f"The {library_repository_name} repository contains the description of the components using YAML files and the Ansible playbooks to deploy the components"
+        ),
+    )
+    library_path = join_path(TEMP_DIRECTORY, library_repository_name)
+    git_clone(https_url=library_https_url, path=library_path)
+    git_fetch_prune(path=library_path)
+    git_checkout(path=library_path, ref=library_ref)
+    msg(
+        level="info",
+        message=(
+            f"Repository {library_repository_name} cloned successfully in path {library_path} using ref {library_ref}"
+        ),
+    )
+    library_components = list_directory(path=library_path)
+    if not library_components:
         msg(
-            level="info",
-            message=(
-                f"Proceeding to clone the {library_repository_name} repository in the temporary directory {TEMP_DIRECTORY}. "
-                f"The {library_repository_name} repository contains the description of the components using YAML files and the Ansible playbooks to deploy the components"
-            ),
+            level="error",
+            message=f"No components found in repository {library_repository_name} using ref {library_ref}",
         )
-        library_path = join_path(TEMP_DIRECTORY, library_repository_name)
-        git_clone(https_url=library_https_url, path=library_path)
-        git_checkout(path=library_path, ref=library_ref)
-        msg(
-            level="info",
-            message=(
-                f"Repository {library_repository_name} cloned successfully in path {library_path} using ref {library_ref}"
-            ),
+    msg(
+        level="info",
+        message=f"Components found in repository {library_repository_name} using ref {library_ref}: {library_components}",
+    )
+    for component in library_components:
+        component_data = load_yaml(
+            file_path=join_path(library_path, component, ".tnlcm", "public.yaml")
         )
-        library_components = list_directory(path=library_path)
-        if not library_components:
+        if "metadata" not in component_data:
             msg(
                 level="error",
-                message=f"No components found in repository {library_repository_name} using ref {library_ref}",
+                message=f"Metadata not found in component {component} in repository {library_repository_name} using ref {library_ref}",
             )
-        msg(
-            level="info",
-            message=f"Components found in repository {library_repository_name} using ref {library_ref}: {library_components}",
+        metadata = component_data["metadata"]
+        if "long_description" not in metadata:
+            msg(
+                level="error",
+                message=f"Long description not found in component {component} in repository {library_repository_name} using ref {library_ref}",
+            )
+        long_description = metadata["long_description"]
+        add_component = ask_confirm(
+            message=f"Do you want to add {component} component to your site? Very important to know the availability of the component in the site. Ask to the administrator of the site",
+            default=False,
         )
-        for component in library_components:
-            component_data = load_yaml(
-                file_path=join_path(library_path, component, ".tnlcm", "public.yaml")
-            )
-            if "metadata" not in component_data:
-                msg(
-                    level="error",
-                    message=f"Metadata not found in component {component} in repository {library_repository_name} using ref {library_ref}",
-                )
-            metadata = component_data["metadata"]
-            if "long_description" not in metadata:
-                msg(
-                    level="error",
-                    message=f"Long description not found in component {component} in repository {library_repository_name} using ref {library_ref}",
-                )
-            long_description = metadata["long_description"]
-            add_component = ask_confirm(
-                message="Do you want to add this component to your site? Very important to know the availability of the component in the site. Ask to the administrator of the site",
-                default=False,
-            )
+        # TODO: check if the component is already in the site
 
     # msg(level="info", message="Toolkit installation process completed successfully")
 
