@@ -695,6 +695,7 @@ def oneflow_template_instantiate(
     :param username: the name of the user, ``str``
     :param group_name: the name of the group, ``str``
     """
+    # refer: https://docs.opennebula.io/6.10/management_and_operations/references/template.html#template-user-inputs
     custom_attrs = oneflow_template_custom_attrs(
         oneflow_template_name=oneflow_template_name
     )
@@ -1615,7 +1616,7 @@ def onemarketapp_add(
         if template_data is None and image_data is None:
             add_appliance = ask_confirm(
                 message=(
-                    f"No image and template has been found with the name {appliance_name}. Do you want to add {appliance_name} appliance?"
+                    f"No image and template has been found with the name {appliance_name}. Do you want to add {appliance_name} appliance? \n"
                     f"{appliance_description}"
                 ),
                 default=False,
@@ -1667,7 +1668,7 @@ def onemarketapp_add(
         if template_data is None and len(image_ids) == 0:
             add_appliance = ask_confirm(
                 message=(
-                    f"No image and template has been found with the name {appliance_name}. Do you want to add {appliance_name} appliance?"
+                    f"No image and template has been found with the name {appliance_name}. Do you want to add {appliance_name} appliance? \n"
                     f"{appliance_description}"
                 ),
                 default=False,
@@ -1725,16 +1726,10 @@ def onemarketapp_add(
         oneflow_template_data = oneflow_template_show(
             oneflow_template_name=appliance_name
         )
-        image_ids = oneflow_template_image_ids(oneflow_template_name=appliance_name)
-        template_ids = oneflow_template_ids(oneflow_template_name=appliance_name)
-        if (
-            oneflow_template_data is None
-            and len(image_ids) == 0
-            and len(template_ids) == 0
-        ):
+        if oneflow_template_data is None:
             add_appliance = ask_confirm(
                 message=(
-                    f"No image and template has been found with the name {appliance_name}. Do you want to add {appliance_name} appliance?"
+                    f"No image and template has been found with the name {appliance_name}. Do you want to add {appliance_name} appliance? \n"
                     f"{appliance_description}"
                 ),
                 default=False,
@@ -1779,13 +1774,13 @@ def onemarketapp_add(
             oneflow_template_data = oneflow_template_show(
                 oneflow_template_name=appliance_name
             )
-            image_ids = oneflow_template_image_ids(oneflow_template_name=appliance_name)
-            template_ids = oneflow_template_ids(oneflow_template_name=appliance_name)
-            if (
-                oneflow_template_data is not None
-                and len(image_ids) > 0
-                and len(template_ids) > 0
-            ):
+            if oneflow_template_data is not None:
+                image_ids = oneflow_template_image_ids(
+                    oneflow_template_name=appliance_name
+                )
+                template_ids = oneflow_template_ids(
+                    oneflow_template_name=appliance_name
+                )
                 oneflow_template_chown(
                     oneflow_template_name=appliance_name,
                     username=username,
@@ -1814,7 +1809,7 @@ def onemarketapp_add(
 
 def onemarketapp_instantiate(
     appliance_url: str, group_name: str, marketplace_name: str, username: str
-) -> bool:
+) -> Tuple[bool, str]:
     """
     Ask if user has instantiated an appliance in OpenNebula
 
@@ -1822,7 +1817,7 @@ def onemarketapp_instantiate(
     :param group_name: the name of the group, ``str``
     :param marketplace_name: the name of the marketplace, ``str``
     :param username: the name of the user, ``str``
-    :return: if the appliance has been instantiated, ``bool``
+    :return: tuple with the status of the appliance and the name of the appliance, ``Tuple[bool, str]``
     """
     is_instantiated = False
     appliance_target_name = None
@@ -1855,6 +1850,7 @@ def onemarketapp_instantiate(
                 username=username,
                 group_name=group_name,
             )
+            # TODO: verify if path of template is the same with url
             template_id = onevm_template_id(vm_name=vm_name)
             template_name = onetemplate_name(template_id=template_id)
             onetemplate_chown(
@@ -2188,6 +2184,33 @@ def onetemplate_chown(template_name: str, username: str, group_name: str) -> Non
     )
 
 
+def onetemplate_id(template_name: str) -> int:
+    """
+    Get the id of a template in OpenNebula
+
+    :param template_name: the name of the template, ``str``
+    :return: the id of the template, ``int``
+    """
+    template = onetemplate_show(template_name=template_name)
+    if template is None:
+        msg(
+            level="error",
+            message=f"Template {template_name} not found",
+        )
+    if "VMTEMPLATE" not in template or "ID" not in template["VMTEMPLATE"]:
+        msg(
+            level="error",
+            message=f"VMTEMPLATE key not found in template {template_name} or ID key not found in VMTEMPLATE",
+        )
+    template_id = int(template["VMTEMPLATE"]["ID"])
+    if template_id is None:
+        msg(
+            level="error",
+            message=f"Could not get id of template {template_name}",
+        )
+    return template_id
+
+
 def onetemplate_image_ids(
     template_name: Optional[str] = None,
     template_id: Optional[int] = None,
@@ -2297,32 +2320,6 @@ def onetemplate_image_ids(
                 message="Invalid type of DISK",
             )
         return image_ids
-
-
-def onetemplate_user_inputs(template_name: str) -> Dict | None:
-    """
-    Get the custom_attrs keys of a template in OpenNebula
-
-    :param template_name: the name of the template, ``str``
-    :return: the custom_attrs keys of the template, ``Dict``
-    """
-    onetemplate = onetemplate_show(template_name=template_name)
-    if onetemplate is None:
-        msg(
-            level="error",
-            message=f"Template {template_name} not found",
-        )
-    if "VMTEMPLATE" not in onetemplate or "TEMPLATE" not in onetemplate["VMTEMPLATE"]:
-        msg(
-            level="error",
-            message=f"VMTEMPLATE key not found in template {template_name} or TEMPLATE key not found in VMTEMPLATE",
-        )
-    if "USER_INPUTS" not in onetemplate["VMTEMPLATE"]["TEMPLATE"]:
-        msg(
-            level="error",
-            message="USER_INPUTS key not found in TEMPLATE",
-        )
-    return onetemplate["VMTEMPLATE"]["TEMPLATE"]["USER_INPUTS"]
 
 
 def onetemplate_instantiate(template_name: str) -> None:
@@ -2524,6 +2521,32 @@ def onetemplate_show(
                 message=f"Template {template_name} found. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
             )
             return loads_json(data=stdout)
+
+
+def onetemplate_user_inputs(template_name: str) -> Dict | None:
+    """
+    Get the custom_attrs keys of a template in OpenNebula
+
+    :param template_name: the name of the template, ``str``
+    :return: the custom_attrs keys of the template, ``Dict``
+    """
+    onetemplate = onetemplate_show(template_name=template_name)
+    if onetemplate is None:
+        msg(
+            level="error",
+            message=f"Template {template_name} not found",
+        )
+    if "VMTEMPLATE" not in onetemplate or "TEMPLATE" not in onetemplate["VMTEMPLATE"]:
+        msg(
+            level="error",
+            message=f"VMTEMPLATE key not found in template {template_name} or TEMPLATE key not found in VMTEMPLATE",
+        )
+    if "USER_INPUTS" not in onetemplate["VMTEMPLATE"]["TEMPLATE"]:
+        msg(
+            level="error",
+            message="USER_INPUTS key not found in TEMPLATE",
+        )
+    return onetemplate["VMTEMPLATE"]["TEMPLATE"]["USER_INPUTS"]
 
 
 def onetemplates_names() -> List[str]:

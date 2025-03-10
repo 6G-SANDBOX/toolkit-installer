@@ -1,4 +1,5 @@
 import sys
+from typing import Dict, List
 
 from dotenv import load_dotenv
 
@@ -6,6 +7,7 @@ from utils.file import (
     SITES_SKIP_KEYS,
     is_encrypted_ansible,
     load_yaml,
+    read_component_site_variables,
     read_site_yaml,
     save_file,
     save_yaml_file,
@@ -35,9 +37,13 @@ from utils.one import (
     onegroups_names,
     onemarket_create,
     onemarket_endpoint,
+    onemarketapp_add,
     onemarketapp_instantiate,
     onemarketapp_name,
+    onemarketapp_type,
     onemarkets_names,
+    onetemplate_id,
+    onetemplate_image_ids,
     oneuser_chgrp,
     oneuser_create,
     oneuser_update_public_ssh_key,
@@ -60,7 +66,13 @@ from utils.os import (
     rename_directory,
 )
 from utils.parser import ansible_decrypt, decode_base64
-from utils.questionary import ask_confirm, ask_password, ask_select, ask_text
+from utils.questionary import (
+    ask_checkbox,
+    ask_confirm,
+    ask_password,
+    ask_select,
+    ask_text,
+)
 
 try:
     # configuration
@@ -178,12 +190,13 @@ try:
         level="info",
         message=f"Validating if the personal access token of the user {github_username} with access to the {sites_repository_name} repository is correct",
     )
-    git_validate_token(
-        token=sites_github_token,
-        organization_name=github_organization_name,
-        repository_name=sites_repository_name,
-        username=github_username,
-    )
+    # TODO: uncomment
+    # git_validate_token(
+    #     token=sites_github_token,
+    #     organization_name=github_organization_name,
+    #     repository_name=sites_repository_name,
+    #     username=github_username,
+    # )
     msg(level="info", message="Token validated successfully")
 
     # user
@@ -326,12 +339,13 @@ try:
     appliance_toolkit_service_name = onemarketapp_name(
         appliance_url=appliance_toolkit_service_url
     )
-    # FIX: we need the name of the appliance to get the IP in case of is instantiated
-    is_toolkit_service_instantiated = onemarketapp_instantiate(
-        appliance_url=appliance_toolkit_service_url,
-        group_name=group_name,
-        marketplace_name=opennebula_sandbox_marketplace_name,
-        username=username,
+    is_toolkit_service_instantiated, appliance_toolkit_service_name = (
+        onemarketapp_instantiate(
+            appliance_url=appliance_toolkit_service_url,
+            group_name=group_name,
+            marketplace_name=opennebula_sandbox_marketplace_name,
+            username=username,
+        )
     )
     if not is_toolkit_service_instantiated:
         msg(
@@ -350,6 +364,7 @@ try:
         oneflow_name=appliance_toolkit_service_name,
         oneflow_role=toolkit_service_jenkins_role,
     )
+    # TODO: undeploy tnlcm vm and select host
     jenkins_ssh_key = onevm_user_template_param(
         vm_name=jenkins_vm, param=toolkit_service_jenkins_ssh_key_param
     )
@@ -480,7 +495,8 @@ try:
         )
         core_site_path = join_path(site_path, "core.yaml")
         core_site_data = load_yaml(file_path=core_site_path)
-    read_site_yaml(data=core_site_data)
+        # TODO: add message to link to docs dummy site
+    site_data = read_site_yaml(data=core_site_data)
     for sites_key in SITES_SKIP_KEYS:
         if sites_key not in core_site_data:
             msg(
@@ -488,25 +504,28 @@ try:
                 message=f"Key {sites_key} not found in site {site} in repository {sites_repository_name}",
             )
     if is_technitium_instantiated:
-        core_site_data["site_dns"] = onevm_ip(vm_name=appliance_technitium_name)
+        site_data["site_dns"] = onevm_ip(vm_name=appliance_technitium_name)
     else:
-        core_site_data["site_dns"] = "8.8.8.8,1.1.1.1"
-    core_site_data["site_hypervisor"] = "one"
-    core_site_data["site_onegate"] = onegate_endpoint()
-    site_s3_server = core_site_data["site_s3_server"]
-    if "endpoint" not in site_s3_server:
+        site_data["site_dns"] = "8.8.8.8,1.1.1.1"
+    site_data["site_hypervisor"] = "one"
+    site_data["site_onegate"] = onegate_endpoint()
+    site_data["site_s3_server"] = core_site_data["site_s3_server"]
+    if "endpoint" not in core_site_data["site_s3_server"]:
         msg(
             level="error",
             message=f"Endpoint not found in site_s3_server in site {site} in repository {sites_repository_name}",
         )
-    site_s3_server["endpoint"] = f"https://{onevm_ip(vm_name=minio_vm)}:9000"
+    site_data["site_s3_server"]["endpoint"] = (
+        f"https://{onevm_ip(vm_name=minio_vm)}:9000"
+    )
+    site_data["site_routemanager"] = core_site_data["site_routemanager"]
     if is_route_manager_api_instantiated:
         if "api_endpoint" not in core_site_data["site_routemanager"]:
             msg(
                 level="error",
                 message=f"API endpoint not found in site_routemanager in site {site} in repository {sites_repository_name}",
             )
-        core_site_data["site_routemanager"]["api_endpoint"] = onevm_ip(
+        site_data["site_routemanager"]["api_endpoint"] = onevm_ip(
             vm_name=appliance_route_manager_api_name
         )
         if "token" not in core_site_data["site_routemanager"]:
@@ -514,10 +533,10 @@ try:
                 level="error",
                 message=f"Token not found in site_routemanager in site {site} in repository {sites_repository_name}",
             )
-        core_site_data["site_routemanager"]["token"] = route_manager_api_token
-    save_yaml_file(data=core_site_data, file_path=core_site_path)
-
-    sys.exit(1)
+        site_data["site_routemanager"]["token"] = route_manager_api_token
+    site_data["site_available_components"] = type(
+        core_site_data["site_available_components"]
+    )()
 
     # library
     # TODO: logs messages
@@ -558,19 +577,108 @@ try:
                 message=f"Metadata not found in component {component} in repository {library_repository_name} using ref {library_ref}",
             )
         metadata = component_data["metadata"]
+        if not isinstance(metadata, Dict):
+            msg(
+                level="error",
+                message=f"Metadata for component {component} in repository {library_repository_name} using ref {library_ref} is not a dictionary",
+            )
         if "long_description" not in metadata:
             msg(
                 level="error",
                 message=f"Long description not found in component {component} in repository {library_repository_name} using ref {library_ref}",
             )
         long_description = metadata["long_description"]
+        if not isinstance(long_description, str):
+            msg(
+                level="error",
+                message=f"Long description for component {component} in repository {library_repository_name} using ref {library_ref} is not a string",
+            )
         add_component = ask_confirm(
-            message=f"Do you want to add {component} component to your site? Very important to know the availability of the component in the site. Ask to the administrator of the site",
+            message=(
+                f"Do you want to add {component} component to your site? Very important to know the availability of the component in the site. Ask to the administrator of the site. \n"
+                f"{long_description}"
+            ),
             default=False,
         )
         if add_component:
-            # TODO: check if the component is already in the site
-            pass
+            if "appliances" not in component_data["metadata"]:
+                if component not in site_data["site_available_components"]:
+                    site_data["site_available_components"] = {component: None}
+            else:
+                if "site_variables" not in component_data:
+                    msg(
+                        level="error",
+                        message=f"Site variables not found in component {component} in repository {library_repository_name} using ref {library_ref}",
+                    )
+                appliance_site_variables = component_data["site_variables"]
+                if not isinstance(appliance_site_variables, Dict):
+                    msg(
+                        level="error",
+                        message=f"Site variables for component {component} in repository {library_repository_name} using ref {library_ref} is not a dictionary",
+                    )
+                component_appliances_urls = component_data["metadata"]["appliances"]
+                if not isinstance(component_appliances_urls, List):
+                    msg(
+                        level="error",
+                        message=f"Appliances key for component {component} in repository {library_repository_name} using ref {library_ref} is not a list",
+                    )
+                if not component_appliances_urls:
+                    msg(
+                        level="error",
+                        message=f"No appliances found for component {component} in repository {library_repository_name} using ref {library_ref}",
+                    )
+                component_appliances_names = []
+                component_appliances_urls_names = {}
+                for component_appliance_url in component_appliances_urls:
+                    component_appliance_name = onemarketapp_name(
+                        appliance_url=component_appliance_url
+                    )
+                    component_appliances_names.append(component_appliance_name)
+                    component_appliances_urls_names[component_appliance_name] = (
+                        component_appliance_url
+                    )
+                component_appliances_names_add = ask_checkbox(
+                    message=f"Select the appliances that you want to add to the {site} site for the component {component}",
+                    choices=component_appliances_names,
+                )
+                for component_appliance_name in component_appliances_names_add:
+                    component_appliance_url = component_appliances_urls_names[
+                        component_appliance_name
+                    ]
+                    if component_appliance_url.startswith(
+                        opennebula_public_marketplace_endpoint
+                    ):
+                        is_added = onemarketapp_add(
+                            group_name=group_name,
+                            username=username,
+                            marketplace_name=opennebula_public_marketplace_name,
+                            appliance_url=component_appliance_url,
+                        )
+                    elif component_appliance_url.startswith(
+                        opennebula_sandbox_marketplace_endpoint
+                    ):
+                        is_added = onemarketapp_add(
+                            group_name=group_name,
+                            username=username,
+                            marketplace_name=opennebula_sandbox_marketplace_name,
+                            appliance_url=component_appliance_url,
+                        )
+                    else:
+                        msg(
+                            level="error",
+                            message=(
+                                f"Appliance {component_appliance_name} not found in marketplaces {opennebula_public_marketplace_name} or {opennebula_sandbox_marketplace_name}"
+                            ),
+                        )
+                appliance_site_variables = read_component_site_variables(
+                    data=appliance_site_variables
+                )
+                site_data["site_available_components"][component] = (
+                    appliance_site_variables
+                )
+
+    # save_yaml_file(data=site_data, file_path=core_site_path)
+    # TODO: encrypt and git push
 
     # msg(level="info", message="Toolkit installation process completed successfully")
 

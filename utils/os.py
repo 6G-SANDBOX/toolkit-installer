@@ -77,7 +77,7 @@ def list_directory(path: str) -> List[str]:
             "."
         ):
             directories.append(directory)
-    return directories
+    return sorted(directories)
 
 
 def make_directory(path: str) -> None:

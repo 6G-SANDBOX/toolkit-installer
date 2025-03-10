@@ -70,6 +70,31 @@ def loads_json(data: str) -> Dict:
     return json.loads(data)
 
 
+def read_component_site_variables(data: Dict) -> Dict:
+    """
+    Read the given data as YAML
+
+    :param data: the YAML data to be read, ``Dict``
+    :return: the YAML data read, ``Dict``
+    """
+    aux = {}
+    for key, value in data.items():
+        if isinstance(value, Dict):
+            msg(level="info", message=f"Reading nested fields in {key}:")
+            aux[key] = read_site_yaml(value)
+        elif isinstance(value, str):
+            aux[key] = ask_text(
+                message=f"Reading the value of {key}. This key indicates {value}:"
+            )
+        else:
+            msg(
+                level="info",
+                message=f"Reading the value of {key}. This key indicates {value}:",
+            )
+            aux[key] = value
+    return aux
+
+
 def read_site_yaml(data: Dict) -> Dict:
     """
     Read the given data as YAML
