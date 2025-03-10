@@ -1,4 +1,3 @@
-import sys
 from typing import Dict, List
 
 from dotenv import load_dotenv
@@ -13,14 +12,19 @@ from utils.file import (
     save_yaml_file,
 )
 from utils.git import (
+    git_add,
     git_branches,
     git_checkout,
     git_clean_fd,
     git_clone,
+    git_commit,
     git_create_branch,
     git_current_branch,
     git_detect_changes,
     git_fetch_prune,
+    git_pull,
+    git_push,
+    git_sync_branches,
     git_team_access,
     git_validate_token,
 )
@@ -35,22 +39,25 @@ from utils.one import (
     onegroup_create,
     onegroup_id,
     onegroups_names,
+    onehost_cpu_model,
+    onehosts_avx_cpu_mem,
     onemarket_create,
     onemarket_endpoint,
     onemarketapp_add,
     onemarketapp_instantiate,
     onemarketapp_name,
-    onemarketapp_type,
     onemarkets_names,
-    onetemplate_id,
-    onetemplate_image_ids,
     oneuser_chgrp,
     oneuser_create,
     oneuser_update_public_ssh_key,
     oneusername_id,
     oneusernames,
+    onevm_cpu_model,
+    onevm_deploy,
     onevm_disk_resize,
     onevm_ip,
+    onevm_undeploy_hard,
+    onevm_updateconf_cpu_model,
     onevm_user_input,
     onevm_user_template_param,
 )
@@ -65,7 +72,7 @@ from utils.os import (
     remove_file,
     rename_directory,
 )
-from utils.parser import ansible_decrypt, decode_base64
+from utils.parser import ansible_decrypt, ansible_encrypt, decode_base64
 from utils.questionary import (
     ask_checkbox,
     ask_confirm,
@@ -102,12 +109,20 @@ try:
     )
     toolkit_service_minio_role = get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_ROLE")
     toolkit_service_jenkins_role = get_dotenv_var(key="TOOLKIT_SERVICE_JENKINS_ROLE")
+    toolkit_service_tnlcm_role = get_dotenv_var(key="TOOLKIT_SERVICE_TNLCM_ROLE")
+    tnlcm_default_cpu_model = get_dotenv_var(key="TNLCM_DEFAULT_CPU_MODEL")
     toolkit_service_jenkins_ssh_key_param = get_dotenv_var(
         key="TOOLKIT_SERVICE_JENKINS_SSH_KEY_PARAM"
     )
     toolkit_service_minio_disk_id = get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_ID")
     toolkit_service_minio_disk_size = int(
         get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_SIZE")
+    )
+    min_percentage_cpu_available_host = int(
+        get_dotenv_var(key="MIN_PERCENTAGE_CPU_AVAILABLE_HOST")
+    )
+    min_percentage_mem_available_host = int(
+        get_dotenv_var(key="MIN_PERCENTAGE_MEM_AVAILABLE_HOST")
     )
     appliance_technitium_url = get_dotenv_var(key="APPLIANCE_TECHNITIUM_URL")
     appliance_route_manager_api_url = get_dotenv_var(
@@ -123,6 +138,7 @@ try:
     library_ref = get_dotenv_var(key="LIBRARY_REF")
     sites_https_url = get_dotenv_var(key="SITES_HTTPS_URL")
     sites_repository_name = get_dotenv_var(key="SITES_REPOSITORY_NAME")
+    dummy_site_url = get_dotenv_var(key="DUMMY_SITE_URL")
 
     # message
     msg(
@@ -167,12 +183,12 @@ try:
         message=f"Validating if user {github_username} has access to the team {github_sites_team_name} in the organization {github_organization_name}",
     )
     # TODO: uncomment
-    # git_team_access(
-    #     token=github_members_token,
-    #     organization_name=github_organization_name,
-    #     team_name=github_sites_team_name,
-    #     username=github_username,
-    # )
+    git_team_access(
+        token=github_members_token,
+        organization_name=github_organization_name,
+        team_name=github_sites_team_name,
+        username=github_username,
+    )
     msg(
         level="info",
         message=f"User {github_username} has access to the team {github_sites_team_name} in the organization {github_organization_name}",
@@ -191,12 +207,12 @@ try:
         message=f"Validating if the personal access token of the user {github_username} with access to the {sites_repository_name} repository is correct",
     )
     # TODO: uncomment
-    # git_validate_token(
-    #     token=sites_github_token,
-    #     organization_name=github_organization_name,
-    #     repository_name=sites_repository_name,
-    #     username=github_username,
-    # )
+    git_validate_token(
+        token=sites_github_token,
+        organization_name=github_organization_name,
+        repository_name=sites_repository_name,
+        username=github_username,
+    )
     msg(level="info", message="Token validated successfully")
 
     # user
@@ -206,7 +222,7 @@ try:
         message="User in OpenNebula is required to manage the trial networks deployed in 6G-SANDBOX. We recommend to create a new user for this purpose",
     )
     username = ask_select(
-        message="Select an existing OpenNebula username or create a new one",
+        message="Select an existing OpenNebula username or create a new one:",
         choices=["Create new user"] + usernames,
     )
     if username == "Create new user":
@@ -239,7 +255,7 @@ try:
         message="Group in OpenNebula is required to manage the trial networks deployed in 6G-SANDBOX. We recommend to create a new group for this purpose",
     )
     group_name = ask_select(
-        message="Select an existing OpenNebula group name or create a new one",
+        message="Select an existing OpenNebula group name or create a new one:",
         choices=["Create new group"] + groups_names,
     )
     if group_name == "Create new group":
@@ -274,7 +290,7 @@ try:
 
     # marketplaces
     opennebula_public_marketplace_name = ask_select(
-        message="Select the OpenNebula Public marketplace. You can create a new OpenNebula Public marketplace or select an existing one",
+        message="Select the OpenNebula Public marketplace. You can create a new OpenNebula Public marketplace or select an existing one:",
         choices=["Create new OpenNebula Public marketplace"] + onemarkets_names(),
     )
     if opennebula_public_marketplace_name == "Create new OpenNebula Public marketplace":
@@ -299,7 +315,7 @@ try:
             message=f"Marketplace {opennebula_public_marketplace_name} created successfully",
         )
     opennebula_sandbox_marketplace_name = ask_select(
-        message="Select the 6G-SANDBOX marketplace. You can create a new 6G-SANDBOX marketplace or select an existing one",
+        message="Select the 6G-SANDBOX marketplace. You can create a new 6G-SANDBOX marketplace or select an existing one:",
         choices=["Create new 6G-SANDBOX marketplace"] + onemarkets_names(),
     )
     if opennebula_sandbox_marketplace_name == "Create new 6G-SANDBOX marketplace":
@@ -327,7 +343,7 @@ try:
         if (
             onemarket_endpoint(marketplace_name=opennebula_sandbox_marketplace_name)
             != opennebula_sandbox_marketplace_endpoint
-        ):  # TODO: change to while loop, not error
+        ):  # CHANGE: change to while loop, not error
             msg(
                 level="error",
                 message=(
@@ -364,7 +380,6 @@ try:
         oneflow_name=appliance_toolkit_service_name,
         oneflow_role=toolkit_service_jenkins_role,
     )
-    # TODO: undeploy tnlcm vm and select host
     jenkins_ssh_key = onevm_user_template_param(
         vm_name=jenkins_vm, param=toolkit_service_jenkins_ssh_key_param
     )
@@ -398,6 +413,57 @@ try:
         level="info",
         message=f"Disk with id {toolkit_service_minio_disk_id} resized to {toolkit_service_minio_disk_size} GB",
     )
+    tnlcm_vm = oneflow_role_vm_name(
+        oneflow_name=appliance_toolkit_service_name,
+        oneflow_role=toolkit_service_tnlcm_role,
+    )
+    msg(
+        level="info",
+        message=f"The TNLCM virtual machine requires a CPU model with AVX support because it uses MongoDB. Readme more here: {sandbox_documentation_url}/toolkit-installer/installation#known-issues ."
+        "By default, the TNLCM virtual machine is configured with host-passthrough as the CPU model, but we RECOMMEND changing it to a CPU model with AVX support. "
+        "Therefore, we proceed to read the hosts linked to OpenNebula and determine which of them are compatible with avx. "
+        "Then, if there are compatible hosts, select the one where TNLCM will be deployed. "
+        "If there are no compatible models, the default value is used: host-passthrough",
+    )
+    tnlcm_cpu_model = onevm_cpu_model(vm_name=tnlcm_vm)
+    if tnlcm_cpu_model != tnlcm_default_cpu_model:
+        msg(
+            level="warning",
+            message=(
+                f"CPU model of the TNLCM virtual machine is {tnlcm_cpu_model} and not the default value {tnlcm_default_cpu_model} this means that the CPU model has been changed previously"
+            ),
+        )
+    update_cpu_model = ask_confirm(
+        message="Do you want to change the CPU model of the TNLCM virtual machine?",
+        default=False,
+    )
+    if update_cpu_model:
+        hosts_avx_cpu_mem = onehosts_avx_cpu_mem(
+            min_percentage_cpu_available_host=min_percentage_cpu_available_host,
+            min_percentage_mem_available_host=min_percentage_mem_available_host,
+        )
+        if hosts_avx_cpu_mem:
+            host_tnlcm = ask_select(
+                message=f"The following hosts support AVX and have an available CPU percentage greater than {min_percentage_cpu_available_host}% and an available MEM percentage greater than {min_percentage_mem_available_host}%. Select one:",
+                choices=hosts_avx_cpu_mem,
+            )
+            onevm_undeploy_hard(vm_name=tnlcm_vm)
+            host_cpu_model = onehost_cpu_model(host_name=host_tnlcm)
+            onevm_updateconf_cpu_model(vm_name=tnlcm_vm, cpu_model=host_cpu_model)
+            onevm_deploy(vm_name=tnlcm_vm, host_name=host_tnlcm)
+            msg(
+                level="info",
+                message=f"CPU model of the TNLCM virtual machine changed to {host_cpu_model} and now deploy in host {host_tnlcm}",
+            )
+        else:
+            msg(
+                level="warning", message="No hosts with AVX support found in OpenNebula"
+            )
+    else:
+        msg(
+            level="info",
+            message="The CPU model of the TNLCM virtual machine has not been changed",
+        )
 
     # technitium
     appliance_technitium_name = onemarketapp_name(
@@ -442,20 +508,24 @@ try:
         )
 
     # sites
-    # TODO: logs messages
     msg(
         level="info",
         message=(
-            f"Proceeding to clone the {sites_repository_name} repository in the temporary directory {TEMP_DIRECTORY}. "
-            f"The {sites_repository_name} repository contains the static information about the infrastructure, systems and available equipment of each site"
+            f"Clone the {sites_repository_name} repository in the temporary directory {TEMP_DIRECTORY}. "
+            f"The {sites_repository_name} repository contains the static information about the infrastructure, systems and available equipment of each site encrypted with ansible-vault for secutiry reasons. "
+            f"Read the dummy site documentation here {dummy_site_url} before start with this process. Just fill in the requested fields. Some are autocomplete"
         ),
     )
     sites_path = join_path(TEMP_DIRECTORY, sites_repository_name)
     git_clone(https_url=sites_https_url, path=sites_path, token=sites_github_token)
     git_fetch_prune(path=sites_path)
+    git_sync_branches(path=sites_path)
     sites = git_branches(path=sites_path)
     site = ask_select(
-        message="Select an existing site or create a new one. If you select a site that already exists, please note that you will be prompted for the ansible key to decrypt the site",
+        message=(
+            "Select an existing site or create a new one. If you select a site that already exists, the documentation is encrypted for security reasons. "
+            f"Therefore, please note that the content will be decrypted using the key specified in the {toolkit_service_sites_ansible_token} field of the {appliance_toolkit_service_name} service selected in previous steps:"
+        ),
         choices=["Create new site"] + sites,
     )
     if site != "Create new site":
@@ -495,7 +565,6 @@ try:
         )
         core_site_path = join_path(site_path, "core.yaml")
         core_site_data = load_yaml(file_path=core_site_path)
-        # TODO: add message to link to docs dummy site
     site_data = read_site_yaml(data=core_site_data)
     for sites_key in SITES_SKIP_KEYS:
         if sites_key not in core_site_data:
@@ -534,29 +603,22 @@ try:
                 message=f"Token not found in site_routemanager in site {site} in repository {sites_repository_name}",
             )
         site_data["site_routemanager"]["token"] = route_manager_api_token
-    site_data["site_available_components"] = type(
-        core_site_data["site_available_components"]
-    )()
+    site_data["site_available_components"] = core_site_data["site_available_components"]
 
     # library
-    # TODO: logs messages
     msg(
         level="info",
         message=(
-            f"Proceeding to clone the {library_repository_name} repository in the temporary directory {TEMP_DIRECTORY}. "
-            f"The {library_repository_name} repository contains the description of the components using YAML files and the Ansible playbooks to deploy the components"
+            f"Clone the {library_repository_name} repository in the temporary directory {TEMP_DIRECTORY}. "
+            f"The {library_repository_name} repository contains the description of the components using YAML files and the ansible playbooks to deploy the components"
         ),
     )
     library_path = join_path(TEMP_DIRECTORY, library_repository_name)
     git_clone(https_url=library_https_url, path=library_path)
+    git_pull(path=library_path)
     git_fetch_prune(path=library_path)
+    git_sync_branches(path=library_path)
     git_checkout(path=library_path, ref=library_ref)
-    msg(
-        level="info",
-        message=(
-            f"Repository {library_repository_name} cloned successfully in path {library_path} using ref {library_ref}"
-        ),
-    )
     library_components = list_directory(path=library_path)
     if not library_components:
         msg(
@@ -565,7 +627,7 @@ try:
         )
     msg(
         level="info",
-        message=f"Components found in repository {library_repository_name} using ref {library_ref}: {library_components}",
+        message=f"Proceed to read component by component of the {library_repository_name} to determine if you want to add it to your site {site}",
     )
     for component in library_components:
         component_data = load_yaml(
@@ -595,15 +657,14 @@ try:
             )
         add_component = ask_confirm(
             message=(
-                f"Do you want to add {component} component to your site? Very important to know the availability of the component in the site. Ask to the administrator of the site. \n"
-                f"{long_description}"
+                f"\nDo you want to add {component} component to your site? Very important to know the availability of the component in the site. Ask to the administrator of the site. \n{long_description}"
             ),
             default=False,
         )
         if add_component:
             if "appliances" not in component_data["metadata"]:
                 if component not in site_data["site_available_components"]:
-                    site_data["site_available_components"] = {component: None}
+                    site_data["site_available_components"][component] = None
             else:
                 if "site_variables" not in component_data:
                     msg(
@@ -676,11 +737,25 @@ try:
                 site_data["site_available_components"][component] = (
                     appliance_site_variables
                 )
+    save_yaml_file(data=site_data, file_path=core_site_path)
+    ansible_encrypt(data_path=core_site_path, token_path=sites_ansible_token_path)
+    if git_detect_changes(path=site_path):
+        git_add(path=site_path)
+        git_commit(path=site_path, message=f"change: site {site}")
+        git_push(path=site_path)
+    msg(
+        level="info",
+        message=(
+            f"Site {site} created/updated successfully with the components selected. "
+            f"The site is stored in the {sites_repository_name} repository in the branch {site}. "
+            f"Consider that the site {site} is encrypted with the {sites_ansible_token} key using ansible-vault. "
+            f"If you want to update the site, you can re-run the script and select the {appliance_toolkit_service_name} service that has in the key {toolkit_service_sites_ansible_token} as value the key to decrypt the {site} site or you can follow this documentation: {sandbox_documentation_url}/6g-sandbox-sites/work-on-your-site "
+        ),
+    )
+    # TODO: if oneke version 1.29 is selected, increment storage node to 3 is required and resize disk
+    # TODO: run trial network?
 
-    # save_yaml_file(data=site_data, file_path=core_site_path)
-    # TODO: encrypt and git push
-
-    # msg(level="info", message="Toolkit installation process completed successfully")
+    msg(level="info", message="Toolkit installation process completed successfully")
 
 except KeyboardInterrupt:
     print("Operation interrupted by user")

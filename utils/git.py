@@ -17,7 +17,7 @@ def git_add(path: str) -> None:
             level="error",
             message=f"Repository {path} does not exist. Cannot add files to the staging area",
         )
-    command = f"git -C {path} add ."
+    command = f"git -C {path} add -A"
     stdout, stderr, rc = run_command(command=command)
     if rc != 0:
         msg(
@@ -290,7 +290,15 @@ def git_push(path: str) -> None:
             level="error",
             message=f"Repository {path} does not exist. Cannot push the committed changes to the remote repository",
         )
-    command = f"git -C {path} push"
+    current_branch = git_current_branch(path=path)
+    check_upstream_cmd = (
+        f"git -C {path} rev-parse --abbrev-ref --symbolic-full-name @{{u}}"
+    )
+    stdout, _, rc = run_command(command=check_upstream_cmd)
+    if rc != 0:
+        command = f"git -C {path} push --set-upstream origin {current_branch}"
+    else:
+        command = f"git -C {path} push"
     stdout, stderr, rc = run_command(command=command)
     if rc != 0:
         msg(
@@ -339,6 +347,30 @@ def git_switch(
     msg(
         level="debug",
         message=f"Switched to the branch {branch} in the repository {path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+    )
+
+
+def git_sync_branches(path: str) -> None:
+    """
+    Synchronize the local branches with the remote branches
+
+    :param path: the path to the repository, ``str``
+    """
+    if not exist_directory(path=path):
+        msg(
+            level="error",
+            message=f"Repository {path} does not exist. Cannot synchronize the local branches with the remote branches",
+        )
+    command = f"git -C {path} branch -vv | grep ': gone]' | awk '{{print $1}}' | xargs -r git -C {path} branch -D"
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="error",
+            message=f"Failed to synchronize the local branches with the remote branches in the repository {path}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+    msg(
+        level="debug",
+        message=f"Local branches synchronized with the remote branches in the repository {path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
     )
 
 

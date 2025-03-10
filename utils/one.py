@@ -1179,6 +1179,224 @@ def onegroups_names() -> List[str]:
     return groups_names
 
 
+## HOST MANAGEMENT ##
+def onehost_available_cpu(host_name: str) -> float:
+    """
+    Get the available percentage of CPU of a host in OpenNebula
+
+    :param host_name: the name of the host, ``str``
+    :return: the available percentage of CPU of the host, ``float``
+    """
+    host = onehost_show(host_name=host_name)
+    if host is None:
+        msg(
+            level="error",
+            message=f"Host {host_name} not found",
+        )
+    if "HOST" not in host or "HOST_SHARE" not in host["HOST"]:
+        msg(
+            level="error",
+            message=f"HOST key not found in host {host_name} or HOST_SHARE key not found in HOST",
+        )
+    if (
+        "CPU_USAGE" not in host["HOST"]["HOST_SHARE"]
+        or "TOTAL_CPU" not in host["HOST"]["HOST_SHARE"]
+    ):
+        msg(
+            level="error",
+            message=f"CPU_USAGE key not found in host {host_name} or TOTAL_CPU key not found in HOST",
+        )
+    cpu_usage = int(host["HOST"]["HOST_SHARE"]["CPU_USAGE"])
+    total_cpu = int(host["HOST"]["HOST_SHARE"]["TOTAL_CPU"])
+    if cpu_usage is None or total_cpu is None:
+        msg(
+            level="error",
+            message=f"Could not get CPU usage of host {host_name}",
+        )
+    return round((total_cpu - cpu_usage) / total_cpu * 100, 2)
+
+
+def onehost_available_mem(host_name: str) -> float:
+    """
+    Get the available percentage of memory of a host in OpenNebula
+
+    :param host_name: the name of the host, ``str``
+    :return: the available percentage of memory of the host, ``float``
+    """
+    host = onehost_show(host_name=host_name)
+    if host is None:
+        msg(
+            level="error",
+            message=f"Host {host_name} not found",
+        )
+    if "HOST" not in host or "HOST_SHARE" not in host["HOST"]:
+        msg(
+            level="error",
+            message=f"HOST key not found in host {host_name} or HOST_SHARE key not found in HOST",
+        )
+    if (
+        "MEM_USAGE" not in host["HOST"]["HOST_SHARE"]
+        or "TOTAL_MEM" not in host["HOST"]["HOST_SHARE"]
+    ):
+        msg(
+            level="error",
+            message=f"MEM_USAGE key not found in host {host_name} or TOTAL_MEM key not found in HOST",
+        )
+    mem_usage = int(host["HOST"]["HOST_SHARE"]["MEM_USAGE"])
+    total_mem = int(host["HOST"]["HOST_SHARE"]["TOTAL_MEM"])
+    if mem_usage is None or total_mem is None:
+        msg(
+            level="error",
+            message=f"Could not get memory usage of host {host_name}",
+        )
+    return round((total_mem - mem_usage) / total_mem * 100, 2)
+
+
+def onehost_cpu_model(host_name: str) -> str:
+    """
+    Get the CPU model of a host in OpenNebula
+
+    :param host_name: the name of the host, ``str``
+    :return: the CPU model of the host, ``str``
+    """
+    host = onehost_show(host_name=host_name)
+    if host is None:
+        msg(
+            level="error",
+            message=f"Host {host_name} not found",
+        )
+    if "HOST" not in host or "TEMPLATE" not in host["HOST"]:
+        msg(
+            level="error",
+            message=f"HOST key not found in host {host_name} or TEMPLATE key not found in HOST",
+        )
+    if "KVM_CPU_MODEL" not in host["HOST"]["TEMPLATE"]:
+        msg(
+            level="error",
+            message=f"KVM_CPU_MODEL key not found in host {host_name}",
+        )
+    cpu_model = host["HOST"]["TEMPLATE"]["KVM_CPU_MODEL"]
+    if cpu_model is None:
+        msg(
+            level="error",
+            message=f"Could not get CPU model of host {host_name}",
+        )
+    return cpu_model
+
+
+def onehost_list() -> Dict | None:
+    """
+    Get the list of hosts in OpenNebula
+
+    :return: the list of hosts, ``Dict``
+    """
+    command = "onehost list -j"
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="error",
+            message=f"OpenNebula hosts not found. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+        return None
+    else:
+        msg(
+            level="debug",
+            message=f"OpenNebula hosts found. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+        )
+        return loads_json(data=stdout)
+
+
+def onehost_show(host_name: str) -> Dict | None:
+    """
+    Get the details of a host in OpenNebula
+
+    :param host_name: the name of the host, ``str``
+    :return: the details of the host, ``Dict``
+    """
+    command = f'onehost show "{host_name}" -j'
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="debug",
+            message=f"Host {host_name} not found. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+        return None
+    else:
+        msg(
+            level="debug",
+            message=f"Host {host_name} found. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+        )
+        return loads_json(data=stdout)
+
+
+def onehosts_avx_cpu_mem(
+    min_percentage_cpu_available_host: int, min_percentage_mem_available_host: int
+) -> List[str]:
+    """
+    Get the list of hosts with AVX support in OpenNebula
+
+    :param min_percentage_cpu_available_host: the minimum percentage of CPU available in the host, ``int``
+    :param min_percentage_mem_available_host: the minimum percentage of memory available in the host, ``int``
+    :return: the list of hosts with AVX support, ``List[str]``
+    """
+    hosts = onehost_list()
+    hosts_with_avx = []
+    if "HOST_POOL" not in hosts or "HOST" not in hosts["HOST_POOL"]:
+        msg(
+            level="error",
+            message="HOST_POOL key not found in hosts or HOST key not found in HOST_POOL",
+        )
+    hosts_pool = hosts["HOST_POOL"]["HOST"]
+    if not hosts_pool:
+        msg(level="error", message="Hosts list is empty")
+    elif isinstance(hosts_pool, Dict):
+        if (
+            "NAME" not in hosts_pool
+            or "TEMPLATE" not in hosts_pool
+            or "KVM_CPU_FEATURES" not in hosts_pool["TEMPLATE"]
+        ):
+            msg(
+                level="error",
+                message="TEMPLATE key not found in host or NAME key not found in host or KVM_CPU_FEATURES key not found in TEMPLATE",
+            )
+        host_name = hosts_pool["NAME"]
+        kvm_cpu_features = hosts_pool["TEMPLATE"]["KVM_CPU_FEATURES"]
+        print("lol")
+        if (
+            onehost_available_cpu(host_name=host_name)
+            >= min_percentage_cpu_available_host
+            and onehost_available_mem(host_name=host_name)
+            >= min_percentage_mem_available_host
+            and "avx" in kvm_cpu_features
+        ):
+            print("ewe")
+            hosts_with_avx.append(host_name)
+    elif isinstance(hosts_pool, List):
+        for host in hosts_pool:
+            if (
+                "NAME" not in host
+                or "TEMPLATE" not in host
+                or "KVM_CPU_FEATURES" not in host["TEMPLATE"]
+            ):
+                msg(
+                    level="error",
+                    message="TEMPLATE key not found in host or NAME key not found in host or KVM_CPU_FEATURES key not found in TEMPLATE",
+                )
+            host_name = host["NAME"]
+            kvm_cpu_features = host["TEMPLATE"]["KVM_CPU_FEATURES"]
+            if (
+                onehost_available_cpu(host_name=host_name)
+                >= min_percentage_cpu_available_host
+                and onehost_available_mem(host_name=host_name)
+                >= min_percentage_mem_available_host
+                and "avx" in kvm_cpu_features
+            ):
+                hosts_with_avx.append(host_name)
+    else:
+        msg(level="error", message="Hosts not found")
+    return hosts_with_avx
+
+
 ## IMAGES MANAGEMENT ##
 def oneimage_chown(image_name: str, username: str, group_name: str) -> None:
     """
@@ -1616,15 +1834,14 @@ def onemarketapp_add(
         if template_data is None and image_data is None:
             add_appliance = ask_confirm(
                 message=(
-                    f"No image and template has been found with the name {appliance_name}. Do you want to add {appliance_name} appliance? \n"
-                    f"{appliance_description}"
+                    f"No image and template has been found with the name {appliance_name}. Do you want to add {appliance_name} appliance? \n{appliance_description}"
                 ),
                 default=False,
             )
             if add_appliance:
                 datastores_names = onedatastores_names()
                 datastore_name = ask_select(
-                    message=f"Select the datastore where you want to store the image {appliance_name}",
+                    message=f"Select the datastore where you want to store the image {appliance_name}:",
                     choices=datastores_names,
                 )
                 image_id, template_id, _ = onemarketapp_export(
@@ -1668,15 +1885,14 @@ def onemarketapp_add(
         if template_data is None and len(image_ids) == 0:
             add_appliance = ask_confirm(
                 message=(
-                    f"No image and template has been found with the name {appliance_name}. Do you want to add {appliance_name} appliance? \n"
-                    f"{appliance_description}"
+                    f"No image and template has been found with the name {appliance_name}. Do you want to add {appliance_name} appliance? \n{appliance_description}"
                 ),
                 default=False,
             )
             if add_appliance:
                 datastores_names = onedatastores_names()
                 datastore_name = ask_select(
-                    message=f"Select the datastore where you want to store the template {appliance_name}",
+                    message=f"Select the datastore where you want to store the template {appliance_name}:",
                     choices=datastores_names,
                 )
                 _, template_id, _ = onemarketapp_export(
@@ -1729,15 +1945,14 @@ def onemarketapp_add(
         if oneflow_template_data is None:
             add_appliance = ask_confirm(
                 message=(
-                    f"No image and template has been found with the name {appliance_name}. Do you want to add {appliance_name} appliance? \n"
-                    f"{appliance_description}"
+                    f"No image and template has been found with the name {appliance_name}. Do you want to add {appliance_name} appliance? \n{appliance_description}"
                 ),
                 default=False,
             )
             if add_appliance:
                 datastores_names = onedatastores_names()
                 datastore_name = ask_select(
-                    message=f"Select the datastore where you want to store the service {appliance_name}",
+                    message=f"Select the datastore where you want to store the service {appliance_name}:",
                     choices=datastores_names,
                 )
                 _, template_ids, _ = onemarketapp_export(
@@ -1837,7 +2052,7 @@ def onemarketapp_instantiate(
                 message=f"Since you have an instance of {appliance_name} in OpenNebula, can you select the name of the virtual machine?",
             )
             vm_name = ask_select(
-                message=f"Select the {appliance_name} virtual machine",
+                message=f"Select the {appliance_name} virtual machine:",
                 choices=onevms_names(),
             )
             if onevm_state(vm_name=vm_name) != "3":  # 3 means running
@@ -1869,7 +2084,7 @@ def onemarketapp_instantiate(
                 message=f"Since you have an instance of {appliance_name} in OpenNebula, can you select the name of the service instantiated?",
             )
             service_name = ask_select(
-                message=f"Select the {appliance_name} service",
+                message=f"Select the {appliance_name} service:",
                 choices=oneflows_names(),
             )
             if oneflow_state(oneflow_name=service_name) != 2:  # 2 means running
@@ -2858,6 +3073,62 @@ def onevm_chown(vm_name: str, username: str, group_name: str) -> None:
     )
 
 
+def onevm_cpu_model(vm_name: str) -> str:
+    """
+    Get the CPU model of a VM in OpenNebula
+
+    :param vm_name: the name of the VM, ``str``
+    :return: the CPU model of the VM, ``str``
+    """
+    vm = onevm_show(vm_name=vm_name)
+    if vm is None:
+        msg(
+            level="error",
+            message=f"VM {vm_name} not found",
+        )
+    if (
+        "VM" not in vm
+        or "TEMPLATE" not in vm["VM"]
+        or "CPU_MODEL" not in vm["VM"]["TEMPLATE"]
+        or "MODEL" not in vm["VM"]["TEMPLATE"]["CPU_MODEL"]
+    ):
+        msg(
+            level="error",
+            message=f"VM key not found in vm {vm_name} or TEMPLATE key not found in VM or CPU_MODEL key not found in TEMPLATE or MODEL key not found in CPU_MODEL",
+        )
+    cpu_model = vm["VM"]["TEMPLATE"]["CPU_MODEL"]["MODEL"]
+    if cpu_model is None:
+        msg(
+            level="error",
+            message=f"Could not get CPU model of VM {vm_name}",
+        )
+    return cpu_model
+
+
+def onevm_deploy(vm_name: str, host_name: str) -> None:
+    """
+    Deploy a VM in OpenNebula
+
+    :param vm_name: the name of the VM, ``str``
+    :param host_name: the name of the host, ``str``
+    """
+    command = f'onevm deploy "{vm_name}" "{host_name}"'
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="error",
+            message=f"Could not deploy VM {vm_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+    msg(
+        level="debug",
+        message=f"VM {vm_name} deployed. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+    )
+    state = onevm_state(vm_name=vm_name)
+    while state != "3":
+        sleep(5)
+        state = onevm_state(vm_name=vm_name)
+
+
 def onevm_disk_resize(vm_name: str, disk_id: int, size: int) -> None:
     """
     Resize the disk of a VM in OpenNebula
@@ -3022,6 +3293,7 @@ def onevm_terminate_hard(vm_name: str) -> None:
     )
     onevm_data = onevm_show(vm_name=vm_name)
     while onevm_data is not None:
+        sleep(5)
         onevm_data = onevm_show(vm_name=vm_name)
 
 
@@ -3067,6 +3339,49 @@ def onevm_state(vm_name: str) -> str:
     if vm_state is None:
         msg(level="error", message=f"Could not get state of VM {vm_name}")
     return vm_state
+
+
+def onevm_undeploy_hard(vm_name: str) -> None:
+    """
+    Undeploy a VM in OpenNebula
+
+    :param vm_name: the name of the VM, ``str``
+    """
+    command = f'onevm undeploy "{vm_name}" --hard'
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="error",
+            message=f"Could not undeploy VM {vm_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+    msg(
+        level="debug",
+        message=f"VM {vm_name} undeployed. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+    )
+    state = onevm_state(vm_name=vm_name)
+    while state != "9":
+        sleep(5)
+        state = onevm_state(vm_name=vm_name)
+
+
+def onevm_updateconf_cpu_model(vm_name: str, cpu_model: str) -> None:
+    """
+    Update the configuration of a VM in OpenNebula
+
+    :param vm_name: the name of the VM, ``str``
+    :param file_path: the path of the file, ``str``
+    """
+    command = f'echo \'CPU_MODEL=[MODEL="{cpu_model}"]\' | onevm updateconf "{vm_name}"'
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="error",
+            message=f"Could not update configuration of VM {vm_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+    msg(
+        level="debug",
+        message=f"Configuration of VM {vm_name} updated. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+    )
 
 
 def onevm_user_input(vm_name, user_input: str) -> str:
