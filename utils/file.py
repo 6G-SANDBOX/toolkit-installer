@@ -112,7 +112,6 @@ def read_site_yaml(data: Dict) -> Dict:
         elif isinstance(value, List):
             aux[key] = [
                 int(item.strip())
-                # TODO: change to accept [0,1,2,...] format
                 for item in ask_text(
                     message=f"Reading the value of {key} separated by commas. For example: 0, 1, 2:",
                     default=str(value),
