@@ -752,8 +752,6 @@ try:
             f"If you want to update the site, you can re-run the script and select the {appliance_toolkit_service_name} service that has in the key {toolkit_service_sites_ansible_token} as value the key to decrypt the {site} site or you can follow this documentation: {sandbox_documentation_url}/6g-sandbox-sites/work-on-your-site "
         ),
     )
-    # TODO: if oneke version 1.29 is selected, increment storage node to 3 is required and resize disk
-    # TODO: run trial network?
 
     msg(level="info", message="Toolkit installation process completed successfully")
 
