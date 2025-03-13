@@ -128,13 +128,9 @@ def git_clone(https_url: str, path: str, token: str = None) -> None:
                 level="error",
                 message=f"Failed to clone the GitHub repository at {https_url} to the path {path}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
             )
-        msg(
-            level="debug",
-            message=f"GitHub repository at {https_url} cloned to the path {path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
-        )
     msg(
         level="debug",
-        message=f"GitHub repository {https_url} cloned to the path {path}",
+        message=f"GitHub repository at {https_url} cloned to the path {path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
     )
 
 

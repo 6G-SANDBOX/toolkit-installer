@@ -51,7 +51,7 @@ def is_file(path: str) -> bool:
     :param path: the path to the file, ``str``
     :return: whether the path is a file, ``bool``
     """
-    return os.path.isfile(path)
+    return os.path.isfile(path=path)
 
 
 def join_path(*args) -> str:
@@ -64,7 +64,7 @@ def join_path(*args) -> str:
     return os.path.join(*args)
 
 
-def list_directory(path: str) -> List[str]:
+def list_dirs_no_hidden(path: str) -> List[str]:
     """
     List the files and directories in the directory
 
@@ -73,7 +73,7 @@ def list_directory(path: str) -> List[str]:
     """
     directories = []
     for directory in os.listdir(path=path):
-        if os.path.isdir(os.path.join(path, directory)) and not directory.startswith(
+        if is_directory(path=join_path(path, directory)) and not directory.startswith(
             "."
         ):
             directories.append(directory)
@@ -82,11 +82,11 @@ def list_directory(path: str) -> List[str]:
 
 def make_directory(path: str) -> None:
     """
-    Create the directory
+    Make the directory
 
     :param path: the path to the directory, ``str``
     """
-    os.makedirs(path, exist_ok=True)
+    os.makedirs(name=path, exist_ok=True)
 
 
 def remove_directory(path: str) -> None:
@@ -99,14 +99,14 @@ def remove_directory(path: str) -> None:
         shutil.rmtree(path)
 
 
-def remove_file(file_path: str) -> None:
+def remove_file(path: str) -> None:
     """
     Remove the file
 
-    :param file_path: the path to the file, ``str``
+    :param path: the path to the file, ``str``
     """
-    if os.path.exists(file_path):
-        os.remove(file_path)
+    if os.path.exists(path=path):
+        os.remove(path=path)
 
 
 def rename_directory(old_path: str, new_path: str) -> None:
@@ -117,4 +117,4 @@ def rename_directory(old_path: str, new_path: str) -> None:
     :param new_path: the new path to the directory, ``str``
     """
     if is_directory(path=old_path):
-        shutil.move(old_path, new_path)
+        shutil.move(src=old_path, dst=new_path)

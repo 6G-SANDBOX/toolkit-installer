@@ -58,7 +58,7 @@ def load_yaml(file_path: str, mode: str = "rt", encoding: str = "utf-8") -> Dict
         return yaml.safe_load(stream=yaml_file)
 
 
-def loads_json(data: str) -> Dict:
+def loads_json(data: str) -> Dict | None:
     """
     Load the given data as JSON
 

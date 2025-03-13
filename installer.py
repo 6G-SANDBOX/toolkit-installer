@@ -66,7 +66,7 @@ from utils.os import (
     TEMP_DIRECTORY,
     get_dotenv_var,
     join_path,
-    list_directory,
+    list_dirs_no_hidden,
     make_directory,
     remove_directory,
     remove_file,
@@ -556,7 +556,7 @@ try:
             git_clean_fd(path=sites_path)
         git_create_branch(path=sites_path, new_branch=site, base_branch="main")
         remove_directory(path=join_path(sites_path, ".github"))
-        remove_file(file_path=join_path(sites_path, "README.md"))
+        remove_file(path=join_path(sites_path, "README.md"))
         dummy_site_path = join_path(sites_path, ".dummy_site")
         site_path = join_path(sites_path, site)
         rename_directory(
@@ -619,7 +619,7 @@ try:
     git_fetch_prune(path=library_path)
     git_sync_branches(path=library_path)
     git_checkout(path=library_path, ref=library_ref)
-    library_components = list_directory(path=library_path)
+    library_components = list_dirs_no_hidden(path=library_path)
     if not library_components:
         msg(
             level="error",
