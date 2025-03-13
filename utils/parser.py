@@ -15,7 +15,7 @@ def ansible_decrypt(data_path: str, token_path: str) -> None:
     :param token_path: the path to the token file, ``str``
     """
     command = f"ansible-vault decrypt {data_path} --vault-password={token_path}"
-    stdout, stderr, rc = run_command(command)
+    stdout, stderr, rc = run_command(command=command)
     if rc != 0:
         msg(
             level="error",
@@ -35,7 +35,7 @@ def ansible_encrypt(data_path: str, token_path: str) -> None:
     :param token_path: the path to the token file, ``str``
     """
     command = f"ansible-vault encrypt {data_path} --vault-password={token_path}"
-    stdout, stderr, rc = run_command(command)
+    stdout, stderr, rc = run_command(command=command)
     if rc != 0:
         msg(
             level="error",
@@ -54,7 +54,7 @@ def decode_base64(encoded_data: str) -> str:
     :param encoded_data: the Base64 encoded string to be decoded, ``str``
     :return: the decoded data as bytes, ``str``
     """
-    return base64.b64decode(encoded_data).decode("utf-8")
+    return base64.b64decode(s=encoded_data).decode(encoding="utf-8")
 
 
 def encode_base64(data: str) -> str:
@@ -64,7 +64,7 @@ def encode_base64(data: str) -> str:
     :param data: the string to be encoded, ``str``
     :return: the Base64 encoded string, ``str``
     """
-    return base64.b64encode(data.encode("utf-8")).decode("utf-8")
+    return base64.b64encode(s=data.encode(encoding="utf-8")).decode(encoding="utf-8")
 
 
 def gb_to_mb(gb: int) -> int:
