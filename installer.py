@@ -2,10 +2,12 @@ from typing import Dict, List
 
 from dotenv import load_dotenv
 
+from utils.cli import run_command
 from utils.file import (
     SITES_SKIP_KEYS,
     is_encrypted_ansible,
     load_yaml,
+    loads_json,
     read_component_site_variables,
     read_site_yaml,
     save_file,
@@ -72,7 +74,7 @@ from utils.os import (
     remove_file,
     rename_directory,
 )
-from utils.parser import ansible_decrypt, ansible_encrypt, decode_base64
+from utils.parser import ansible_decrypt, ansible_encrypt, decode_base64, encode_base64
 from utils.questionary import (
     ask_checkbox,
     ask_confirm,
@@ -133,12 +135,15 @@ try:
     github_sites_team_name = get_dotenv_var(key="GITHUB_SITES_TEAM_NAME")
     github_members_token_encode = get_dotenv_var(key="GITHUB_MEMBERS_TOKEN")
     github_members_token = decode_base64(encoded_data=github_members_token_encode)
-    library_https_url = get_dotenv_var(key="LIBRARY_HTTPS_URL")
-    library_repository_name = get_dotenv_var(key="LIBRARY_REPOSITORY_NAME")
-    library_ref = get_dotenv_var(key="LIBRARY_REF")
     sites_https_url = get_dotenv_var(key="SITES_HTTPS_URL")
     sites_repository_name = get_dotenv_var(key="SITES_REPOSITORY_NAME")
     dummy_site_url = get_dotenv_var(key="DUMMY_SITE_URL")
+    library_https_url = get_dotenv_var(key="LIBRARY_HTTPS_URL")
+    library_repository_name = get_dotenv_var(key="LIBRARY_REPOSITORY_NAME")
+    library_ref = get_dotenv_var(key="LIBRARY_REF")
+    trial_network_component = get_dotenv_var(key="TRIAL_NETWORK_COMPONENT")
+    pipeline_tn_deploy = get_dotenv_var(key="PIPELINE_TN_DEPLOY")
+    tnlcm_port = get_dotenv_var(key="TNLCM_PORT")
 
     # message
     msg(
@@ -752,6 +757,72 @@ try:
             f"If you want to update the site, you can re-run the script and select the {appliance_toolkit_service_name} service that has in the key {toolkit_service_sites_ansible_token} as value the key to decrypt the {site} site or you can follow this documentation: {sandbox_documentation_url}/6g-sandbox-sites/work-on-your-site "
         ),
     )
+
+    # trial network
+    deploy_trial_network = ask_confirm(
+        message="Do you want to deploy a trial network in the site?",
+        default=False,
+    )
+    if deploy_trial_network:
+        tnlcm_ip = onevm_ip(vm_name=tnlcm_vm)
+        tnlcm_url = f"http://{tnlcm_ip}:{tnlcm_port}"
+        tnlcm_admin_user = onevm_user_input(
+            vm_name=tnlcm_vm, user_input="ONEAPP_TNLCM_ADMIN_USER"
+        )
+        tnlcm_admin_password = onevm_user_input(
+            vm_name=tnlcm_vm, user_input="ONEAPP_TNLCM_ADMIN_PASSWORD"
+        )
+        credentials = f"{tnlcm_admin_user}:{tnlcm_admin_password}"
+        encoded_credentials = encode_base64(data=credentials)
+        tnlcm_login = f'curl -w "%{{http_code}}" -X POST {tnlcm_url}/api/v1/user/login -H "accept: application/json" -H "authorization: Basic {encoded_credentials}"'
+        stdout, stderr, rc = run_command(command=tnlcm_login)
+        tokens, status_code = stdout[:-3].strip(), stdout[-3:]
+        if status_code != "201":
+            msg(
+                level="error",
+                message=f"Failed to login to TNLCM. Command: {tnlcm_login}. Error received: {stderr}. Return code: {rc}",
+            )
+        access_token = loads_json(data=tokens)["access_token"]
+        msg(level="info", message="Logged in successfully to TNLCM")
+        trial_network_path = join_path(
+            library_path, trial_network_component, "sample_tnlcm_descriptor.yaml"
+        )
+        tnlcm_create_trial_network = f'''curl -w "%{{http_code}}" -X POST "{tnlcm_url}/api/v1/trial-network?validate=True" \
+            -H "accept: application/json" \
+            -H "Authorization: Bearer {access_token}" \
+            -H "Content-Type: multipart/form-data" \
+            -F "tn_id=test" \
+            -F "descriptor=@{trial_network_path}" \
+            -F "library_reference_type=branch" \
+            -F "library_reference_value={library_ref}" \
+            -F "sites_branch={site}" \
+            -F "deployment_site={site}"'''
+        stdout, stderr, rc = run_command(command=tnlcm_create_trial_network)
+        response_create_trial_network, status_code = stdout[:-3].strip(), stdout[-3:]
+        if status_code != "201":
+            msg(
+                level="error",
+                message=f"Failed to create trial network in TNLCM. Command: {tnlcm_create_trial_network}. Error received: {stderr}. Return code: {rc}",
+            )
+        trial_network_id = loads_json(data=response_create_trial_network)["tn_id"]
+        msg(
+            level="info",
+            message=f"Trial network {trial_network_id} created successfully in TNLCM",
+        )
+        deploy_trial_network = f'''curl -w "%{{http_code}}" -X POST "{tnlcm_url}/api/v1/trial-network/{trial_network_id}/activate" \
+            -H "accept: application/json" \
+            -H "Authorization: Bearer {access_token}"'''
+        stdout, stderr, rc = run_command(command=deploy_trial_network)
+        response_deploy_trial_network, status_code = stdout[:-3].strip(), stdout[-3:]
+        if status_code != "200":
+            msg(
+                level="error",
+                message=f"Failed to deploy trial network in TNLCM. Command: {deploy_trial_network}. Error received: {stderr}. Return code: {rc}",
+            )
+        msg(
+            level="info",
+            message=f"Trial network {trial_network_id} deployed successfully in TNLCM",
+        )
 
     msg(level="info", message="Toolkit installation process completed successfully")
 
