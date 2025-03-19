@@ -2065,7 +2065,6 @@ def onemarketapp_instantiate(
                 username=username,
                 group_name=group_name,
             )
-            # TODO: verify if path of template is the same with url
             template_id = onevm_template_id(vm_name=vm_name)
             template_name = onetemplate_name(template_id=template_id)
             onetemplate_chown(

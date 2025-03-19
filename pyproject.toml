@@ -5,7 +5,8 @@ description = "Python script that install and configure the MinIO, Jenkins and T
 readme = "README.md"
 requires-python = ">=3.13"
 authors = [
-    { name = "Carlos Andreo", email = "c.andreo@uma.es" }
+    { name = "Carlos Andreo", email = "c.andreo@uma.es" },
+    { name = "Daniel Garcia", email = "dgarcia@opennebula.io" },
 ]
 
 dependencies = [

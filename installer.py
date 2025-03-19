@@ -187,7 +187,6 @@ try:
         level="info",
         message=f"Validating if user {github_username} has access to the team {github_sites_team_name} in the organization {github_organization_name}",
     )
-    # TODO: uncomment
     git_team_access(
         token=github_members_token,
         organization_name=github_organization_name,
@@ -211,7 +210,6 @@ try:
         level="info",
         message=f"Validating if the personal access token of the user {github_username} with access to the {sites_repository_name} repository is correct",
     )
-    # TODO: uncomment
     git_validate_token(
         token=sites_github_token,
         organization_name=github_organization_name,
@@ -348,7 +346,7 @@ try:
         if (
             onemarket_endpoint(marketplace_name=opennebula_sandbox_marketplace_name)
             != opennebula_sandbox_marketplace_endpoint
-        ):  # CHANGE: change to while loop, not error
+        ):
             msg(
                 level="error",
                 message=(
