@@ -1,4 +1,4 @@
-from typing import Any, Callable, List, Optional
+from typing import Any, List, Optional
 
 from questionary import Style, checkbox, confirm, password, select, text
 
@@ -24,7 +24,6 @@ def ask_checkbox(
     :param message: the question to display, ``str``
     :param choices: list of options to choose from, ``List[str]``
     :param default: default value if the user presses Enter, ``Optional[str]``
-    :param validate: custom validation function, ``Callable[[Any], Any]``
     :return: list of selected options, ``List[str]``
     """
     return checkbox(
