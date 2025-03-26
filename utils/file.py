@@ -86,6 +86,8 @@ def read_component_site_variables(data: Dict) -> Dict:
             aux[key] = ask_text(
                 message=f"Reading the value of {key}. This key indicates {value}:"
             )
+            if key == "template_id" or key == "image_id":
+                aux[key] = int(aux[key])
         else:
             msg(
                 level="info",
