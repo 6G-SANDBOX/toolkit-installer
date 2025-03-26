@@ -10,7 +10,9 @@
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
 
-<a href="https://github.com/6G-SANDBOX/toolkit-installer"><img src="images/logo.png" width="300" title="toolkit-installer"></a>
+<a href="https://6g-sandbox.eu/">
+  <img src="https://6g-sandbox.eu/wp-content/uploads/2023/01/6g-sandbox-logo-2-300x138.jpg" alt="6G-SANDBOX" title="6G-SANDBOX" height="100" />
+</a>
 
 [![toolkit-installer][toolkit-installer-badge]][toolkit-installer-url]
 
