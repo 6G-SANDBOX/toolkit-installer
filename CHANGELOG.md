@@ -8,6 +8,7 @@
 - Ask DNS. [#15](https://github.com/6G-SANDBOX/toolkit-installer/issues/15)
 - Ask route-manager-api. [#17](https://github.com/6G-SANDBOX/toolkit-installer/issues/17)
 - Possibility to select the host to deploy the TNLCM vm on. [#20](https://github.com/6G-SANDBOX/toolkit-installer/issues/20)
+- Versioning appliances for install and upgrade.
 
 ### Changed
 
