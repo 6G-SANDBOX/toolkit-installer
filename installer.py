@@ -26,6 +26,7 @@ from utils.git import (
     git_fetch_prune,
     git_pull,
     git_push,
+    git_reset_hard,
     git_sync_branches,
     git_team_access,
     git_validate_token,
@@ -499,9 +500,11 @@ try:
     )
     if site != "Create new site":
         current_branch = git_current_branch(path=sites_path)
-        if current_branch != site and git_detect_changes(path=sites_path):
-            git_clean_fd(path=sites_path)
-        git_checkout(path=sites_path, ref=site)
+        if current_branch != site:
+            if git_detect_changes(path=sites_path):
+                git_reset_hard(path=sites_path)
+                git_clean_fd(path=sites_path)
+            git_checkout(path=sites_path, ref=site)
         site_path = join_path(sites_path, site)
         core_site_path = join_path(site_path, "core.yaml")
         if is_encrypted_ansible(file_path=core_site_path):
@@ -522,6 +525,7 @@ try:
             ),
         )
         if git_detect_changes(path=sites_path):
+            git_reset_hard(path=sites_path)
             git_clean_fd(path=sites_path)
         git_create_branch(path=sites_path, new_branch=site, base_branch="main")
         remove_directory(path=join_path(sites_path, ".github"))

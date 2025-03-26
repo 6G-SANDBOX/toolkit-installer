@@ -98,16 +98,7 @@ def git_clean_fd(path: str) -> None:
             message=f"Repository {path} does not exist. Cannot clean the repository",
         )
     command = f"git -C {path} clean -fd"
-    stdout, stderr, rc = run_command(command=command)
-    if rc != 0:
-        msg(
-            level="error",
-            message=f"Failed to clean the repository {path}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
-        )
-    msg(
-        level="debug",
-        message=f"Repository {path} cleaned. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
-    )
+    run_command(command=command)
 
 
 def git_clone(https_url: str, path: str, token: str = None) -> None:
@@ -128,10 +119,10 @@ def git_clone(https_url: str, path: str, token: str = None) -> None:
                 level="error",
                 message=f"Failed to clone the GitHub repository at {https_url} to the path {path}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
             )
-    msg(
-        level="debug",
-        message=f"GitHub repository at {https_url} cloned to the path {path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
-    )
+        msg(
+            level="debug",
+            message=f"GitHub repository at {https_url} cloned to the path {path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+        )
 
 
 def git_commit(path: str, message: str) -> None:
@@ -305,6 +296,21 @@ def git_push(path: str) -> None:
         level="debug",
         message=f"Committed changes pushed to the remote repository {path}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
     )
+
+
+def git_reset_hard(path: str) -> None:
+    """
+    Reset the repository to the last commit
+
+    :raise GitError:
+    """
+    if not exist_directory(path=path):
+        msg(
+            level="error",
+            message=f"Repository {path} does not exist. Cannot reset the repository to the last commit",
+        )
+    command = f"git -C {path} reset --hard"
+    run_command(command=command)
 
 
 def git_switch(

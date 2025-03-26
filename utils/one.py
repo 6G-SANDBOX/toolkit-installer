@@ -1361,7 +1361,6 @@ def onehosts_avx_cpu_mem(
             )
         host_name = hosts_pool["NAME"]
         kvm_cpu_features = hosts_pool["TEMPLATE"]["KVM_CPU_FEATURES"]
-        print("lol")
         if (
             onehost_available_cpu(host_name=host_name)
             >= min_percentage_cpu_available_host
@@ -1369,7 +1368,6 @@ def onehosts_avx_cpu_mem(
             >= min_percentage_mem_available_host
             and "avx" in kvm_cpu_features
         ):
-            print("ewe")
             hosts_with_avx.append(host_name)
     elif isinstance(hosts_pool, List):
         for host in hosts_pool:
@@ -1484,7 +1482,10 @@ def oneimage_list() -> Dict | None:
             level="debug",
             message=f"OpenNebula images found. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
         )
-        return loads_json(data=stdout)
+        stdout = loads_json(data=stdout)
+        if "IMAGE_POOL" in stdout and "IMAGE" not in stdout["IMAGE_POOL"]:
+            return None
+        return stdout
 
 
 def oneimage_rename(old_name: str, new_name: str) -> None:
@@ -1656,11 +1657,8 @@ def oneimages_attribute(attribute: str, value: str) -> List[str]:
     """
     images = oneimage_list()
     images_names = []
-    if images is None:
-        msg(
-            level="error",
-            message="Images not found",
-        )
+    if not images:
+        return images_names
     if "IMAGE_POOL" not in images or "IMAGE" not in images["IMAGE_POOL"]:
         msg(
             level="error",
@@ -1984,6 +1982,9 @@ def onemarketapp_add(
                 sleep(5)
                 image_name = oneimage_name(image_id=image_id[0])
                 image_state = oneimage_state(image_name=image_name)
+                msg(
+                    level="info", message=f"Wait for the image {image_name} to be ready"
+                )
                 while image_state != "1":
                     sleep(10)
                     image_state = oneimage_state(image_name=image_name)
@@ -2035,6 +2036,10 @@ def onemarketapp_add(
                     sleep(5)
                     image_name = oneimage_name(image_id=image_id[0])
                     image_state = oneimage_state(image_name=image_name)
+                    msg(
+                        level="info",
+                        message=f"Wait for the image {image_name} to be ready",
+                    )
                     while image_state != "1":
                         sleep(10)
                         image_state = oneimage_state(image_name=image_name)
@@ -2114,6 +2119,10 @@ def onemarketapp_add(
                 for image_id in image_ids:
                     image_name = oneimage_name(image_id=image_id)
                     image_state = oneimage_state(image_name=image_name)
+                    msg(
+                        level="info",
+                        message=f"Wait for the image {image_name} to be ready",
+                    )
                     while image_state != "1":
                         sleep(10)
                         image_state = oneimage_state(image_name=image_name)
@@ -2168,6 +2177,10 @@ def onemarketapp_add(
                     for image_id in image_ids:
                         image_name = oneimage_name(image_id=image_id)
                         image_state = oneimage_state(image_name=image_name)
+                        msg(
+                            level="info",
+                            message=f"Wait for the image {image_name} to be ready",
+                        )
                         while image_state != "1":
                             sleep(10)
                             image_state = oneimage_state(image_name=image_name)
@@ -2249,6 +2262,10 @@ def onemarketapp_add(
                 for image_id in image_ids:
                     image_name = oneimage_name(image_id=image_id)
                     image_state = oneimage_state(image_name=image_name)
+                    msg(
+                        level="info",
+                        message=f"Wait for the image {image_name} to be ready",
+                    )
                     while image_state != "1":
                         sleep(10)
                         image_state = oneimage_state(image_name=image_name)
@@ -2310,6 +2327,10 @@ def onemarketapp_add(
                     for image_id in image_ids:
                         image_name = oneimage_name(image_id=image_id)
                         image_state = oneimage_state(image_name=image_name)
+                        msg(
+                            level="info",
+                            message=f"Wait for the image {image_name} to be ready",
+                        )
                         while image_state != "1":
                             sleep(10)
                             image_state = oneimage_state(image_name=image_name)
@@ -2442,7 +2463,7 @@ def onemarketapp_instantiate(
                     level="error",
                     message=f"Service {service_name} is not in RUNNING state",
                 )
-            roles_vm_names = oneflow_roles_vm_names(oneflow_name=appliance_name)
+            roles_vm_names = oneflow_roles_vm_names(oneflow_name=service_name)
             if roles_vm_names:
                 for vm_name in roles_vm_names:
                     onevm_chown(
@@ -2451,7 +2472,7 @@ def onemarketapp_instantiate(
                         group_name=group_name,
                     )
             oneflow_template_chown(
-                oneflow_template_name=appliance_name,
+                oneflow_template_name=service_name,
                 username=username,
                 group_name=group_name,
             )
@@ -2460,8 +2481,8 @@ def onemarketapp_instantiate(
                 username=username,
                 group_name=group_name,
             )
-            image_ids = oneflow_template_image_ids(oneflow_template_name=appliance_name)
-            template_ids = oneflow_template_ids(oneflow_template_name=appliance_name)
+            image_ids = oneflow_template_image_ids(oneflow_template_name=service_name)
+            template_ids = oneflow_template_ids(oneflow_template_name=service_name)
             for template_id in template_ids:
                 template_name = onetemplate_name(template_id=template_id)
                 onetemplate_chown(
@@ -2485,29 +2506,25 @@ def onemarketapp_instantiate(
             marketplace_name=marketplace_name,
             appliance_url=appliance_url,
         )
-        if not is_added:
-            msg(
-                level="error",
-                message=f"Could not instantiate appliance {appliance_name}. Add the appliance to OpenNebula first",
+        if is_added:
+            instantiate_appliance = ask_confirm(
+                message=f"Do you want to instantiate the appliance {appliance_name} in OpenNebula?",
+                default=False,
             )
-        instantiate_appliance = ask_confirm(
-            message=f"Do you want to instantiate the appliance {appliance_name} in OpenNebula?",
-            default=False,
-        )
-        if instantiate_appliance:
-            if appliance_type == "IMAGE" or appliance_type == "VM":
-                onetemplate_instantiate(
-                    template_name=appliance_name,
-                    username=username,
-                    group_name=group_name,
-                )
-            else:
-                oneflow_template_instantiate(
-                    oneflow_template_name=appliance_name,
-                    group_name=group_name,
-                    username=username,
-                )
-            is_instantiated = True
+            if instantiate_appliance:
+                if appliance_type == "IMAGE" or appliance_type == "VM":
+                    onetemplate_instantiate(
+                        template_name=appliance_name,
+                        username=username,
+                        group_name=group_name,
+                    )
+                else:
+                    oneflow_template_instantiate(
+                        oneflow_template_name=appliance_name,
+                        group_name=group_name,
+                        username=username,
+                    )
+                is_instantiated = True
         appliance_target_name = appliance_name
     return is_instantiated, appliance_target_name
 
