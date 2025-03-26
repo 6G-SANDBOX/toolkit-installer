@@ -16,7 +16,7 @@
 
 [![toolkit-installer][toolkit-installer-badge]][toolkit-installer-url]
 
-[Documentation](https://6g-sandbox.github.io/docs/category/toolkit-installer) • [Roadmap](https://github.com/6G-SANDBOX/toolkit-installer/issues/13) • [Report Error](https://github.com/6G-SANDBOX/toolkit-installer/issues/new?assignees=&labels=&projects=&template=bug_report.md) • [Feature Request](https://github.com/6G-SANDBOX/toolkit-installer/issues/new?assignees=&labels=&projects=&template=feature_request.md)
+[Documentation](https://6g-sandbox.github.io/docs/category/toolkit-installer) • [Report Error](https://github.com/6G-SANDBOX/toolkit-installer/issues/new?assignees=&labels=&projects=&template=bug_report.md) • [Feature Request](https://github.com/6G-SANDBOX/toolkit-installer/issues/new?assignees=&labels=&projects=&template=feature_request.md)
 
 </div>
 
