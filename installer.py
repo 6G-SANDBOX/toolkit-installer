@@ -1,5 +1,3 @@
-import sys
-
 from typing import Dict, List
 
 from dotenv import load_dotenv
@@ -194,12 +192,12 @@ try:
         level="info",
         message=f"Validating if user {github_username} has access to the team {github_sites_team_name} in the organization {github_organization_name}",
     )
-    # git_team_access(
-    #     token=github_members_token,
-    #     organization_name=github_organization_name,
-    #     team_name=github_sites_team_name,
-    #     username=github_username,
-    # )
+    git_team_access(
+        token=github_members_token,
+        organization_name=github_organization_name,
+        team_name=github_sites_team_name,
+        username=github_username,
+    )
     msg(
         level="info",
         message=f"User {github_username} has access to the team {github_sites_team_name} in the organization {github_organization_name}",
@@ -217,12 +215,12 @@ try:
         level="info",
         message=f"Validating if the personal access token of the user {github_username} with access to the {sites_repository_name} repository is correct",
     )
-    # git_validate_token(
-    #     token=sites_github_token,
-    #     organization_name=github_organization_name,
-    #     repository_name=sites_repository_name,
-    #     username=github_username,
-    # )
+    git_validate_token(
+        token=sites_github_token,
+        organization_name=github_organization_name,
+        repository_name=sites_repository_name,
+        username=github_username,
+    )
     msg(level="info", message="Token validated successfully")
 
     # user
@@ -337,7 +335,7 @@ try:
     if not is_toolkit_service_instantiated:
         msg(
             level="error",
-            message=f"Appliance {appliance_toolkit_service_name} not running and is MANDATORY",
+            message=f"Appliance {appliance_toolkit_service_name} not instantiated and is MANDATORY",
         )
     msg(
         level="info",
