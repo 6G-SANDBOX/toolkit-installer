@@ -1487,6 +1487,26 @@ def oneimage_list() -> Dict | None:
         return loads_json(data=stdout)
 
 
+def oneimage_rename(old_name: str, new_name: str) -> None:
+    """
+    Rename an image in OpenNebula
+
+    :param old_name: the old name of the image, ``str``
+    :param new_name: the new name of the image, ``str``
+    """
+    command = f'oneimage rename "{old_name}" "{new_name}"'
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="error",
+            message=f"Could not rename image {old_name} to {new_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+    msg(
+        level="debug",
+        message=f"Image {old_name} renamed to {new_name}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+    )
+
+
 def oneimage_show(
     image_name: Optional[str] = None,
     image_id: Optional[int] = None,
@@ -1565,6 +1585,100 @@ def oneimage_state(image_name: str) -> str:
             message=f"Could not get state of image with name {image_name}",
         )
     return image_state
+
+
+def oneimage_update(
+    image_name: str,
+    file_path: str,
+) -> None:
+    """
+    Update an image in OpenNebula
+
+    :param image_name: the name of the image, ``str``
+    :param file_path: the path to the file with params, ``str``
+    """
+    command = f'oneimage update "{image_name}" --append {file_path}'
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="error",
+            message=f"Could not update image {image_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+    msg(
+        level="debug",
+        message=f"Image {image_name} updated. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+    )
+
+
+def oneimage_version(image_name: str) -> str:
+    """
+    Get the version of an image in OpenNebula
+
+    :param image_name: the name of the image, ``str``
+    :return: the version of the image, ``str``
+    """
+    image = oneimage_show(image_name=image_name)
+    if image is None:
+        msg(
+            level="error",
+            message=f"Image {image_name} not found",
+        )
+    if "IMAGE" not in image or "TEMPLATE" not in image["IMAGE"]:
+        msg(
+            level="error",
+            message=f"Could not get version of image with name {image_name}",
+        )
+    if (
+        "ONE_6GSB_MARKETPLACE_APPLIANCE_VERSION" not in image["IMAGE"]["TEMPLATE"]
+        or "ONE_6GSB_MARKETPLACE_APPLIANCE_SOFTWARE_VERSION"
+        not in image["IMAGE"]["TEMPLATE"]
+    ):
+        msg(
+            level="error",
+            message=f"Could not get version of image with name {image_name}",
+        )
+    image_version = f"{image['IMAGE']['TEMPLATE']['ONE_6GSB_MARKETPLACE_APPLIANCE_VERSION']}-{image['IMAGE']['TEMPLATE']['ONE_6GSB_MARKETPLACE_APPLIANCE_SOFTWARE_VERSION']}"
+    if image_version is None:
+        msg(
+            level="error",
+            message=f"Could not get version of image with name {image_name}",
+        )
+    return image_version
+
+
+def oneimages_attribute(attribute: str, value: str) -> List[str]:
+    """
+    Check if an attribute is available in image in OpenNebula
+
+    :param attribute: the attribute to check, ``str``
+    :param value: the value of the attribute, ``str``
+    :return: the names of the images with the attribute, ``List[str]``
+    """
+    images = oneimage_list()
+    images_names = []
+    if images is None:
+        msg(
+            level="error",
+            message="Images not found",
+        )
+    if "IMAGE_POOL" not in images or "IMAGE" not in images["IMAGE_POOL"]:
+        msg(
+            level="error",
+            message="IMAGE_POOL key not found in images or IMAGE key not found in IMAGE_POOL",
+        )
+    for image in images["IMAGE_POOL"]["IMAGE"]:
+        if image is None:
+            msg(level="error", message="Image is empty")
+        if "NAME" not in image or "TEMPLATE" not in image:
+            msg(
+                level="error",
+                message=f"NAME key not found in image {image} or TEMPLATE key not found in image",
+            )
+        if attribute in image["TEMPLATE"]:
+            if image["TEMPLATE"][attribute] == value:
+                image_name = image["NAME"]
+                images_names.append(image_name)
+    return images_names
 
 
 def oneimages_names() -> List[str]:
@@ -1671,7 +1785,7 @@ def onemarket_create(
     )
     save_file(
         data=marketplace_content,
-        file_name=marketplace_content_path,
+        file_path=marketplace_content_path,
     )
     command = f"onemarket create {marketplace_content_path}"
     stdout, stderr, rc = run_command(command=command)
@@ -1811,7 +1925,7 @@ def onemarketapp_add(
     username: str,
     marketplace_name: str,
     appliance_url: str,
-) -> bool:
+) -> Tuple[bool, str]:
     """
     Add appliances from a marketplace in OpenNebula
 
@@ -1819,22 +1933,39 @@ def onemarketapp_add(
     :param username: the name of the user, ``str``
     :param marketplace_name: the name of the marketplace, ``str``
     :param appliance_url: the URL of the appliance, ``str``
-    :return: if the appliance has been added, ``bool``
+    :return: a tuple with a boolean indicating if the appliance is added and the name of the appliance, ``Tuple[bool, str]``
     """
     is_added = False
     appliance_name = onemarketapp_name(appliance_url=appliance_url)
     appliance_description = onemarketapp_description(appliance_url=appliance_url)
+    appliance_version, appliance_software_version = onemarketapp_version(
+        appliance_url=appliance_url
+    )
+    version = f"{appliance_version}-{appliance_software_version}"
+    version_attribute_template = dedent(f"""
+        ONE_6GSB_MARKETPLACE_APPLIANCE_NAME="{appliance_name}"
+        ONE_6GSB_MARKETPLACE_APPLIANCE_VERSION="{appliance_version}"
+        ONE_6GSB_MARKETPLACE_APPLIANCE_SOFTWARE_VERSION="{appliance_software_version}"
+    """).strip()
+    version_attribute_template_path = join_path(
+        TEMP_DIRECTORY, "version_attribute_template"
+    )
+    save_file(
+        data=version_attribute_template,
+        file_path=version_attribute_template_path,
+    )
     appliance_type = onemarketapp_type(
         appliance_name=appliance_name,
         marketplace_name=marketplace_name,
     )
     if appliance_type == "IMAGE":  # one image and one template
-        template_data = onetemplate_show(template_name=appliance_name)
-        image_data = oneimage_show(image_name=appliance_name)
-        if template_data is None and image_data is None:
+        image_name = oneimages_attribute(
+            attribute="ONE_6GSB_MARKETPLACE_APPLIANCE_NAME", value=appliance_name
+        )
+        if not image_name:
             add_appliance = ask_confirm(
                 message=(
-                    f"No image and template has been found with the name {appliance_name}. Do you want to add {appliance_name} appliance? \n{appliance_description}"
+                    f"No image has been found with the attribute ONE_6GSB_MARKETPLACE_APPLIANCE_NAME={appliance_name}. Do you want to add {appliance_name} appliance? \n{appliance_description}"
                 ),
                 default=False,
             )
@@ -1846,68 +1977,63 @@ def onemarketapp_add(
                 )
                 image_id, template_id, _ = onemarketapp_export(
                     appliance_name=appliance_name,
+                    appliance_new_name=f"{appliance_name} {version}",
                     datastore_name=datastore_name,
                 )
+                appliance_name = f"{appliance_name} {version}"
                 sleep(5)
                 image_name = oneimage_name(image_id=image_id[0])
-                image_state = oneimage_state(image_name=appliance_name)
+                image_state = oneimage_state(image_name=image_name)
                 while image_state != "1":
                     sleep(10)
-                    image_state = oneimage_state(image_name=appliance_name)
+                    image_state = oneimage_state(image_name=image_name)
                     if image_state == "5":
                         msg(
                             level="error",
-                            message=f"Image {appliance_name} is in error state",
+                            message=f"Image {image_name} is in error state",
                         )
-                template_name = onetemplate_name(template_id=template_id[0])
-        template_data = onetemplate_show(template_name=appliance_name)
-        image_data = oneimage_show(image_name=appliance_name)
-        if template_data is not None and image_data is not None:
-            onetemplate_chown(
-                template_name=appliance_name,
-                username=username,
-                group_name=group_name,
-            )
-            oneimage_chown(
-                image_name=appliance_name,
-                username=username,
-                group_name=group_name,
-            )
-            is_added = True
+                oneimage_update(
+                    image_name=image_name, file_path=version_attribute_template_path
+                )
+                onetemplate_chown(
+                    template_name=appliance_name,
+                    username=username,
+                    group_name=group_name,
+                )
+                oneimage_chown(
+                    image_name=appliance_name,
+                    username=username,
+                    group_name=group_name,
+                )
+                is_added = True
         else:
             msg(
-                level="error",
-                message=f"Could not add {appliance_name} appliance. Check in the Sunstone interface if you have the image, but not the template or if you have the template and not the image",
+                level="info",
+                message=f"Image {appliance_name} already exists. Check if new version are available",
             )
-    elif appliance_type == "VM":  # one or more images and one template
-        template_data = onetemplate_show(template_name=appliance_name)
-        image_ids = onetemplate_image_ids(template_name=appliance_name)
-        if template_data is None and len(image_ids) == 0:
-            add_appliance = ask_confirm(
-                message=(
-                    f"No image and template has been found with the name {appliance_name}. Do you want to add {appliance_name} appliance? \n{appliance_description}"
-                ),
-                default=False,
-            )
-            if add_appliance:
-                datastores_names = onedatastores_names()
-                datastore_name = ask_select(
-                    message=f"Select the datastore where you want to store the template {appliance_name}:",
-                    choices=datastores_names,
+            image_name = image_name[0]
+            old_version = oneimage_version(image_name=image_name)
+            if old_version != version:
+                add_appliance = ask_confirm(
+                    message=(
+                        f"New version of {appliance_name} appliance is available. Do you want to update the appliance? \n{appliance_description}"
+                    ),
+                    default=False,
                 )
-                _, template_id, _ = onemarketapp_export(
-                    appliance_name=appliance_name,
-                    datastore_name=datastore_name,
-                )
-                sleep(5)
-                image_ids = onetemplate_image_ids(template_name=appliance_name)
-                for image_id in image_ids:
-                    image_name = oneimage_name(image_id=image_id)
-                    oneimage_chown(
-                        image_name=image_name,
-                        username=username,
-                        group_name=group_name,
+                if add_appliance:
+                    datastores_names = onedatastores_names()
+                    datastore_name = ask_select(
+                        message=f"Select the datastore where you want to store the image {appliance_name}:",
+                        choices=datastores_names,
                     )
+                    image_id, template_id, _ = onemarketapp_export(
+                        appliance_name=appliance_name,
+                        appliance_new_name=f"{appliance_name} {version}",
+                        datastore_name=datastore_name,
+                    )
+                    appliance_name = f"{appliance_name} {version}"
+                    sleep(5)
+                    image_name = oneimage_name(image_id=image_id[0])
                     image_state = oneimage_state(image_name=image_name)
                     while image_state != "1":
                         sleep(10)
@@ -1917,49 +2043,199 @@ def onemarketapp_add(
                                 level="error",
                                 message=f"Image {image_name} is in error state",
                             )
-                template_name = onetemplate_name(template_id=template_id[0])
-        template_data = onetemplate_show(template_name=appliance_name)
-        image_ids = onetemplate_image_ids(template_name=appliance_name)
-        if template_data is not None and len(image_ids) > 0:
-            onetemplate_chown(
-                template_name=appliance_name,
-                username=username,
-                group_name=group_name,
-            )
-            for image_id in image_ids:
+                    oneimage_update(
+                        image_name=image_name, file_path=version_attribute_template_path
+                    )
+                    onetemplate_chown(
+                        template_name=appliance_name,
+                        username=username,
+                        group_name=group_name,
+                    )
+                    oneimage_chown(
+                        image_name=appliance_name,
+                        username=username,
+                        group_name=group_name,
+                    )
+                else:
+                    appliance_name = f"{appliance_name} {old_version}"
+                    onetemplate_chown(
+                        template_name=image_name,
+                        username=username,
+                        group_name=group_name,
+                    )
+                    oneimage_chown(
+                        image_name=image_name,
+                        username=username,
+                        group_name=group_name,
+                    )
+            else:
+                appliance_name = f"{appliance_name} {old_version}"
+                onetemplate_chown(
+                    template_name=image_name,
+                    username=username,
+                    group_name=group_name,
+                )
                 oneimage_chown(
-                    image_name=oneimage_name(image_id=image_id),
+                    image_name=image_name,
                     username=username,
                     group_name=group_name,
                 )
             is_added = True
-        else:
-            msg(
-                level="error",
-                message=f"Could not add {appliance_name} appliance. Check in the Sunstone interface if you have the images, but not the template or if you have the template and not the images",
-            )
-    else:
-        oneflow_template_data = oneflow_template_show(
-            oneflow_template_name=appliance_name
+    elif appliance_type == "VM":  # one or more images and one template
+        images_names = oneimages_attribute(
+            attribute="ONE_6GSB_MARKETPLACE_APPLIANCE_NAME", value=appliance_name
         )
-        if oneflow_template_data is None:
+        if not images_names:
             add_appliance = ask_confirm(
                 message=(
-                    f"No image and template has been found with the name {appliance_name}. Do you want to add {appliance_name} appliance? \n{appliance_description}"
+                    f"No image has been found with the attribute ONE_6GSB_MARKETPLACE_APPLIANCE_NAME={appliance_name}. Do you want to add {appliance_name} appliance? \n{appliance_description}"
                 ),
                 default=False,
             )
             if add_appliance:
                 datastores_names = onedatastores_names()
                 datastore_name = ask_select(
-                    message=f"Select the datastore where you want to store the service {appliance_name}:",
+                    message=f"Select the datastore where you want to store the image {appliance_name}:",
+                    choices=datastores_names,
+                )
+                onemarketapp_export(
+                    appliance_name=appliance_name,
+                    appliance_new_name=f"{appliance_name} {version}",
+                    datastore_name=datastore_name,
+                )
+                sleep(5)
+                appliance_name = f"{appliance_name} {version}"
+                onetemplate_chown(
+                    template_name=appliance_name,
+                    username=username,
+                    group_name=group_name,
+                )
+                image_ids = onetemplate_image_ids(template_name=appliance_name)
+                for image_id in image_ids:
+                    image_name = oneimage_name(image_id=image_id)
+                    image_state = oneimage_state(image_name=image_name)
+                    while image_state != "1":
+                        sleep(10)
+                        image_state = oneimage_state(image_name=image_name)
+                        if image_state == "5":
+                            msg(
+                                level="error",
+                                message=f"Image {image_name} is in error state",
+                            )
+                    oneimage_update(
+                        image_name=image_name,
+                        file_path=version_attribute_template_path,
+                    )
+                    oneimage_chown(
+                        image_name=image_name,
+                        username=username,
+                        group_name=group_name,
+                    )
+                is_added = True
+        else:
+            msg(
+                level="info",
+                message=f"Image {appliance_name} already exists. Check if new version are available",
+            )
+            image_name = images_names[0]
+            old_version = oneimage_version(image_name=image_name)
+            if old_version != version:
+                add_appliance = ask_confirm(
+                    message=(
+                        f"New version of {appliance_name} appliance is available. Do you want to update the appliance? \n{appliance_description}"
+                    ),
+                    default=False,
+                )
+                if add_appliance:
+                    datastores_names = onedatastores_names()
+                    datastore_name = ask_select(
+                        message=f"Select the datastore where you want to store the image {appliance_name}:",
+                        choices=datastores_names,
+                    )
+                    onemarketapp_export(
+                        appliance_name=appliance_name,
+                        appliance_new_name=f"{appliance_name} {version}",
+                        datastore_name=datastore_name,
+                    )
+                    sleep(5)
+                    appliance_name = f"{appliance_name} {version}"
+                    onetemplate_chown(
+                        template_name=appliance_name,
+                        username=username,
+                        group_name=group_name,
+                    )
+                    image_ids = onetemplate_image_ids(template_name=appliance_name)
+                    for image_id in image_ids:
+                        image_name = oneimage_name(image_id=image_id)
+                        image_state = oneimage_state(image_name=image_name)
+                        while image_state != "1":
+                            sleep(10)
+                            image_state = oneimage_state(image_name=image_name)
+                            if image_state == "5":
+                                msg(
+                                    level="error",
+                                    message=f"Image {image_name} is in error state",
+                                )
+                        oneimage_update(
+                            image_name=image_name,
+                            file_path=version_attribute_template_path,
+                        )
+                        oneimage_chown(
+                            image_name=image_name,
+                            username=username,
+                            group_name=group_name,
+                        )
+                else:
+                    appliance_name = f"{appliance_name} {old_version}"
+                    onetemplate_chown(
+                        template_name=image_name,
+                        username=username,
+                        group_name=group_name,
+                    )
+                    for image_name in images_names:
+                        oneimage_chown(
+                            image_name=image_name,
+                            username=username,
+                            group_name=group_name,
+                        )
+            else:
+                appliance_name = f"{appliance_name} {old_version}"
+                onetemplate_chown(
+                    template_name=image_name,
+                    username=username,
+                    group_name=group_name,
+                )
+                for image_name in images_names:
+                    oneimage_chown(
+                        image_name=image_name,
+                        username=username,
+                        group_name=group_name,
+                    )
+            is_added = True
+    else:
+        images_names = oneimages_attribute(
+            attribute="ONE_6GSB_MARKETPLACE_APPLIANCE_NAME", value=appliance_name
+        )
+        if not images_names:
+            add_appliance = ask_confirm(
+                message=(
+                    f"No image has been found with the attribute ONE_6GSB_MARKETPLACE_APPLIANCE_NAME={appliance_name}. Do you want to add {appliance_name} appliance? \n{appliance_description}"
+                ),
+                default=False,
+            )
+            if add_appliance:
+                datastores_names = onedatastores_names()
+                datastore_name = ask_select(
+                    message=f"Select the datastore where you want to store the image {appliance_name}:",
                     choices=datastores_names,
                 )
                 _, template_ids, _ = onemarketapp_export(
                     appliance_name=appliance_name,
+                    appliance_new_name=f"{appliance_name} {version}",
                     datastore_name=datastore_name,
                 )
                 sleep(5)
+                appliance_name = f"{appliance_name} {version}"
                 image_ids = oneflow_template_image_ids(
                     oneflow_template_name=appliance_name
                 )
@@ -1972,11 +2248,6 @@ def onemarketapp_add(
                     )
                 for image_id in image_ids:
                     image_name = oneimage_name(image_id=image_id)
-                    oneimage_chown(
-                        image_name=image_name,
-                        username=username,
-                        group_name=group_name,
-                    )
                     image_state = oneimage_state(image_name=image_name)
                     while image_state != "1":
                         sleep(10)
@@ -1986,10 +2257,103 @@ def onemarketapp_add(
                                 level="error",
                                 message=f"Image {image_name} is in error state",
                             )
-            oneflow_template_data = oneflow_template_show(
-                oneflow_template_name=appliance_name
+                    oneimage_update(
+                        image_name=image_name,
+                        file_path=version_attribute_template_path,
+                    )
+                    oneimage_chown(
+                        image_name=image_name,
+                        username=username,
+                        group_name=group_name,
+                    )
+                is_added = True
+        else:
+            msg(
+                level="info",
+                message=f"Image {appliance_name} already exists. Check if new version are available",
             )
-            if oneflow_template_data is not None:
+            image_name = images_names[0]
+            old_version = oneimage_version(image_name=image_name)
+            if old_version != version:
+                add_appliance = ask_confirm(
+                    message=(
+                        f"New version of {appliance_name} appliance is available. Do you want to update the appliance? \n{appliance_description}"
+                    ),
+                    default=False,
+                )
+                if add_appliance:
+                    datastores_names = onedatastores_names()
+                    datastore_name = ask_select(
+                        message=f"Select the datastore where you want to store the image {appliance_name}:",
+                        choices=datastores_names,
+                    )
+                    onemarketapp_export(
+                        appliance_name=appliance_name,
+                        appliance_new_name=f"{appliance_name} {version}",
+                        datastore_name=datastore_name,
+                    )
+                    sleep(5)
+                    appliance_name = f"{appliance_name} {version}"
+                    image_ids = oneflow_template_image_ids(
+                        oneflow_template_name=appliance_name
+                    )
+                    template_ids = oneflow_template_ids(
+                        oneflow_template_name=appliance_name
+                    )
+                    for template_id in template_ids:
+                        template_name = onetemplate_name(template_id=template_id)
+                        onetemplate_chown(
+                            template_name=template_name,
+                            username=username,
+                            group_name=group_name,
+                        )
+                    for image_id in image_ids:
+                        image_name = oneimage_name(image_id=image_id)
+                        image_state = oneimage_state(image_name=image_name)
+                        while image_state != "1":
+                            sleep(10)
+                            image_state = oneimage_state(image_name=image_name)
+                            if image_state == "5":
+                                msg(
+                                    level="error",
+                                    message=f"Image {image_name} is in error state",
+                                )
+                        oneimage_update(
+                            image_name=image_name,
+                            file_path=version_attribute_template_path,
+                        )
+                        oneimage_chown(
+                            image_name=image_name,
+                            username=username,
+                            group_name=group_name,
+                        )
+                else:
+                    appliance_name = f"{appliance_name} {old_version}"
+                    image_ids = oneflow_template_image_ids(
+                        oneflow_template_name=appliance_name
+                    )
+                    template_ids = oneflow_template_ids(
+                        oneflow_template_name=appliance_name
+                    )
+                    oneflow_template_chown(
+                        oneflow_template_name=appliance_name,
+                        username=username,
+                        group_name=group_name,
+                    )
+                    for template_id in template_ids:
+                        onetemplate_chown(
+                            template_name=onetemplate_name(template_id=template_id),
+                            username=username,
+                            group_name=group_name,
+                        )
+                    for image_id in image_ids:
+                        oneimage_chown(
+                            image_name=oneimage_name(image_id=image_id),
+                            username=username,
+                            group_name=group_name,
+                        )
+            else:
+                appliance_name = f"{appliance_name} {old_version}"
                 image_ids = oneflow_template_image_ids(
                     oneflow_template_name=appliance_name
                 )
@@ -2013,13 +2377,8 @@ def onemarketapp_add(
                         username=username,
                         group_name=group_name,
                     )
-                is_added = True
-            else:
-                msg(
-                    level="error",
-                    message=f"Could not add {appliance_name} appliance. Check in the Sunstone interface if you have the images, but not the template or if you have the template and not the images",
-                )
-    return is_added
+            is_added = True
+    return is_added, appliance_name
 
 
 def onemarketapp_instantiate(
@@ -2047,12 +2406,8 @@ def onemarketapp_instantiate(
     )
     if instantiate_appliance:
         if appliance_type == "IMAGE" or appliance_type == "VM":
-            msg(
-                level="info",
-                message=f"Since you have an instance of {appliance_name} in OpenNebula, can you select the name of the virtual machine?",
-            )
             vm_name = ask_select(
-                message=f"Select the {appliance_name} virtual machine:",
+                message=f"Since you have an instance of {appliance_name} in OpenNebula, can you select the name of the virtual machine? ",
                 choices=onevms_names(),
             )
             if onevm_state(vm_name=vm_name) != "3":  # 3 means running
@@ -2078,12 +2433,8 @@ def onemarketapp_instantiate(
                 )
             appliance_target_name = vm_name
         else:
-            msg(
-                level="info",
-                message=f"Since you have an instance of {appliance_name} in OpenNebula, can you select the name of the service instantiated?",
-            )
             service_name = ask_select(
-                message=f"Select the {appliance_name} service:",
+                message=f"Since you have an instance of {appliance_name} in OpenNebula, can you select the name of the service instantiated?",
                 choices=oneflows_names(),
             )
             if oneflow_state(oneflow_name=service_name) != 2:  # 2 means running
@@ -2128,7 +2479,7 @@ def onemarketapp_instantiate(
             appliance_target_name = service_name
         is_instantiated = True
     else:
-        is_added = onemarketapp_add(
+        is_added, appliance_name = onemarketapp_add(
             group_name=group_name,
             username=username,
             marketplace_name=marketplace_name,
@@ -2145,21 +2496,11 @@ def onemarketapp_instantiate(
         )
         if instantiate_appliance:
             if appliance_type == "IMAGE" or appliance_type == "VM":
-                template_id = onetemplate_instantiate(template_name=appliance_name)
-                template_name = onetemplate_name(template_id=template_id)
-                onetemplate_chown(
-                    template_name=template_name,
+                onetemplate_instantiate(
+                    template_name=appliance_name,
                     username=username,
                     group_name=group_name,
                 )
-                image_ids = onetemplate_image_ids(template_name=template_name)
-                for image_id in image_ids:
-                    image_name = oneimage_name(image_id=image_id)
-                    oneimage_chown(
-                        image_name=image_name,
-                        username=username,
-                        group_name=group_name,
-                    )
             else:
                 oneflow_template_instantiate(
                     oneflow_template_name=appliance_name,
@@ -2172,16 +2513,17 @@ def onemarketapp_instantiate(
 
 
 def onemarketapp_export(
-    appliance_name: str, datastore_name: str
+    appliance_name: str, appliance_new_name: str, datastore_name: str
 ) -> Tuple[List[int], List[int], int]:
     """
     Export an appliance in OpenNebula
 
     :param appliance_name: the name of the appliance, ``str``
+    :param appliance_new_name: the new name of the appliance, ``str``
     :param datastore_name: the name of the datastore, ``str``
     :return: the ids of the images, templates and services, ``Tuple[List[int], List[int], int]``
     """
-    command = f'onemarketapp export "{appliance_name}" "{appliance_name}" --datastore "{datastore_name}"'
+    command = f'onemarketapp export "{appliance_name}" "{appliance_new_name}" --datastore "{datastore_name}"'
     stdout, stderr, rc = run_command(command=command)
     if rc != 0:
         msg(
@@ -2376,6 +2718,31 @@ def onemarketapp_type(appliance_name: str, marketplace_name: str) -> str:
         )
 
 
+def onemarketapp_version(appliance_url: str) -> Tuple[str, str]:
+    """
+    Get the version of an appliance using the url in OpenNebula
+
+    :param appliance_url: the url of the appliance, ``str``
+    :return: the version and software version of the appliance, ``Tuple[str, str]``
+    """
+    appliance = onemarketapp_curl(appliance_url=appliance_url)
+
+    if "version" not in appliance or appliance["version"] is None:
+        msg(
+            level="error",
+            message=f"Could not get version of appliance from url {appliance_url}",
+        )
+        return "", ""
+
+    appliance_version_full = appliance["version"]
+    parts = appliance_version_full.split("-", 1)
+
+    appliance_version = parts[0] if len(parts) > 0 else ""
+    appliance_software_version = parts[1] if len(parts) > 1 else ""
+
+    return appliance_version, appliance_software_version
+
+
 ## TEMPLATE MANAGEMENT ##
 def onetemplate_chown(template_name: str, username: str, group_name: str) -> None:
     """
@@ -2395,6 +2762,25 @@ def onetemplate_chown(template_name: str, username: str, group_name: str) -> Non
     msg(
         level="debug",
         message=f"Owner of template {template_name} changed to {username}:{group_name}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+    )
+
+
+def onetemplate_delete(template_name: str) -> None:
+    """
+    Remove a template in OpenNebula
+
+    :param template_name: the name of the template, ``str``
+    """
+    command = f'onetemplate delete "{template_name}" --recursive'
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="error",
+            message=f"Could not remove template {template_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+    msg(
+        level="debug",
+        message=f"Template {template_name} removed. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
     )
 
 
@@ -2536,13 +2922,14 @@ def onetemplate_image_ids(
         return image_ids
 
 
-def onetemplate_instantiate(template_name: str) -> None:
+def onetemplate_instantiate(template_name: str, username: str, group_name: str) -> None:
     """
     Instantiate a template in OpenNebula
 
     :param template_name: the name of the template, ``str``
+    :param username: the name of the user, ``str``
+    :param group_name: the name of the group, ``str``
     """
-    # TODO: waiting this issue: https://github.com/OpenNebula/one/issues/6975
     user_inputs = onetemplate_user_inputs(template_name=template_name)
     if user_inputs:
         attrs = {}
@@ -2614,6 +3001,21 @@ def onetemplate_instantiate(template_name: str) -> None:
                     level="error",
                     message=f"Error instantiating template {template_name}. Invalid field type {field_type}",
                 )
+        user_inputs = ",".join([f'"{key}={value}"' for key, value in attrs.items()])
+        command = f'onetemplate instantiate "{template_name}" --name "{template_name}" --user-inputs {user_inputs}'
+    else:
+        command = f'onetemplate instantiate "{template_name}" --name "{template_name}"'
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="error",
+            message=f"Could not instantiate template {template_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+    msg(
+        level="debug",
+        message=f"Template {template_name} instantiated. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+    )
+    onevm_chown(vm_name=template_name, username=username, group_name=group_name)
 
 
 def onetemplate_name(template_id: int) -> str:
@@ -2643,25 +3045,6 @@ def onetemplate_name(template_id: int) -> str:
     return template_name
 
 
-def onetemplate_delete(template_name: str) -> None:
-    """
-    Remove a template in OpenNebula
-
-    :param template_name: the name of the template, ``str``
-    """
-    command = f'onetemplate delete "{template_name}" --recursive'
-    stdout, stderr, rc = run_command(command=command)
-    if rc != 0:
-        msg(
-            level="error",
-            message=f"Could not remove template {template_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
-        )
-    msg(
-        level="debug",
-        message=f"Template {template_name} removed. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
-    )
-
-
 def onetemplate_list() -> Dict | None:
     """
     Get the list of templates in OpenNebula
@@ -2682,6 +3065,26 @@ def onetemplate_list() -> Dict | None:
             message=f"OpenNebula templates found. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
         )
         return loads_json(data=stdout)
+
+
+def onetemplate_rename(old_name: str, new_name: str) -> None:
+    """
+    Rename a template in OpenNebula
+
+    :param old_name: the old name of the template, ``str``
+    :param new_name: the new name of the template, ``str``
+    """
+    command = f'onetemplate rename "{old_name}" "{new_name}"'
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="error",
+            message=f"Could not rename template {old_name} to {new_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+    msg(
+        level="debug",
+        message=f"Template {old_name} renamed to {new_name}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+    )
 
 
 def onetemplate_show(

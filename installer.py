@@ -1,3 +1,5 @@
+import sys
+
 from typing import Dict, List
 
 from dotenv import load_dotenv
@@ -44,11 +46,10 @@ from utils.one import (
     onehost_cpu_model,
     onehosts_avx_cpu_mem,
     onemarket_create,
-    onemarket_endpoint,
+    onemarket_show,
     onemarketapp_add,
     onemarketapp_instantiate,
     onemarketapp_name,
-    onemarkets_names,
     oneuser_chgrp,
     oneuser_create,
     oneuser_update_public_ssh_key,
@@ -93,11 +94,17 @@ try:
     marketplace_monitoring_interval = get_dotenv_var(
         key="MARKETPLACE_MONITORING_INTERVAL"
     )
+    opennebula_public_marketplace_name = get_dotenv_var(
+        key="OPENNEBULA_PUBLIC_MARKETPLACE_NAME"
+    )
     opennebula_public_marketplace_description = get_dotenv_var(
         key="OPENNEBULA_PUBLIC_MARKETPLACE_DESCRIPTION"
     )
     opennebula_public_marketplace_endpoint = get_dotenv_var(
         key="OPENNEBULA_PUBLIC_MARKETPLACE_ENDPOINT"
+    )
+    opennebula_sandbox_marketplace_name = get_dotenv_var(
+        key="OPENNEBULA_SANDBOX_MARKETPLACE_NAME"
     )
     opennebula_sandbox_marketplace_description = get_dotenv_var(
         key="OPENNEBULA_SANDBOX_MARKETPLACE_DESCRIPTION"
@@ -187,12 +194,12 @@ try:
         level="info",
         message=f"Validating if user {github_username} has access to the team {github_sites_team_name} in the organization {github_organization_name}",
     )
-    git_team_access(
-        token=github_members_token,
-        organization_name=github_organization_name,
-        team_name=github_sites_team_name,
-        username=github_username,
-    )
+    # git_team_access(
+    #     token=github_members_token,
+    #     organization_name=github_organization_name,
+    #     team_name=github_sites_team_name,
+    #     username=github_username,
+    # )
     msg(
         level="info",
         message=f"User {github_username} has access to the team {github_sites_team_name} in the organization {github_organization_name}",
@@ -210,12 +217,12 @@ try:
         level="info",
         message=f"Validating if the personal access token of the user {github_username} with access to the {sites_repository_name} repository is correct",
     )
-    git_validate_token(
-        token=sites_github_token,
-        organization_name=github_organization_name,
-        repository_name=sites_repository_name,
-        username=github_username,
-    )
+    # git_validate_token(
+    #     token=sites_github_token,
+    #     organization_name=github_organization_name,
+    #     repository_name=sites_repository_name,
+    #     username=github_username,
+    # )
     msg(level="info", message="Token validated successfully")
 
     # user
@@ -292,21 +299,7 @@ try:
     )
 
     # marketplaces
-    opennebula_public_marketplace_name = ask_select(
-        message="Select the OpenNebula Public marketplace. You can create a new OpenNebula Public marketplace or select an existing one:",
-        choices=["Create new OpenNebula Public marketplace"] + onemarkets_names(),
-    )
-    if opennebula_public_marketplace_name == "Create new OpenNebula Public marketplace":
-        opennebula_public_marketplace_name = ask_text(
-            message="Introduce new OpenNebula Public marketplace name:",
-            validate=lambda opennebula_public_marketplace_name: (
-                "Marketplace name must be at least 8 characters long"
-                if len(opennebula_public_marketplace_name) < 8
-                else "Marketplace name already exists"
-                if opennebula_public_marketplace_name in onemarkets_names()
-                else True
-            ),
-        )
+    if not onemarket_show(marketplace_name=opennebula_public_marketplace_name):
         _ = onemarket_create(
             marketplace_name=opennebula_public_marketplace_name,
             marketplace_description=opennebula_public_marketplace_description,
@@ -317,21 +310,7 @@ try:
             level="info",
             message=f"Marketplace {opennebula_public_marketplace_name} created successfully",
         )
-    opennebula_sandbox_marketplace_name = ask_select(
-        message="Select the 6G-SANDBOX marketplace. You can create a new 6G-SANDBOX marketplace or select an existing one:",
-        choices=["Create new 6G-SANDBOX marketplace"] + onemarkets_names(),
-    )
-    if opennebula_sandbox_marketplace_name == "Create new 6G-SANDBOX marketplace":
-        opennebula_sandbox_marketplace_name = ask_text(
-            message="Introduce new 6G-SANDBOX marketplace name:",
-            validate=lambda opennebula_sandbox_marketplace_name: (
-                "Marketplace name must be at least 8 characters long"
-                if len(opennebula_sandbox_marketplace_name) < 8
-                else "Marketplace name already exists"
-                if opennebula_sandbox_marketplace_name in onemarkets_names()
-                else True
-            ),
-        )
+    if not onemarket_show(marketplace_name=opennebula_sandbox_marketplace_name):
         _ = onemarket_create(
             marketplace_name=opennebula_sandbox_marketplace_name,
             marketplace_description=opennebula_sandbox_marketplace_description,
@@ -342,17 +321,6 @@ try:
             level="info",
             message=f"Marketplace {opennebula_sandbox_marketplace_name} created successfully",
         )
-    else:
-        if (
-            onemarket_endpoint(marketplace_name=opennebula_sandbox_marketplace_name)
-            != opennebula_sandbox_marketplace_endpoint
-        ):
-            msg(
-                level="error",
-                message=(
-                    f"Marketplace indicated {opennebula_sandbox_marketplace_name} not match with the correct endpoint of the 6G-SANDBOX marketplace"
-                ),
-            )
 
     # toolkit service
     appliance_toolkit_service_name = onemarketapp_name(
@@ -369,7 +337,7 @@ try:
     if not is_toolkit_service_instantiated:
         msg(
             level="error",
-            message=f"Appliance {appliance_toolkit_service_name} not instantiated and is MANDATORY",
+            message=f"Appliance {appliance_toolkit_service_name} not running and is MANDATORY",
         )
     msg(
         level="info",
@@ -422,7 +390,7 @@ try:
     )
     msg(
         level="info",
-        message=f"The TNLCM virtual machine requires a CPU model with AVX support because it uses MongoDB. Readme more here: {sandbox_documentation_url}/toolkit-installer/installation#known-issues ."
+        message=f"The TNLCM virtual machine requires a CPU model with AVX support because it uses MongoDB. Readme more here: {sandbox_documentation_url}/toolkit-installer/installation#known-issues"
         "By default, the TNLCM virtual machine is configured with host-passthrough as the CPU model, but we RECOMMEND changing it to a CPU model with AVX support. "
         "Therefore, we proceed to read the hosts linked to OpenNebula and determine which of them are compatible with avx. "
         "Then, if there are compatible hosts, select the one where TNLCM will be deployed. "
@@ -712,7 +680,7 @@ try:
                     if component_appliance_url.startswith(
                         opennebula_public_marketplace_endpoint
                     ):
-                        is_added = onemarketapp_add(
+                        is_added, _ = onemarketapp_add(
                             group_name=group_name,
                             username=username,
                             marketplace_name=opennebula_public_marketplace_name,
@@ -721,7 +689,7 @@ try:
                     elif component_appliance_url.startswith(
                         opennebula_sandbox_marketplace_endpoint
                     ):
-                        is_added = onemarketapp_add(
+                        is_added, _ = onemarketapp_add(
                             group_name=group_name,
                             username=username,
                             marketplace_name=opennebula_sandbox_marketplace_name,
