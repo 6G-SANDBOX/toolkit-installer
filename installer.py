@@ -28,7 +28,6 @@ from utils.git import (
     git_push,
     git_reset_hard,
     git_sync_branches,
-    git_team_access,
     git_validate_token,
 )
 from utils.logs import msg, setup_logger
@@ -74,7 +73,7 @@ from utils.os import (
     remove_file,
     rename_directory,
 )
-from utils.parser import ansible_decrypt, ansible_encrypt, decode_base64, encode_base64
+from utils.parser import ansible_decrypt, ansible_encrypt, encode_base64
 from utils.questionary import (
     ask_checkbox,
     ask_confirm,
