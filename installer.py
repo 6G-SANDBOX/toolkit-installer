@@ -139,8 +139,6 @@ try:
     route_manager_api_token_param = get_dotenv_var(key="ROUTE_MANAGER_API_TOKEN_PARAM")
     github_organization_name = get_dotenv_var(key="GITHUB_ORGANIZATION_NAME")
     github_sites_team_name = get_dotenv_var(key="GITHUB_SITES_TEAM_NAME")
-    github_members_token_encode = get_dotenv_var(key="GITHUB_MEMBERS_TOKEN")
-    github_members_token = decode_base64(encoded_data=github_members_token_encode)
     sites_https_url = get_dotenv_var(key="SITES_HTTPS_URL")
     sites_repository_name = get_dotenv_var(key="SITES_REPOSITORY_NAME")
     dummy_site_url = get_dotenv_var(key="DUMMY_SITE_URL")
@@ -188,20 +186,6 @@ try:
         validate=lambda github_username: (
             "Username is required" if not github_username else True
         ),
-    )
-    msg(
-        level="info",
-        message=f"Validating if user {github_username} has access to the team {github_sites_team_name} in the organization {github_organization_name}",
-    )
-    git_team_access(
-        token=github_members_token,
-        organization_name=github_organization_name,
-        team_name=github_sites_team_name,
-        username=github_username,
-    )
-    msg(
-        level="info",
-        message=f"User {github_username} has access to the team {github_sites_team_name} in the organization {github_organization_name}",
     )
     sites_github_token = ask_text(
         message=(
