@@ -1,9 +1,10 @@
 # Changelog
 
-## [Unreleased] - 2025-XX-XX
+## [v0.5.0] - 2025-03-28
 
 ### Added
 
+- Toolkit also works as updater as well.
 - Validate if the Official OpenNebula Marketplace is installed. [#11](https://github.com/6G-SANDBOX/toolkit-installer/issues/11)
 - Ask DNS. [#15](https://github.com/6G-SANDBOX/toolkit-installer/issues/15)
 - Ask route-manager-api. [#17](https://github.com/6G-SANDBOX/toolkit-installer/issues/17)
