@@ -22,5 +22,5 @@
 
 - First toolkit version.
 
-[Unreleased]: https://github.com/6G-SANDBOX/toolkit-installer/compare/v0.4.0...HEAD
+[v0.5.0]: https://github.com/6G-SANDBOX/toolkit-installer/compare/v0.4.0...v0.5.0
 [v0.4.0]: https://github.com/6G-SANDBOX/toolkit-installer/releases/tag/v0.4.0
