@@ -1936,7 +1936,7 @@ def onemarketapp_add(
     is_added = False
     appliance_name = onemarketapp_name(appliance_url=appliance_url)
     appliance_description = onemarketapp_description(appliance_url=appliance_url)
-    appliance_version, appliance_software_version = onemarketapp_version(
+    appliance_software_version, appliance_version = onemarketapp_version(
         appliance_url=appliance_url
     )
     version = f"{appliance_version}-{appliance_software_version}"
@@ -2498,6 +2498,7 @@ def onemarketapp_instantiate(
                     group_name=group_name,
                 )
             appliance_target_name = service_name
+        onemarketapp_add(appliance_url=appliance_url, group_name=group_name, username=username, marketplace_name=marketplace_name)
         is_instantiated = True
     else:
         is_added, appliance_name = onemarketapp_add(
@@ -2754,10 +2755,10 @@ def onemarketapp_version(appliance_url: str) -> Tuple[str, str]:
     appliance_version_full = appliance["version"]
     parts = appliance_version_full.split("-", 1)
 
-    appliance_version = parts[0] if len(parts) > 0 else ""
-    appliance_software_version = parts[1] if len(parts) > 1 else ""
+    appliance_software_version = parts[0] if len(parts) > 0 else ""
+    appliance_version = parts[1] if len(parts) > 1 else ""
 
-    return appliance_version, appliance_software_version
+    return appliance_software_version, appliance_version
 
 
 ## TEMPLATE MANAGEMENT ##
