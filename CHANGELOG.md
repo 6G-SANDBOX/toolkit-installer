@@ -1,5 +1,12 @@
 # Changelog
 
+## [v0.5.1] - 2025-04-10
+
+### Fixed
+
+- Script installer select correct toolkit installer version.
+- Point to new 6G-Library release.
+
 ## [v0.5.0] - 2025-03-31
 
 ### Added
