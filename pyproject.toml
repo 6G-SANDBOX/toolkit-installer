@@ -1,6 +1,6 @@
 [project]
 name = "toolkit-installer"
-version = "0.5.1"
+version = "1.0.0"
 description = "Python script that install and configure the MinIO, Jenkins and TNLCM stack on OpenNebula creating a new 6G-SANDBOX site."
 readme = "README.md"
 requires-python = ">=3.13"
@@ -10,7 +10,7 @@ authors = [
 ]
 
 dependencies = [
-    "questionary==2.1.0",
-    "python-dotenv==1.1.0",
+    "questionary==2.1.1",
+    "python-dotenv==1.1.1",
     "pyyaml==6.0.2",
 ]
