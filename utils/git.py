@@ -461,10 +461,10 @@ def git_validate_token(
             level="error",
             message=f"permission key not found in the response when try to validate the GitHub token provided by user {username}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
         )
-    if permission["permission"] != "admin":
+    if permission["permission"] != "write" and permission["permission"] != "admin":
         msg(
             level="error",
-            message=f"User {username} does not have admin permission in the repository {repository_name}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+            message=f"User {username} does not have write or admin permission in the repository {repository_name}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
         )
     msg(
         level="debug",
