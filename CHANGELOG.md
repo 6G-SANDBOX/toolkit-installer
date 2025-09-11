@@ -1,5 +1,11 @@
 # Changelog
 
+## [v1.0.0] - 2025-09-05
+
+### Added
+
+- Initial stable release of the toolkit installer.
+
 ## [v0.5.1] - 2025-04-10
 
 ### Fixed
@@ -29,6 +35,7 @@
 
 - First toolkit version.
 
+[v1.0.0]: https://github.com/6G-SANDBOX/toolkit-installer/compare/v0.5.1...v1.0.0
 [v0.5.1]: https://github.com/6G-SANDBOX/toolkit-installer/compare/v0.5.0...v0.5.1
 [v0.5.0]: https://github.com/6G-SANDBOX/toolkit-installer/compare/v0.4.0...v0.5.0
 [v0.4.0]: https://github.com/6G-SANDBOX/toolkit-installer/releases/tag/v0.4.0

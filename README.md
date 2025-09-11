@@ -39,8 +39,8 @@ Python script that install and configure the MinIO, Jenkins and TNLCM stack on O
 <!-- Urls, Shields and Badges -->
 [toolkit-installer-badge]: https://img.shields.io/github/v/release/6G-SANDBOX/toolkit-installer?label=toolkit-installer&color=blue
 [toolkit-installer-url]: https://github.com/6G-SANDBOX/toolkit-installer/releases/latest
-[python-badge]: https://img.shields.io/badge/Python-3.13.2-blue?style=for-the-badge&logo=python&logoColor=white&labelColor=3776AB
-[python-url]: https://www.python.org/downloads/release/python-3132/
+[python-badge]: https://img.shields.io/badge/Python-3.13.7-blue?style=for-the-badge&logo=python&logoColor=white&labelColor=3776AB
+[python-url]: https://www.python.org/downloads/release/python-3137/
 [contributors-shield]: https://img.shields.io/github/contributors/6G-SANDBOX/toolkit-installer.svg?style=for-the-badge
 [contributors-url]: https://github.com/6G-SANDBOX/toolkit-installer/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/6G-SANDBOX/toolkit-installer.svg?style=for-the-badge
