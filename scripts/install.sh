@@ -57,12 +57,12 @@ else
 fi
 
 if [[ -d ${TOOLKIT_INSTALLER_DIRECTORY} ]]; then
-    git -C ${TOOLKIT_INSTALLER_DIRECTORY} pull
     echo "Toolkit installer repository already cloned"
-else
-    echo "Cloning toolkit installer repository"
-    git clone --depth 1 --branch ${TOOLKIT_INSTALLER_VERSION} -c advice.detachedHead=false https://github.com/6G-SANDBOX/toolkit-installer.git ${TOOLKIT_INSTALLER_DIRECTORY}
+    rm -rf ${TOOLKIT_INSTALLER_DIRECTORY}
 fi
+
+echo "Cloning toolkit installer repository"
+git clone --depth 1 --branch ${TOOLKIT_INSTALLER_VERSION} -c advice.detachedHead=false https://github.com/6G-SANDBOX/toolkit-installer.git ${TOOLKIT_INSTALLER_DIRECTORY}
 
 echo "Installing toolkit installer dependencies"
 ${UV_BIN} --directory ${TOOLKIT_INSTALLER_DIRECTORY} sync
