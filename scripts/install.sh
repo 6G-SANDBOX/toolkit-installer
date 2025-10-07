@@ -9,7 +9,7 @@ PYTHON_BIN="python${PYTHON_VERSION}"
 UV_PATH="/opt/uv"
 UV_BIN="${UV_PATH}/uv"
 TOOLKIT_INSTALLER_DIRECTORY="/opt/toolkit-installer"
-TOOLKIT_INSTALLER_VERSION=$(grep -oP 'version = "\K[^"]+' ${TOOLKIT_INSTALLER_DIRECTORY}/pyproject.toml)
+TOOLKIT_INSTALLER_VERSION="1.0.0"
 
 if [[ $EUID -ne 0 ]]; then
     echo "This script must be run as root. Please use sudo or switch to the root user"
