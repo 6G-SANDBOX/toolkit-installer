@@ -110,7 +110,7 @@ try:
     opennebula_sandbox_marketplace_endpoint = get_dotenv_var(
         key="OPENNEBULA_SANDBOX_MARKETPLACE_ENDPOINT"
     )
-    appliance_toolkit_service_url = get_dotenv_var(key="APPLIANCE_TOOLKIT_SERVICE_URL")
+    #appliance_toolkit_service_url = get_dotenv_var(key="APPLIANCE_TOOLKIT_SERVICE_URL")
     toolkit_service_sites_ansible_token = get_dotenv_var(
         key="TOOLKIT_SERVICE_SITES_ANSIBLE_TOKEN"
     )
@@ -180,6 +180,27 @@ try:
     check_one_health()
     msg(level="info", message=f"Your onegate endpoint is {onegate_endpoint()}")
     msg(level="info", message="OpenNebula is healthy")
+
+    opennebula_version: str = ask_select(
+        message="What version of OpenNebula have you installed?",
+        choices=["6.10.x", "7.0.x", "Other"],
+    )
+
+    if opennebula_version == "Other":
+        msg(level="error", message=("The toolkit installer is only available for the following OpenNebula versions: 6.10.x. and 7.0.x. "
+            "Please reinstall OpenNebula using one of these supported versions before proceeding. "
+            f"For more information, refer to the official documentation: {sandbox_documentation_url}/site_admin/toolkit#requirements"
+       ),)
+        exit(1)
+    else:
+        if opennebula_version == "6.10.x":
+            msg(level="info", message="ACCESSING TO TOOLKIT FOR OPENNEBULA 6.10.X")
+            appliance_toolkit_service_url = get_dotenv_var(key="APPLIANCE_TOOLKIT_SERVICE_URL")
+        elif opennebula_version == "7.0.x":
+            msg(level="info", message="ACCESSING TO TOOLKIT FOR OPENNEBULA 7.0.X")
+            appliance_toolkit_service_url = get_dotenv_var(key="APPLIANCE_TOOLKIT_V7_SERVICE_URL")
+
+    
     github_username = ask_text(
         message=f"Introduce the username that has been given access to the team {github_sites_team_name} in the organization {github_organization_name}:",
         validate=lambda github_username: (
