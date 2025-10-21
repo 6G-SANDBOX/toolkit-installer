@@ -337,6 +337,8 @@ try:
             username=username,
         )
     )
+    print(f"[DEBUG] Toolkit service instantiated? {is_toolkit_service_instantiated}")
+    print(f"[DEBUG] Name of instantiated service: {appliance_toolkit_service_name}")
     if not is_toolkit_service_instantiated:
         msg(
             level="error",
