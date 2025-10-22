@@ -451,39 +451,32 @@ def oneflow_roles(oneflow_name: str) -> List:
 
 def oneflow_roles_vm_names(oneflow_name: str) -> List[str]:
     """
-    Get the names of the roles of the latest service in OpenNebula
-    whose name contains `base_name`.
+    Get the names of the roles of a service in OpenNebula
 
-    :param base_name: the base name of the service, ``str``
+    :param oneflow_name: the name of the service, ``str``
     :return: the names of the roles of the service, ``List[str]``
     """
-    # Obtener la lista de servicios en JSON
-    stdout = run_command(["oneflow", "list", "--json"])[0]
-    services = loads_json(stdout)
-
-    # Filtrar servicios que contengan el nombre base
-    matching_services = [s for s in services if base_name in s["NAME"]]
-    if not matching_services:
-        msg(level="error", message=f"No service found containing '{base_name}'")
-
-    # Tomar el servicio con ID más grande
-    latest_service = max(matching_services, key=lambda s: int(s["ID"]))
-    oneflow_name = latest_service["NAME"]
-
     roles = oneflow_roles(oneflow_name=oneflow_name)
     roles_vm_names = []
-
     for role in roles:
         if "nodes" not in role:
-            msg(level="error", message=f"nodes key not found in role {role.get('NAME', '?')}")
+            msg(
+                level="error",
+                message="nodes key not found in role",
+            )
         for node in role["nodes"]:
             if "vm_info" not in node or "VM" not in node["vm_info"]:
-                msg(level="error", message=f"vm_info key not found in role {role.get('NAME', '?')}")
+                msg(
+                    level="error",
+                    message="vm_info key not found in role or VM key not found in vm_info",
+                )
             if "NAME" not in node["vm_info"]["VM"]:
-                msg(level="error", message=f"NAME key not found in role {role.get('NAME', '?')}")
+                msg(
+                    level="error",
+                    message="NAME key not found in role",
+                )
             vm_name = node["vm_info"]["VM"]["NAME"]
             roles_vm_names.append(vm_name)
-
     return roles_vm_names
 
 
