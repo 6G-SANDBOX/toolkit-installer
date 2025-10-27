@@ -12,7 +12,7 @@ SITES_SKIP_KEYS = {
     "site_hypervisor",
     "site_onegate",
     "site_s3_server",
-    "site_routemanager",
+    #"site_routemanager",
     "site_available_components",
 }
 
