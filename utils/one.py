@@ -503,6 +503,86 @@ def oneflow_show(oneflow_name: str) -> Dict | None:
         return loads_json(data=stdout)
 
 
+def oneflow_show_by_id(oneflow_id: int) -> Dict | None:
+    """
+    Get the details of a service in OpenNebula by ID
+
+    :param oneflow_id: the ID of the service, ``int``
+    :return: the details of the service, ``Dict``
+    """
+    command = f'oneflow show {oneflow_id} -j'
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="debug",
+            message=f"Service with ID {oneflow_id} not found. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+        return None
+    else:
+        msg(
+            level="debug",
+            message=f"Service with ID {oneflow_id} found. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+        )
+        return loads_json(data=stdout)
+
+
+def oneflow_state_by_id(oneflow_id: int) -> int:
+    """
+    Get the state of a service in OpenNebula by ID
+
+    :param oneflow_id: the ID of the service, ``int``
+    :return: the state of the service, ``int``
+    """
+    oneflow = oneflow_show_by_id(oneflow_id=oneflow_id)
+    if oneflow is None:
+        msg(
+            level="error",
+            message=f"Service with ID {oneflow_id} not found",
+        )
+    if (
+        "DOCUMENT" not in oneflow
+        or "TEMPLATE" not in oneflow["DOCUMENT"]
+        or "BODY" not in oneflow["DOCUMENT"]["TEMPLATE"]
+    ):
+        msg(
+            level="error",
+            message=f"DOCUMENT key not found in service ID {oneflow_id} or TEMPLATE key not found in DOCUMENT or BODY key not found in TEMPLATE",
+        )
+    if "state" not in oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]:
+        msg(
+            level="error",
+            message=f"state key not found in service ID {oneflow_id}",
+        )
+    state = oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]["state"]
+    if state is None:
+        msg(
+            level="error",
+            message=f"Could not get state of service ID {oneflow_id}",
+        )
+    return state
+
+
+def oneflow_name_by_id(oneflow_id: int) -> str:
+    """
+    Get the name of a service in OpenNebula by ID
+
+    :param oneflow_id: the ID of the service, ``int``
+    :return: the name of the service, ``str``
+    """
+    oneflow = oneflow_show_by_id(oneflow_id=oneflow_id)
+    if oneflow is None:
+        msg(
+            level="error",
+            message=f"Service with ID {oneflow_id} not found",
+        )
+    if "DOCUMENT" not in oneflow or "NAME" not in oneflow["DOCUMENT"]:
+        msg(
+            level="error",
+            message=f"DOCUMENT key not found in service ID {oneflow_id} or NAME key not found in DOCUMENT",
+        )
+    return oneflow["DOCUMENT"]["NAME"]
+
+
 def oneflow_state(oneflow_name: str) -> int:
     """
     Get the state of a service in OpenNebula
@@ -687,13 +767,14 @@ def split_attr_description(
 
 def oneflow_template_instantiate(
     oneflow_template_name: str, username: str, group_name: str
-) -> None:
+) -> str:
     """
     Instantiate a service in OpenNebula
 
     :param oneflow_template_name: the name of the service, ``str``
     :param username: the name of the user, ``str``
     :param group_name: the name of the group, ``str``
+    :return: the name of the instantiated service, ``str``
     """
     # refer: https://docs.opennebula.io/6.10/management_and_operations/references/template.html#template-user-inputs
     custom_attrs = oneflow_template_custom_attrs(
@@ -833,17 +914,26 @@ def oneflow_template_instantiate(
         message=f"Service {oneflow_template_name} instantiated. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
     )
     sleep(5)
-    # id = int(re.search(r"ID:\s*(\d+)", stdout).group(1))
-    state = oneflow_state(oneflow_name=oneflow_template_name)
+    # Capture the service ID from the instantiate command output
+    service_id_match = re.search(r"ID:\s*(\d+)", stdout)
+    if not service_id_match:
+        msg(
+            level="error",
+            message=f"Could not get service ID from instantiate output: {stdout}",
+        )
+    service_id = int(service_id_match.group(1))
+    service_name = oneflow_name_by_id(oneflow_id=service_id)
+    
+    state = oneflow_state_by_id(oneflow_id=service_id)
     msg(
         level="info",
-        message=f"Instantiating service {oneflow_template_name} in OpenNebula... It takes a few minutes",
+        message=f"Instantiating service {service_name} (ID: {service_id}) in OpenNebula... It takes a few minutes",
     )
     while state != 2:
         sleep(20)
-        state = oneflow_state(oneflow_name=oneflow_template_name)
-    # id = oneflow_id(oneflow_name=oneflow_template_name)
-    roles_vm_names = oneflow_roles_vm_names(oneflow_name=oneflow_template_name)
+        state = oneflow_state_by_id(oneflow_id=service_id)
+    
+    roles_vm_names = oneflow_roles_vm_names(oneflow_name=service_name)
     if roles_vm_names:
         for vm_name in roles_vm_names:
             onevm_chown(
@@ -857,7 +947,7 @@ def oneflow_template_instantiate(
         group_name=group_name,
     )
     oneflow_chown(
-        oneflow_name=oneflow_template_name,
+        oneflow_name=service_name,
         username=username,
         group_name=group_name,
     )
@@ -877,6 +967,7 @@ def oneflow_template_instantiate(
             username=username,
             group_name=group_name,
         )
+    return service_name
 
 
 def oneflow_template_networks(
@@ -1444,6 +1535,21 @@ def oneimage_name(image_id: int) -> str:
     return image_name
 
 
+def oneimage_id_by_name(image_name: str) -> Optional[int]:
+    """
+    Get the ID of an image in OpenNebula by its name
+
+    :param image_name: the name of the image, ``str``
+    :return: the ID of the image, ``Optional[int]``
+    """
+    image = oneimage_show(image_name=image_name)
+    if image is None:
+        return None
+    if "IMAGE" not in image or "ID" not in image["IMAGE"]:
+        return None
+    return int(image["IMAGE"]["ID"])
+
+
 def oneimage_delete(image_name: str) -> None:
     """
     Remove an image in OpenNebula
@@ -1923,7 +2029,7 @@ def onemarketapp_add(
     username: str,
     marketplace_name: str,
     appliance_url: str,
-) -> Tuple[bool, str]:
+) -> Tuple[bool, str, Optional[int], Optional[int]]:
     """
     Add appliances from a marketplace in OpenNebula
 
@@ -1931,9 +2037,12 @@ def onemarketapp_add(
     :param username: the name of the user, ``str``
     :param marketplace_name: the name of the marketplace, ``str``
     :param appliance_url: the URL of the appliance, ``str``
-    :return: a tuple with a boolean indicating if the appliance is added and the name of the appliance, ``Tuple[bool, str]``
+    :return: a tuple with a boolean indicating if the appliance is added, the name of the appliance,
+             the template_id (or None), and the image_id (or None), ``Tuple[bool, str, Optional[int], Optional[int]]``
     """
     is_added = False
+    returned_template_id = None
+    returned_image_id = None
     appliance_name = onemarketapp_name(appliance_url=appliance_url)
     appliance_description = onemarketapp_description(appliance_url=appliance_url)
     appliance_software_version, appliance_version = onemarketapp_version(
@@ -2399,7 +2508,16 @@ def onemarketapp_add(
                         group_name=group_name,
                     )
             is_added = True
-    return is_added, appliance_name
+    
+    # If appliance was added, try to get the template_id and first image_id
+    if is_added and appliance_type == "IMAGE":
+        try:
+            returned_template_id = onetemplate_id(template_name=appliance_name)
+            returned_image_id = oneimage_id_by_name(image_name=appliance_name)
+        except Exception:
+            pass  # Keep None values if we can't get the IDs
+    
+    return is_added, appliance_name, returned_template_id, returned_image_id
 
 
 def onemarketapp_instantiate(
@@ -2498,10 +2616,10 @@ def onemarketapp_instantiate(
                     group_name=group_name,
                 )
             appliance_target_name = service_name
-        onemarketapp_add(appliance_url=appliance_url, group_name=group_name, username=username, marketplace_name=marketplace_name)
+        _, _, _, _ = onemarketapp_add(appliance_url=appliance_url, group_name=group_name, username=username, marketplace_name=marketplace_name)
         is_instantiated = True
     else:
-        is_added, appliance_name = onemarketapp_add(
+        is_added, appliance_name, _, _ = onemarketapp_add(
             group_name=group_name,
             username=username,
             marketplace_name=marketplace_name,
@@ -2519,14 +2637,19 @@ def onemarketapp_instantiate(
                         username=username,
                         group_name=group_name,
                     )
+                    appliance_target_name = appliance_name
                 else:
-                    oneflow_template_instantiate(
+                    # oneflow_template_instantiate returns the actual service name
+                    appliance_target_name = oneflow_template_instantiate(
                         oneflow_template_name=appliance_name,
                         group_name=group_name,
                         username=username,
                     )
                 is_instantiated = True
-        appliance_target_name = appliance_name
+            else:
+                appliance_target_name = appliance_name
+        else:
+            appliance_target_name = appliance_name
     return is_instantiated, appliance_target_name
 
 

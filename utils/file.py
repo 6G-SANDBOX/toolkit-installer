@@ -82,7 +82,15 @@ def read_component_site_variables(data: Dict) -> Dict:
         if isinstance(value, Dict):
             msg(level="info", message=f"Reading nested fields in {key}:")
             aux[key] = read_site_yaml(value)
+        elif isinstance(value, int) and (key == "template_id" or key == "image_id"):
+            # Integer values for template_id/image_id are auto-filled, show as default but allow override
+            aux[key] = ask_text(
+                message=f"Reading the value of {key}. Auto-filled from marketplace (you can change it):",
+                default=str(value),
+            )
+            aux[key] = int(aux[key])
         elif isinstance(value, str):
+            # String values are descriptions that need user input
             aux[key] = ask_text(
                 message=f"Reading the value of {key}. This key indicates {value}:"
             )

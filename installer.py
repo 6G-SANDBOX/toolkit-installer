@@ -682,6 +682,20 @@ try:
                     message=f"Select the appliances that you want to add to the {site} site for the component {component}",
                     choices=component_appliances_names,
                 )
+                
+                # Check if user selected any appliances
+                if not component_appliances_names_add:
+                    msg(
+                        level="warning",
+                        message=f"No appliances selected for component {component}. The component will be added without appliance configuration. You will need to manually download the appliance from the marketplace and create the VM Template.",
+                    )
+                    site_data["site_available_components"][component] = None
+                    continue
+                
+                # Track the IDs obtained from marketplace
+                obtained_template_id = None
+                obtained_image_id = None
+                
                 for component_appliance_name in component_appliances_names_add:
                     component_appliance_url = component_appliances_urls_names[
                         component_appliance_name
@@ -689,7 +703,7 @@ try:
                     if component_appliance_url.startswith(
                         opennebula_public_marketplace_endpoint
                     ):
-                        is_added, _ = onemarketapp_add(
+                        is_added, _, obtained_template_id, obtained_image_id = onemarketapp_add(
                             group_name=group_name,
                             username=username,
                             marketplace_name=opennebula_public_marketplace_name,
@@ -698,7 +712,7 @@ try:
                     elif component_appliance_url.startswith(
                         opennebula_sandbox_marketplace_endpoint
                     ):
-                        is_added, _ = onemarketapp_add(
+                        is_added, _, obtained_template_id, obtained_image_id = onemarketapp_add(
                             group_name=group_name,
                             username=username,
                             marketplace_name=opennebula_sandbox_marketplace_name,
@@ -711,6 +725,21 @@ try:
                                 f"Appliance {component_appliance_name} not found in marketplaces {opennebula_public_marketplace_name} or {opennebula_sandbox_marketplace_name}"
                             ),
                         )
+                
+                # Auto-fill template_id and image_id if obtained from marketplace
+                if obtained_template_id is not None and "template_id" in appliance_site_variables:
+                    appliance_site_variables["template_id"] = obtained_template_id
+                    msg(
+                        level="info",
+                        message=f"Auto-filled template_id with value {obtained_template_id}",
+                    )
+                if obtained_image_id is not None and "image_id" in appliance_site_variables:
+                    appliance_site_variables["image_id"] = obtained_image_id
+                    msg(
+                        level="info",
+                        message=f"Auto-filled image_id with value {obtained_image_id}",
+                    )
+                
                 appliance_site_variables = read_component_site_variables(
                     data=appliance_site_variables
                 )
