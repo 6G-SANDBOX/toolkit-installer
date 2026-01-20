@@ -34,8 +34,8 @@ from utils.logs import msg, setup_logger
 from utils.one import (
     check_one_health,
     oneacl_create,
-    oneflow_custom_attr_value,
-    oneflow_role_vm_name,
+    oneflow_custom_attr_value_by_id,
+    oneflow_role_vm_name_by_id,
     onegate_endpoint,
     onegroup_addadmin,
     onegroup_create,
@@ -330,7 +330,7 @@ try:
         appliance_url=appliance_toolkit_service_url
     )
     print(f"[DEBUG] Name of instantiated service: {appliance_toolkit_service_name}")
-    is_toolkit_service_instantiated, appliance_toolkit_service_name = (
+    is_toolkit_service_instantiated, appliance_toolkit_service_name, toolkit_service_id = (
         onemarketapp_instantiate(
             appliance_url=appliance_toolkit_service_url,
             group_name=group_name,
@@ -353,15 +353,15 @@ try:
             "The public SSH key is stored in the user template of the Jenkins virtual machine."
         ),
     )
-    jenkins_vm = oneflow_role_vm_name(
-        oneflow_name=appliance_toolkit_service_name,
+    jenkins_vm = oneflow_role_vm_name_by_id(
+        oneflow_id=toolkit_service_id,
         oneflow_role=toolkit_service_jenkins_role,
     )
     jenkins_ssh_key = onevm_user_template_param(
         vm_name=jenkins_vm, param=toolkit_service_jenkins_ssh_key_param
     )
-    sites_ansible_token = oneflow_custom_attr_value(
-        oneflow_name=appliance_toolkit_service_name,
+    sites_ansible_token = oneflow_custom_attr_value_by_id(
+        oneflow_id=toolkit_service_id,
         attr_key=toolkit_service_sites_ansible_token,
     )
     sites_ansible_token_path = join_path(
@@ -377,8 +377,8 @@ try:
         level="info",
         message=f"Resizing MinIO disk with id {toolkit_service_minio_disk_id} to {toolkit_service_minio_disk_size} GB",
     )
-    minio_vm = oneflow_role_vm_name(
-        oneflow_name=appliance_toolkit_service_name,
+    minio_vm = oneflow_role_vm_name_by_id(
+        oneflow_id=toolkit_service_id,
         oneflow_role=toolkit_service_minio_role,
     )
     onevm_disk_resize(
@@ -390,8 +390,8 @@ try:
         level="info",
         message=f"Disk with id {toolkit_service_minio_disk_id} resized to {toolkit_service_minio_disk_size} GB",
     )
-    tnlcm_vm = oneflow_role_vm_name(
-        oneflow_name=appliance_toolkit_service_name,
+    tnlcm_vm = oneflow_role_vm_name_by_id(
+        oneflow_id=toolkit_service_id,
         oneflow_role=toolkit_service_tnlcm_role,
     )
     msg(

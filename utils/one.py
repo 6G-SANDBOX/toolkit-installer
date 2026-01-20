@@ -583,6 +583,188 @@ def oneflow_name_by_id(oneflow_id: int) -> str:
     return oneflow["DOCUMENT"]["NAME"]
 
 
+def oneflow_roles_by_id(oneflow_id: int) -> List:
+    """
+    Get the roles of a service in OpenNebula by ID
+
+    :param oneflow_id: the ID of the service, ``int``
+    :return: the roles of the service, ``List``
+    """
+    oneflow = oneflow_show_by_id(oneflow_id=oneflow_id)
+    if oneflow is None:
+        msg(
+            level="error",
+            message=f"Service with ID {oneflow_id} not found",
+        )
+    if (
+        "DOCUMENT" not in oneflow
+        or "TEMPLATE" not in oneflow["DOCUMENT"]
+        or "BODY" not in oneflow["DOCUMENT"]["TEMPLATE"]
+    ):
+        msg(
+            level="error",
+            message=f"DOCUMENT key not found in service ID {oneflow_id} or TEMPLATE key not found in DOCUMENT or BODY key not found in TEMPLATE",
+        )
+    if "roles" not in oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]:
+        msg(
+            level="error",
+            message=f"roles key not found in service ID {oneflow_id}",
+        )
+    roles = oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]["roles"]
+    if roles is None:
+        msg(
+            level="error",
+            message=f"Could not get roles of service ID {oneflow_id}",
+        )
+    return roles
+
+
+def oneflow_roles_vm_names_by_id(oneflow_id: int) -> List[str]:
+    """
+    Get the names of the VMs in the roles of a service in OpenNebula by ID
+
+    :param oneflow_id: the ID of the service, ``int``
+    :return: the names of the VMs in the roles of the service, ``List[str]``
+    """
+    roles = oneflow_roles_by_id(oneflow_id=oneflow_id)
+    roles_vm_names = []
+    for role in roles:
+        if "nodes" not in role:
+            msg(
+                level="error",
+                message="nodes key not found in role",
+            )
+        for node in role["nodes"]:
+            if "vm_info" not in node or "VM" not in node["vm_info"]:
+                msg(
+                    level="error",
+                    message="vm_info key not found in role or VM key not found in vm_info",
+                )
+            if "NAME" not in node["vm_info"]["VM"]:
+                msg(
+                    level="error",
+                    message="NAME key not found in role",
+                )
+            vm_name = node["vm_info"]["VM"]["NAME"]
+            roles_vm_names.append(vm_name)
+    return roles_vm_names
+
+
+def oneflow_chown_by_id(oneflow_id: int, username: str, group_name: str) -> None:
+    """
+    Change the owner of a service in OpenNebula by ID
+
+    :param oneflow_id: the ID of the service, ``int``
+    :param username: the name of the user, ``str``
+    :param group_name: the name of the group, ``str``
+    """
+    command = f'oneflow chown {oneflow_id} "{username}" "{group_name}"'
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="error",
+            message=f"Could not change owner of service ID {oneflow_id} to {username}:{group_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+    msg(
+        level="debug",
+        message=f"Owner of service ID {oneflow_id} changed to {username}:{group_name}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+    )
+
+
+def oneflow_role_info_by_id(oneflow_id: int, oneflow_role: str) -> Dict:
+    """
+    Get the details of a role in a service in OpenNebula by ID
+
+    :param oneflow_id: the ID of the service, ``int``
+    :param oneflow_role: the name of the role, ``str``
+    :return: the details of the role, ``Dict``
+    """
+    roles = oneflow_roles_by_id(oneflow_id=oneflow_id)
+    for role in roles:
+        if "name" not in role:
+            msg(
+                level="error",
+                message="name key not found in role",
+            )
+        if role["name"] == oneflow_role:
+            return role
+    msg(
+        level="error",
+        message=f"Role {oneflow_role} not found in service ID {oneflow_id}",
+    )
+
+
+def oneflow_role_vm_name_by_id(oneflow_id: int, oneflow_role: str) -> str:
+    """
+    Get the name of a role in a service in OpenNebula by ID
+
+    :param oneflow_id: the ID of the service, ``int``
+    :param oneflow_role: the name of the role, ``str``
+    :return: the name of the role, ``str``
+    """
+    role = oneflow_role_info_by_id(oneflow_id=oneflow_id, oneflow_role=oneflow_role)
+    if "nodes" not in role:
+        msg(
+            level="error",
+            message=f"nodes key not found in role {oneflow_role}",
+        )
+    for node in role["nodes"]:
+        if "vm_info" not in node or "VM" not in node["vm_info"]:
+            msg(
+                level="error",
+                message=f"vm_info key not found in role {oneflow_role} or VM key not found in vm_info",
+            )
+        if "NAME" not in node["vm_info"]["VM"]:
+            msg(
+                level="error",
+                message=f"NAME key not found in role {oneflow_role}",
+            )
+        return node["vm_info"]["VM"]["NAME"]
+
+
+def oneflow_custom_attr_value_by_id(oneflow_id: int, attr_key: str) -> str:
+    """
+    Get the value of a custom attribute of a service in OpenNebula by ID
+
+    :param oneflow_id: the ID of the service, ``int``
+    :param attr_key: the key of the custom attribute, ``str``
+    :return: the value of the custom attribute, ``str``
+    """
+    oneflow = oneflow_show_by_id(oneflow_id=oneflow_id)
+    if oneflow is None:
+        msg(
+            level="error",
+            message=f"Service with ID {oneflow_id} not found",
+        )
+    if (
+        "DOCUMENT" not in oneflow
+        or "TEMPLATE" not in oneflow["DOCUMENT"]
+        or "BODY" not in oneflow["DOCUMENT"]["TEMPLATE"]
+    ):
+        msg(
+            level="error",
+            message=f"DOCUMENT key not found in service ID {oneflow_id} or TEMPLATE key not found in DOCUMENT or BODY key not found in TEMPLATE",
+        )
+    if "custom_attrs_values" not in oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]:
+        msg(
+            level="error",
+            message=f"custom_attrs_values key not found in service ID {oneflow_id}",
+        )
+    custom_attrs_values = oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]["custom_attrs_values"]
+    if attr_key not in custom_attrs_values:
+        msg(
+            level="error",
+            message=f"Custom attribute {attr_key} not found in service ID {oneflow_id}",
+        )
+    attr_value = custom_attrs_values[attr_key]
+    if attr_value is None:
+        msg(
+            level="error",
+            message=f"Could not get value of custom attribute {attr_key} in service ID {oneflow_id}",
+        )
+    return attr_value
+
+
 def oneflow_state(oneflow_name: str) -> int:
     """
     Get the state of a service in OpenNebula
@@ -767,14 +949,14 @@ def split_attr_description(
 
 def oneflow_template_instantiate(
     oneflow_template_name: str, username: str, group_name: str
-) -> str:
+) -> Tuple[str, int]:
     """
     Instantiate a service in OpenNebula
 
     :param oneflow_template_name: the name of the service, ``str``
     :param username: the name of the user, ``str``
     :param group_name: the name of the group, ``str``
-    :return: the name of the instantiated service, ``str``
+    :return: tuple with the name and ID of the instantiated service, ``Tuple[str, int]``
     """
     # refer: https://docs.opennebula.io/6.10/management_and_operations/references/template.html#template-user-inputs
     custom_attrs = oneflow_template_custom_attrs(
@@ -933,7 +1115,8 @@ def oneflow_template_instantiate(
         sleep(20)
         state = oneflow_state_by_id(oneflow_id=service_id)
     
-    roles_vm_names = oneflow_roles_vm_names(oneflow_name=service_name)
+    # Use ID-based functions to avoid conflicts with services of the same name
+    roles_vm_names = oneflow_roles_vm_names_by_id(oneflow_id=service_id)
     if roles_vm_names:
         for vm_name in roles_vm_names:
             onevm_chown(
@@ -946,8 +1129,8 @@ def oneflow_template_instantiate(
         username=username,
         group_name=group_name,
     )
-    oneflow_chown(
-        oneflow_name=service_name,
+    oneflow_chown_by_id(
+        oneflow_id=service_id,
         username=username,
         group_name=group_name,
     )
@@ -967,7 +1150,7 @@ def oneflow_template_instantiate(
             username=username,
             group_name=group_name,
         )
-    return service_name
+    return service_name, service_id
 
 
 def oneflow_template_networks(
@@ -2522,7 +2705,7 @@ def onemarketapp_add(
 
 def onemarketapp_instantiate(
     appliance_url: str, group_name: str, marketplace_name: str, username: str
-) -> Tuple[bool, str]:
+) -> Tuple[bool, str, Optional[int]]:
     """
     Ask if user has instantiated an appliance in OpenNebula
 
@@ -2530,10 +2713,11 @@ def onemarketapp_instantiate(
     :param group_name: the name of the group, ``str``
     :param marketplace_name: the name of the marketplace, ``str``
     :param username: the name of the user, ``str``
-    :return: tuple with the status of the appliance and the name of the appliance, ``Tuple[bool, str]``
+    :return: tuple with the status, name, and optional service ID, ``Tuple[bool, str, Optional[int]]``
     """
     is_instantiated = False
     appliance_target_name = None
+    service_id = None
     appliance_name = onemarketapp_name(appliance_url=appliance_url)
     appliance_type = onemarketapp_type(
         appliance_name=appliance_name,
@@ -2576,6 +2760,7 @@ def onemarketapp_instantiate(
                 message=f"Since you have an instance of {appliance_name} in OpenNebula, can you select the name of the service instantiated?",
                 choices=oneflows_names(),
             )
+            service_id = oneflow_id(oneflow_name=service_name)
             if oneflow_state(oneflow_name=service_name) != 2:  # 2 means running
                 msg(
                     level="error",
@@ -2639,8 +2824,8 @@ def onemarketapp_instantiate(
                     )
                     appliance_target_name = appliance_name
                 else:
-                    # oneflow_template_instantiate returns the actual service name
-                    appliance_target_name = oneflow_template_instantiate(
+                    # oneflow_template_instantiate returns the actual service name and ID
+                    appliance_target_name, service_id = oneflow_template_instantiate(
                         oneflow_template_name=appliance_name,
                         group_name=group_name,
                         username=username,
@@ -2650,7 +2835,7 @@ def onemarketapp_instantiate(
                 appliance_target_name = appliance_name
         else:
             appliance_target_name = appliance_name
-    return is_instantiated, appliance_target_name
+    return is_instantiated, appliance_target_name, service_id
 
 
 def onemarketapp_export(
