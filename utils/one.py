@@ -2761,12 +2761,13 @@ def onemarketapp_instantiate(
                 choices=oneflows_names(),
             )
             service_id = oneflow_id(oneflow_name=service_name)
-            if oneflow_state(oneflow_name=service_name) != 2:  # 2 means running
+            # Use ID-based functions from here to avoid conflicts with services of the same name
+            if oneflow_state_by_id(oneflow_id=service_id) != 2:  # 2 means running
                 msg(
                     level="error",
-                    message=f"Service {service_name} is not in RUNNING state",
+                    message=f"Service {service_name} (ID: {service_id}) is not in RUNNING state",
                 )
-            roles_vm_names = oneflow_roles_vm_names(oneflow_name=service_name)
+            roles_vm_names = oneflow_roles_vm_names_by_id(oneflow_id=service_id)
             if roles_vm_names:
                 for vm_name in roles_vm_names:
                     onevm_chown(
@@ -2779,8 +2780,8 @@ def onemarketapp_instantiate(
                 username=username,
                 group_name=group_name,
             )
-            oneflow_chown(
-                oneflow_name=service_name,
+            oneflow_chown_by_id(
+                oneflow_id=service_id,
                 username=username,
                 group_name=group_name,
             )
