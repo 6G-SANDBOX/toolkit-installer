@@ -57,9 +57,11 @@ from utils.one import (
     onevm_deploy,
     onevm_disk_resize,
     onevm_ip,
+    onevm_ip_by_id,
     onevm_undeploy_hard,
     onevm_updateconf_cpu_model,
     onevm_user_input,
+    onevm_user_input_by_id,
     onevm_user_template_param,
 )
 from utils.os import (
@@ -446,7 +448,7 @@ try:
     appliance_technitium_name = onemarketapp_name(
         appliance_url=appliance_technitium_url
     )
-    is_technitium_instantiated, appliance_technitium_name = onemarketapp_instantiate(
+    is_technitium_instantiated, appliance_technitium_name, _, technitium_vm_id = onemarketapp_instantiate(
         appliance_url=appliance_technitium_url,
         group_name=group_name,
         marketplace_name=opennebula_sandbox_marketplace_name,
@@ -462,7 +464,7 @@ try:
     appliance_route_manager_api_name = onemarketapp_name(
         appliance_url=appliance_route_manager_api_url
     )
-    is_route_manager_api_instantiated, appliance_route_manager_api_name = (
+    is_route_manager_api_instantiated, appliance_route_manager_api_name, _, route_manager_api_vm_id = (
         onemarketapp_instantiate(
             appliance_url=appliance_route_manager_api_url,
             group_name=group_name,
@@ -472,8 +474,9 @@ try:
     )
     route_manager_api_token = None
     if is_route_manager_api_instantiated:
-        route_manager_api_token = onevm_user_input(
-            vm_name=appliance_route_manager_api_name,
+        # Use VM ID to avoid conflicts with VMs of the same name
+        route_manager_api_token = onevm_user_input_by_id(
+            vm_id=route_manager_api_vm_id,
             user_input=route_manager_api_token_param,
         )
     if not is_route_manager_api_instantiated:
@@ -553,7 +556,8 @@ try:
                 message=f"Key {sites_key} not found in site {site} in repository {sites_repository_name}",
             )
     if is_technitium_instantiated:
-        site_data["site_dns"] = onevm_ip(vm_name=appliance_technitium_name)
+        # Use VM ID to avoid conflicts with VMs of the same name
+        site_data["site_dns"] = onevm_ip_by_id(vm_id=technitium_vm_id)
     else:
         site_data["site_dns"] = "8.8.8.8,1.1.1.1"
     site_data["site_hypervisor"] = "one"
@@ -574,8 +578,9 @@ try:
                 level="error",
                 message=f"API endpoint not found in site_routemanager in site {site} in repository {sites_repository_name}",
             )
-        site_data["site_routemanager"]["api_endpoint"] = onevm_ip(
-            vm_name=appliance_route_manager_api_name
+        # Use VM ID to avoid conflicts with VMs of the same name
+        site_data["site_routemanager"]["api_endpoint"] = onevm_ip_by_id(
+            vm_id=route_manager_api_vm_id
         )
         if "token" not in core_site_data["site_routemanager"]:
             msg(

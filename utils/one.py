@@ -59,13 +59,15 @@ OpenNebula CLI Wrapper Functions
     oneuser_show, oneuser_update_public_ssh_key, oneusername, oneusername_id,
     oneusernames
 
-- VM MANAGEMENT (line ~3902):
-    onevm_chown, onevm_cpu_model, onevm_deploy, onevm_disk_resize, onevm_disk_size,
-    onevm_ip, onevm_list, onevm_template_id, onevm_terminate_hard, onevm_show,
-    onevm_state, onevm_undeploy_hard, onevm_updateconf_cpu_model, onevm_user_input,
-    onevm_user_template, onevm_user_template_param, onevms_names, onevms_running
+- VM MANAGEMENT (line ~3912):
+    onevm_chown, onevm_chown_by_id, onevm_cpu_model, onevm_deploy, onevm_disk_resize,
+    onevm_disk_size, onevm_id, onevm_ip, onevm_ip_by_id, onevm_list, onevm_template_id,
+    onevm_terminate_hard, onevm_show, onevm_show_by_id, onevm_state, onevm_state_by_id,
+    onevm_undeploy_hard, onevm_updateconf_cpu_model, onevm_user_input,
+    onevm_user_input_by_id, onevm_user_template, onevm_user_template_param,
+    onevms_names, onevms_running, onevms_running_with_ids
 
-- NETWORKS MANAGEMENT (line ~4373):
+- NETWORKS MANAGEMENT (line ~4564):
     onevnet_id, onevnet_list, onevnet_show, onevnets_names
 
 ================================================================================
@@ -2816,7 +2818,7 @@ def onemarketapp_add(
 
 def onemarketapp_instantiate(
     appliance_url: str, group_name: str, marketplace_name: str, username: str
-) -> Tuple[bool, str, Optional[int]]:
+) -> Tuple[bool, str, Optional[int], Optional[int]]:
     """
     Ask if user has instantiated an appliance in OpenNebula
 
@@ -2824,11 +2826,12 @@ def onemarketapp_instantiate(
     :param group_name: the name of the group, ``str``
     :param marketplace_name: the name of the marketplace, ``str``
     :param username: the name of the user, ``str``
-    :return: tuple with the status, name, and optional service ID, ``Tuple[bool, str, Optional[int]]``
+    :return: tuple with the status, name, optional service ID, and optional VM ID (for IMAGE type), ``Tuple[bool, str, Optional[int], Optional[int]]``
     """
     is_instantiated = False
     appliance_target_name = None
     service_id = None
+    vm_id = None
     appliance_name = onemarketapp_name(appliance_url=appliance_url)
     appliance_type = onemarketapp_type(
         appliance_name=appliance_name,
@@ -2840,17 +2843,21 @@ def onemarketapp_instantiate(
     )
     if instantiate_appliance:
         if appliance_type == "IMAGE" or appliance_type == "VM":
+            # Get running VMs with their IDs to avoid name conflicts
+            vms_running_with_ids = onevms_running_with_ids()
             vm_name = ask_select(
                 message=f"Since you have an instance of {appliance_name} in OpenNebula, can you select the name of the virtual machine? ",
-                choices=onevms_names(),
+                choices=list(vms_running_with_ids.keys()),
             )
-            if onevm_state(vm_name=vm_name) != "3":  # 3 means running
+            vm_id = vms_running_with_ids[vm_name]
+            # Use ID-based functions from here to avoid conflicts with VMs of the same name
+            if onevm_state_by_id(vm_id=vm_id) != "3":  # 3 means running
                 msg(
                     level="error",
-                    message=f"Virtual machine {vm_name} is not in RUNNING state",
+                    message=f"Virtual machine {vm_name} (ID: {vm_id}) is not in RUNNING state",
                 )
-            onevm_chown(
-                vm_name=vm_name,
+            onevm_chown_by_id(
+                vm_id=vm_id,
                 username=username,
                 group_name=group_name,
             )
@@ -2935,6 +2942,8 @@ def onemarketapp_instantiate(
                         group_name=group_name,
                     )
                     appliance_target_name = appliance_name
+                    # Get VM ID for IMAGE type appliances to avoid name conflicts later
+                    vm_id = onevm_id(vm_name=appliance_name)
                 else:
                     # oneflow_template_instantiate returns the actual service name and ID
                     appliance_target_name, service_id = oneflow_template_instantiate(
@@ -2947,7 +2956,7 @@ def onemarketapp_instantiate(
                 appliance_target_name = appliance_name
         else:
             appliance_target_name = appliance_name
-    return is_instantiated, appliance_target_name, service_id
+    return is_instantiated, appliance_target_name, service_id, vm_id
 
 
 def onemarketapp_export(
@@ -3925,6 +3934,27 @@ def onevm_chown(vm_name: str, username: str, group_name: str) -> None:
     )
 
 
+def onevm_chown_by_id(vm_id: int, username: str, group_name: str) -> None:
+    """
+    Change the owner of a VM in OpenNebula by VM ID
+
+    :param vm_id: the ID of the VM, ``int``
+    :param username: the name of the user, ``str``
+    :param group_name: the name of the group, ``str``
+    """
+    command = f'onevm chown {vm_id} "{username}" "{group_name}"'
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="error",
+            message=f"Could not change owner of VM ID {vm_id} to {username}:{group_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+    msg(
+        level="debug",
+        message=f"Owner of VM ID {vm_id} changed to {username}:{group_name}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+    )
+
+
 def onevm_cpu_model(vm_name: str) -> str:
     """
     Get the CPU model of a VM in OpenNebula
@@ -4043,6 +4073,27 @@ def onevm_disk_size(vm_name: str, disk_id: int) -> int:
         level="error",
         message=f"Disk {disk_id} not found in VM {vm_name}",
     )
+
+
+def onevm_id(vm_name: str) -> int:
+    """
+    Get the ID of a VM in OpenNebula by name
+
+    :param vm_name: the name of the VM, ``str``
+    :return: the ID of the VM, ``int``
+    """
+    vm = onevm_show(vm_name=vm_name)
+    if vm is None:
+        msg(level="error", message=f"VM {vm_name} not found")
+    if "VM" not in vm or "ID" not in vm["VM"]:
+        msg(
+            level="error",
+            message=f"VM key not found in vm {vm_name} or ID key not found in VM",
+        )
+    vm_id = int(vm["VM"]["ID"])
+    if vm_id is None:
+        msg(level="error", message=f"Could not get ID of VM {vm_name}")
+    return vm_id
 
 
 def onevm_ip(vm_name: str) -> str:
@@ -4172,6 +4223,59 @@ def onevm_show(vm_name: str) -> Dict | None:
         return loads_json(data=stdout)
 
 
+def onevm_show_by_id(vm_id: int) -> Dict | None:
+    """
+    Get the details of a VM in OpenNebula by VM ID
+
+    :param vm_id: the ID of the VM, ``int``
+    :return: the details of the VM, ``Dict``
+    """
+    command = f"onevm show {vm_id} -j"
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="debug",
+            message=f"VM ID {vm_id} not found. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+        return None
+    else:
+        msg(
+            level="debug",
+            message=f"VM ID {vm_id} found. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+        )
+        return loads_json(data=stdout)
+
+
+def onevm_ip_by_id(vm_id: int) -> str:
+    """
+    Get the IP of a VM in OpenNebula by VM ID
+
+    :param vm_id: the ID of the VM, ``int``
+    :return: the IP of the VM, ``str``
+    """
+    vm = onevm_show_by_id(vm_id=vm_id)
+    if vm is None:
+        msg(level="error", message=f"VM ID {vm_id} not found")
+    if "VM" not in vm or "TEMPLATE" not in vm["VM"]:
+        msg(
+            level="error",
+            message=f"VM key not found in VM ID {vm_id} or TEMPLATE key not found in VM",
+        )
+    if "NIC" not in vm["VM"]["TEMPLATE"]:
+        msg(
+            level="error",
+            message=f"NIC key not found in TEMPLATE for VM ID {vm_id}",
+        )
+    nics = vm["VM"]["TEMPLATE"]["NIC"]
+    for nic in nics:
+        if "IP" in nic:
+            return nic["IP"]
+    msg(
+        level="error",
+        message=f"IP not found in VM ID {vm_id}",
+    )
+
+
 def onevm_state(vm_name: str) -> str:
     """
     Get the state of a VM in OpenNebula
@@ -4190,6 +4294,27 @@ def onevm_state(vm_name: str) -> str:
     vm_state = vm["VM"]["STATE"]
     if vm_state is None:
         msg(level="error", message=f"Could not get state of VM {vm_name}")
+    return vm_state
+
+
+def onevm_state_by_id(vm_id: int) -> str:
+    """
+    Get the state of a VM in OpenNebula by VM ID
+
+    :param vm_id: the ID of the VM, ``int``
+    :return: the state of the VM, ``str``
+    """
+    vm = onevm_show_by_id(vm_id=vm_id)
+    if vm is None:
+        msg(level="error", message=f"VM ID {vm_id} not found")
+    if "VM" not in vm or "STATE" not in vm["VM"]:
+        msg(
+            level="error",
+            message=f"VM key not found in VM ID {vm_id} or STATE key not found in VM",
+        )
+    vm_state = vm["VM"]["STATE"]
+    if vm_state is None:
+        msg(level="error", message=f"Could not get state of VM ID {vm_id}")
     return vm_state
 
 
@@ -4259,6 +4384,33 @@ def onevm_user_input(vm_name, user_input: str) -> str:
         msg(
             level="error",
             message=f"User input {user_input} not found in VM {vm_name}",
+        )
+    return vm["VM"]["USER_TEMPLATE"][user_input]
+
+
+def onevm_user_input_by_id(vm_id: int, user_input: str) -> str:
+    """
+    Get the value of a user input in a VM in OpenNebula by VM ID
+
+    :param vm_id: the ID of the VM, ``int``
+    :param user_input: the name of the user input, ``str``
+    :return: the value of the user input, ``str``
+    """
+    vm = onevm_show_by_id(vm_id=vm_id)
+    if vm is None:
+        msg(
+            level="error",
+            message=f"VM ID {vm_id} not found",
+        )
+    if "VM" not in vm or "USER_TEMPLATE" not in vm["VM"]:
+        msg(
+            level="error",
+            message=f"VM key not found in VM ID {vm_id} or USER_TEMPLATE key not found in VM",
+        )
+    if user_input not in vm["VM"]["USER_TEMPLATE"]:
+        msg(
+            level="error",
+            message=f"User input {user_input} not found in VM ID {vm_id}",
         )
     return vm["VM"]["USER_TEMPLATE"][user_input]
 
@@ -4368,6 +4520,44 @@ def onevms_running() -> List[str]:
         if vm["STATE"] == "3":
             vms_names.append(vm["NAME"])
     return vms_names
+
+
+def onevms_running_with_ids() -> Dict[str, int]:
+    """
+    Get the names and IDs of the running VMs in OpenNebula
+
+    :return: a dictionary with VM names as keys and VM IDs as values, ``Dict[str, int]``
+    """
+    vms = onevm_list()
+    vms_dict = {}
+    if vms is None:
+        return {}
+    if "VM_POOL" not in vms or "VM" not in vms["VM_POOL"]:
+        msg(
+            level="error",
+            message="VM_POOL key not found in vms or VM key not found in VM_POOL",
+        )
+    for vm in vms["VM_POOL"]["VM"]:
+        if vm is None:
+            msg(level="error", message="VM is empty")
+        if "NAME" not in vm:
+            msg(
+                level="error",
+                message="NAME key not found in vm",
+            )
+        if "ID" not in vm:
+            msg(
+                level="error",
+                message="ID key not found in vm",
+            )
+        if "STATE" not in vm:
+            msg(
+                level="error",
+                message="STATE key not found in vm",
+            )
+        if vm["STATE"] == "3":
+            vms_dict[vm["NAME"]] = int(vm["ID"])
+    return vms_dict
 
 
 # ##############################################################################
