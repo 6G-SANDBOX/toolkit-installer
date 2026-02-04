@@ -1,3 +1,76 @@
+"""
+OpenNebula CLI Wrapper Functions
+
+================================================================================
+                              FUNCTION INDEX
+================================================================================
+- OPENNEBULA MANAGEMENT (line ~93):
+    check_one_health, get_oned_conf_path, onegate_endpoint, restart_one
+
+- ACL MANAGEMENT (line ~181):
+    check_group_acl, oneacl_create, oneacl_list
+
+- DATASTORE MANAGEMENT (line ~274):
+    onedatastore_list, onedatastores_names
+
+- ONEFLOW MANAGEMENT (line ~334):
+    oneflow_chown, oneflow_custom_attr_value, oneflow_id, oneflow_list,
+    oneflow_role_info, oneflow_role_vm_name, oneflow_roles, oneflow_roles_vm_names,
+    oneflow_show, oneflow_show_by_id, oneflow_state_by_id, oneflow_name_by_id,
+    oneflow_roles_by_id, oneflow_roles_vm_names_by_id, oneflow_chown_by_id,
+    oneflow_role_info_by_id, oneflow_role_vm_name_by_id,
+    oneflow_custom_attr_value_by_id, oneflow_state, oneflows_names
+
+- ONEFLOW TEMPLATE MANAGEMENT (line ~910):
+    oneflow_template_chown, oneflow_template_custom_attrs, oneflow_template_ids,
+    oneflow_template_image_ids, split_attr_description, oneflow_template_instantiate,
+    oneflow_template_networks, oneflow_template_roles, oneflow_template_show
+
+- GROUP MANAGEMENT (line ~1363):
+    check_group_admin, onegroup_addadmin, onegroup_create, onegroup_id,
+    onegroup_list, onegroup_show, onegroups_names
+
+- HOST MANAGEMENT (line ~1551):
+    onehost_available_cpu, onehost_available_mem, onehost_cpu_model,
+    onehost_list, onehost_show, onehosts_avx_cpu_mem
+
+- IMAGES MANAGEMENT (line ~1771):
+    oneimage_chown, oneimage_name, oneimage_id_by_name, oneimage_delete,
+    oneimage_list, oneimage_rename, oneimage_show, oneimage_state,
+    oneimage_update, oneimage_version, oneimages_attribute, oneimages_names
+
+- MARKETPLACE MANAGEMENT (line ~2101):
+    get_marketplace_monitoring_interval, update_marketplace_monitoring_interval,
+    onemarket_create, onemarket_endpoint, onemarket_list, onemarket_show,
+    onemarkets_names
+
+- MARKETAPP MANAGEMENT (line ~2316):
+    onemarketapp_add, onemarketapp_instantiate, onemarketapp_export,
+    onemarketapp_curl, onemarketapp_description, onemarketapp_name,
+    onemarketapp_show, onemarketapp_type, onemarketapp_version
+
+- TEMPLATE MANAGEMENT (line ~3184):
+    onetemplate_chown, onetemplate_delete, onetemplate_id, onetemplate_image_ids,
+    onetemplate_instantiate, onetemplate_name, onetemplate_list, onetemplate_rename,
+    onetemplate_show, onetemplate_user_inputs, onetemplates_names
+
+- USER MANAGEMENT (line ~3641):
+    oneuser_chgrp, oneuser_create, oneuser_list, oneuser_public_ssh_keys,
+    oneuser_show, oneuser_update_public_ssh_key, oneusername, oneusername_id,
+    oneusernames
+
+- VM MANAGEMENT (line ~3902):
+    onevm_chown, onevm_cpu_model, onevm_deploy, onevm_disk_resize, onevm_disk_size,
+    onevm_ip, onevm_list, onevm_template_id, onevm_terminate_hard, onevm_show,
+    onevm_state, onevm_undeploy_hard, onevm_updateconf_cpu_model, onevm_user_input,
+    onevm_user_template, onevm_user_template_param, onevms_names, onevms_running
+
+- NETWORKS MANAGEMENT (line ~4373):
+    onevnet_id, onevnet_list, onevnet_show, onevnets_names
+
+================================================================================
+"""
+
 import os
 import re
 from textwrap import dedent
@@ -17,7 +90,9 @@ from utils.questionary import (
 )
 
 
-## OPENNEBULA MANAGEMENT ##
+# ##############################################################################
+# ##                         OPENNEBULA MANAGEMENT                            ##
+# ##############################################################################
 def check_one_health() -> None:
     """
     Check OpenNebula health
@@ -103,7 +178,11 @@ def restart_one() -> None:
     )
 
 
-## ACL MANAGEMENT ##
+# ##############################################################################
+# ##                            ACL MANAGEMENT                                ##
+# ##############################################################################
+
+
 def check_group_acl(group_id: str, resources: str, rights: str) -> bool:
     """
     Check if group has ACL in OpenNebula
@@ -192,7 +271,11 @@ def oneacl_list() -> Dict | None:
         return loads_json(data=stdout)
 
 
-## DATASTORE MANAGEMENT ##
+# ##############################################################################
+# ##                         DATASTORE MANAGEMENT                             ##
+# ##############################################################################
+
+
 def onedatastore_list() -> Dict:
     """
     Get the list of datastores in OpenNebula
@@ -248,7 +331,11 @@ def onedatastores_names() -> List[str]:
     return datastores_names
 
 
-## ONEFLOW MANAGEMENT ##
+# ##############################################################################
+# ##                          ONEFLOW MANAGEMENT                              ##
+# ##############################################################################
+
+
 def oneflow_chown(oneflow_name: str, username: str, group_name: str) -> None:
     """
     Change the owner of a service in OpenNebula
@@ -820,7 +907,11 @@ def oneflows_names() -> List[str]:
     return oneflows_names
 
 
-## ONEFLOW TEMPLATE MANAGEMENT ##
+# ##############################################################################
+# ##                     ONEFLOW TEMPLATE MANAGEMENT                          ##
+# ##############################################################################
+
+
 def oneflow_template_chown(
     oneflow_template_name: str,
     username: str,
@@ -1269,7 +1360,11 @@ def oneflow_template_show(
 #     msg("info", "Service updated")
 
 
-## GROUP MANAGEMENT ##
+# ##############################################################################
+# ##                           GROUP MANAGEMENT                               ##
+# ##############################################################################
+
+
 def check_group_admin(username: str, group_name: str) -> bool:
     """
     Check if user is admin of group in OpenNebula
@@ -1453,7 +1548,11 @@ def onegroups_names() -> List[str]:
     return groups_names
 
 
-## HOST MANAGEMENT ##
+# ##############################################################################
+# ##                            HOST MANAGEMENT                               ##
+# ##############################################################################
+
+
 def onehost_available_cpu(host_name: str) -> float:
     """
     Get the available percentage of CPU of a host in OpenNebula
@@ -1669,7 +1768,11 @@ def onehosts_avx_cpu_mem(
     return hosts_with_avx
 
 
-## IMAGES MANAGEMENT ##
+# ##############################################################################
+# ##                          IMAGES MANAGEMENT                               ##
+# ##############################################################################
+
+
 def oneimage_chown(image_name: str, username: str, group_name: str) -> None:
     """
     Change the owner of an image in OpenNebula
@@ -1995,7 +2098,11 @@ def oneimages_names() -> List[str]:
     return images_names
 
 
-## MARKETPLACE MANAGEMENT ##
+# ##############################################################################
+# ##                       MARKETPLACE MANAGEMENT                             ##
+# ##############################################################################
+
+
 def get_marketplace_monitoring_interval() -> int:
     """
     Get the monitoring interval of the marketplace
@@ -2206,7 +2313,11 @@ def onemarkets_names() -> List[str]:
     return marketplaces_names
 
 
-## MARKETAPP MANAGEMENT ##
+# ##############################################################################
+# ##                        MARKETAPP MANAGEMENT                              ##
+# ##############################################################################
+
+
 def onemarketapp_add(
     group_name: str,
     username: str,
@@ -3070,7 +3181,11 @@ def onemarketapp_version(appliance_url: str) -> Tuple[str, str]:
     return appliance_software_version, appliance_version
 
 
-## TEMPLATE MANAGEMENT ##
+# ##############################################################################
+# ##                         TEMPLATE MANAGEMENT                              ##
+# ##############################################################################
+
+
 def onetemplate_chown(template_name: str, username: str, group_name: str) -> None:
     """
     Change the owner of a template in OpenNebula
@@ -3523,7 +3638,11 @@ def onetemplates_names() -> List[str]:
     return templates_names
 
 
-## USER MANAGEMENT ##
+# ##############################################################################
+# ##                            USER MANAGEMENT                               ##
+# ##############################################################################
+
+
 def oneuser_chgrp(username: str, group_name: str) -> None:
     """
     Assign user to group in OpenNebula
@@ -3780,7 +3899,11 @@ def oneusernames() -> List[str]:
     return usernames
 
 
-## VM MANAGEMENT ##
+# ##############################################################################
+# ##                             VM MANAGEMENT                                ##
+# ##############################################################################
+
+
 def onevm_chown(vm_name: str, username: str, group_name: str) -> None:
     """
     Change the owner of a VM in OpenNebula
@@ -4247,7 +4370,11 @@ def onevms_running() -> List[str]:
     return vms_names
 
 
-## NETWORKS MANAGEMENT ##
+# ##############################################################################
+# ##                         NETWORKS MANAGEMENT                              ##
+# ##############################################################################
+
+
 def onevnet_id(vnet_name: str) -> int:
     """
     Get the id of a vnet in OpenNebula
