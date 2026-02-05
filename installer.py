@@ -789,14 +789,14 @@ try:
         if status_code != "201":
             msg(
                 level="error",
-                message=f"Failed to login to TNLCM. Command: {tnlcm_login}. Error received: {stderr}. Return code: {rc}",
+                message=f"Failed to login to TNLCM. Status code: {status_code}. API response: {tokens}. Return code: {rc}",
             )
         access_token = loads_json(data=tokens)["access_token"]
         msg(level="info", message="Logged in successfully to TNLCM")
         trial_network_path = join_path(
             library_path, trial_network_component, "sample_tnlcm_descriptor.yaml"
         )
-        tnlcm_create_trial_network = f'''curl -w "%{{http_code}}" -X POST "{tnlcm_url}/api/v1/trial-network?validate=True" \
+        tnlcm_create_trial_network = f'''curl -w "%{{http_code}}" -X POST "{tnlcm_url}/api/v1/trial-network" \
             -H "accept: application/json" \
             -H "Authorization: Bearer {access_token}" \
             -H "Content-Type: multipart/form-data" \
@@ -811,7 +811,7 @@ try:
         if status_code != "201":
             msg(
                 level="error",
-                message=f"Failed to create trial network in TNLCM. Command: {tnlcm_create_trial_network}. Error received: {stderr}. Return code: {rc}",
+                message=f"Failed to create trial network in TNLCM. Status code: {status_code}. API response: {response_create_trial_network}. Return code: {rc}",
             )
         trial_network_id = loads_json(data=response_create_trial_network)["tn_id"]
         msg(
@@ -826,7 +826,7 @@ try:
         if status_code != "200":
             msg(
                 level="error",
-                message=f"Failed to deploy trial network in TNLCM. Command: {deploy_trial_network}. Error received: {stderr}. Return code: {rc}",
+                message=f"Failed to deploy trial network in TNLCM. Status code: {status_code}. API response: {response_deploy_trial_network}. Return code: {rc}",
             )
         msg(
             level="info",

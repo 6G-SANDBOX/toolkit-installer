@@ -120,19 +120,35 @@ def read_site_yaml(data: Dict) -> Dict:
             msg(level="info", message=f"Reading nested fields in {key}:")
             aux[key] = read_site_yaml(value)
         elif isinstance(value, List):
+            # Convert list to comma-separated string for display
+            default_str = ", ".join(str(item) for item in value)
+            user_input = ask_text(
+                message=f"Enter the value of {key} as comma-separated numbers (e.g., 0, 1, 2):",
+                default=default_str,
+            )
+            # Parse user input, handling both "0, 1, 2" and "[0, 1, 2]" formats
+            user_input = user_input.strip().strip("[]")
             aux[key] = [
                 int(item.strip())
-                for item in ask_text(
-                    message=f"Reading the value of {key} separated by commas. For example: 0, 1, 2:",
-                    default=str(value),
-                ).split(",")
+                for item in user_input.split(",")
+                if item.strip()
             ]
         elif isinstance(value, str):
             aux[key] = ask_text(message=f"Reading the value of {key}:", default=value)
         elif isinstance(value, int):
-            aux[key] = int(
-                ask_text(message=f"Enter the value of {key}:", default=str(value))
-            )
+            user_input = ask_text(message=f"Enter the value of {key}:", default=str(value))
+            # Handle case where user enters list format like [0] or [0, 1, 2]
+            user_input = user_input.strip()
+            if user_input.startswith("[") and user_input.endswith("]"):
+                # User entered list format, convert to list
+                user_input = user_input.strip("[]")
+                aux[key] = [
+                    int(item.strip())
+                    for item in user_input.split(",")
+                    if item.strip()
+                ]
+            else:
+                aux[key] = int(user_input)
         elif isinstance(value, bool):
             new_value = ask_confirm(message=f"Enter the value of {key}:", default=value)
             aux[key] = new_value
