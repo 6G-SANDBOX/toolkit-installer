@@ -332,7 +332,7 @@ try:
         appliance_url=appliance_toolkit_service_url
     )
     print(f"[DEBUG] Name of instantiated service: {appliance_toolkit_service_name}")
-    is_toolkit_service_instantiated, appliance_toolkit_service_name, toolkit_service_id = (
+    is_toolkit_service_instantiated, appliance_toolkit_service_name, toolkit_service_id, _ = (
         onemarketapp_instantiate(
             appliance_url=appliance_toolkit_service_url,
             group_name=group_name,
