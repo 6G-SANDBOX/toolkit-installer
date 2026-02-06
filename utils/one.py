@@ -75,6 +75,7 @@ OpenNebula CLI Wrapper Functions
 
 import os
 import re
+from datetime import datetime
 from textwrap import dedent
 from time import sleep
 from typing import Dict, List, Optional, Tuple
@@ -1170,14 +1171,16 @@ def oneflow_template_instantiate(
         data.update(custom_attrs_values)
     if networks_values:
         data.update(networks_values)
-    if data:
-        custom_attrs_path = join_path(
-            TEMP_DIRECTORY, f"{oneflow_template_name}_service_custom_attrs.json"
-        )
-        save_json_file(data=data, file_path=custom_attrs_path)
-        command = f'oneflow-template instantiate "{oneflow_template_name}" < "{custom_attrs_path}"'
-    else:
-        command = f'oneflow-template instantiate "{oneflow_template_name}"'
+    # Generate unique service name with username and timestamp to differentiate instances
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    unique_service_name = f"{oneflow_template_name} - {username} - {timestamp}"
+    data["name"] = unique_service_name
+    # Always save data to file since we now always have at least the name
+    custom_attrs_path = join_path(
+        TEMP_DIRECTORY, f"{oneflow_template_name}_service_custom_attrs.json"
+    )
+    save_json_file(data=data, file_path=custom_attrs_path)
+    command = f'oneflow-template instantiate "{oneflow_template_name}" < "{custom_attrs_path}"'
     stdout, stderr, rc = run_command(command=command)
     if rc != 0:
         msg(
