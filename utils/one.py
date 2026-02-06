@@ -2832,23 +2832,51 @@ def onemarketapp_instantiate(
     appliance_target_name = None
     service_id = None
     vm_id = None
+    vm_name = None
+    service_name = None
+    vms_running_with_ids = {}
     appliance_name = onemarketapp_name(appliance_url=appliance_url)
     appliance_type = onemarketapp_type(
         appliance_name=appliance_name,
         marketplace_name=marketplace_name,
     )
-    instantiate_appliance = ask_confirm(
-        message=f"Do yo have {appliance_name} instantiated in OpenNebula?",
-        default=False,
-    )
-    if instantiate_appliance:
+    while True:
+        instantiate_appliance = ask_confirm(
+            message=f"Do you have {appliance_name} instantiated in OpenNebula?",
+            default=False,
+        )
+        if not instantiate_appliance:
+            break
         if appliance_type == "IMAGE" or appliance_type == "VM":
             # Get running VMs with their IDs to avoid name conflicts
             vms_running_with_ids = onevms_running_with_ids()
+            if not vms_running_with_ids:
+                msg(
+                    level="warning",
+                    message=f"No running virtual machines found in OpenNebula. Cannot select an instance of {appliance_name}. Please check your OpenNebula environment",
+                )
+                continue
             vm_name = ask_select(
-                message=f"Since you have an instance of {appliance_name} in OpenNebula, can you select the name of the virtual machine? ",
+                message=f"Since you have an instance of {appliance_name} in OpenNebula, can you select the name of the virtual machine?",
                 choices=list(vms_running_with_ids.keys()),
             )
+            break
+        else:
+            available_services = oneflows_names()
+            if not available_services:
+                msg(
+                    level="warning",
+                    message=f"No services found in OpenNebula. Cannot select an instance of {appliance_name}. Please check your OpenNebula environment",
+                )
+                continue
+            service_name = ask_select(
+                message=f"Since you have an instance of {appliance_name} in OpenNebula, can you select the name of the service instantiated?",
+                choices=available_services,
+            )
+            break
+
+    if instantiate_appliance:
+        if appliance_type == "IMAGE" or appliance_type == "VM":
             vm_id = vms_running_with_ids[vm_name]
             # Use ID-based functions from here to avoid conflicts with VMs of the same name
             if onevm_state_by_id(vm_id=vm_id) != "3":  # 3 means running
@@ -2874,10 +2902,6 @@ def onemarketapp_instantiate(
                 )
             appliance_target_name = vm_name
         else:
-            service_name = ask_select(
-                message=f"Since you have an instance of {appliance_name} in OpenNebula, can you select the name of the service instantiated?",
-                choices=oneflows_names(),
-            )
             service_id = oneflow_id(oneflow_name=service_name)
             # Use ID-based functions from here to avoid conflicts with services of the same name
             if oneflow_state_by_id(oneflow_id=service_id) != 2:  # 2 means running
