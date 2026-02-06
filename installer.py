@@ -640,9 +640,11 @@ try:
                 level="error",
                 message=f"Long description for component {component} in repository {library_repository_name} using ref {library_ref} is not a string",
             )
+        component_upper = component.upper()
+        component_header = f"\n{'━' * 60}\n📦 Component: {component_upper}\n{'━' * 60}"
         add_component = ask_confirm(
             message=(
-                f"\nDo you want to add {component} component to your site? Very important to know the availability of the component in the site. Ask to the administrator of the site. \n{long_description}"
+                f"{component_header}\n\n{long_description}\n\nDo you want to add {component} to your site? (Check availability with site admin)"
             ),
             default=False,
         )
