@@ -2809,10 +2809,16 @@ def onemarketapp_add(
             is_added = True
     
     # If appliance was added, try to get the template_id and first image_id
-    if is_added and appliance_type == "IMAGE":
+    if is_added:
         try:
-            returned_template_id = onetemplate_id(template_name=appliance_name)
-            returned_image_id = oneimage_id_by_name(image_name=appliance_name)
+            if appliance_type == "IMAGE":
+                returned_template_id = onetemplate_id(template_name=appliance_name)
+                returned_image_id = oneimage_id_by_name(image_name=appliance_name)
+            elif appliance_type != "VM":
+                # For SERVICE type, get the oneflow-template ID
+                service_details = oneflow_template_show(oneflow_template_name=appliance_name)
+                if service_details and "DOCUMENT" in service_details:
+                    returned_template_id = int(service_details["DOCUMENT"]["ID"])
         except Exception:
             pass  # Keep None values if we can't get the IDs
     

@@ -79,10 +79,16 @@ def read_component_site_variables(data: Dict) -> Dict:
     """
     aux = {}
     for key, value in data.items():
+        # Check if this is a template_id or image_id variable (standard or prefixed)
+        is_template_or_image_id = (
+            key == "template_id" or key == "image_id" or
+            key.endswith("_template_id") or key.endswith("_image_id")
+        )
+        
         if isinstance(value, Dict):
             msg(level="info", message=f"Reading nested fields in {key}:")
             aux[key] = read_site_yaml(value)
-        elif isinstance(value, int) and (key == "template_id" or key == "image_id"):
+        elif isinstance(value, int) and is_template_or_image_id:
             # Integer values for template_id/image_id are auto-filled, show as default but allow override
             aux[key] = ask_text(
                 message=f"Reading the value of {key}. Auto-filled from marketplace (you can change it):",
@@ -94,7 +100,7 @@ def read_component_site_variables(data: Dict) -> Dict:
             aux[key] = ask_text(
                 message=f"Reading the value of {key}. This key indicates {value}:"
             )
-            if key == "template_id" or key == "image_id":
+            if is_template_or_image_id:
                 aux[key] = int(aux[key])
         else:
             msg(
@@ -116,7 +122,14 @@ def read_site_yaml(data: Dict) -> Dict:
     for key, value in data.items():
         if key in SITES_SKIP_KEYS:
             continue
-        elif isinstance(value, Dict):
+        
+        # Check if this is a template_id or image_id variable (standard or prefixed)
+        is_template_or_image_id = (
+            key == "template_id" or key == "image_id" or
+            key.endswith("_template_id") or key.endswith("_image_id")
+        )
+        
+        if isinstance(value, Dict):
             msg(level="info", message=f"Reading nested fields in {key}:")
             aux[key] = read_site_yaml(value)
         elif isinstance(value, List):
@@ -135,8 +148,17 @@ def read_site_yaml(data: Dict) -> Dict:
             ]
         elif isinstance(value, str):
             aux[key] = ask_text(message=f"Reading the value of {key}:", default=value)
+            if is_template_or_image_id:
+                aux[key] = int(aux[key])
         elif isinstance(value, int):
-            user_input = ask_text(message=f"Enter the value of {key}:", default=str(value))
+            if is_template_or_image_id:
+                # Integer values for template_id/image_id are auto-filled, show with special message
+                user_input = ask_text(
+                    message=f"Reading the value of {key}. Auto-filled from marketplace (you can change it):",
+                    default=str(value),
+                )
+            else:
+                user_input = ask_text(message=f"Enter the value of {key}:", default=str(value))
             # Handle case where user enters list format like [0] or [0, 1, 2]
             user_input = user_input.strip()
             if user_input.startswith("[") and user_input.endswith("]"):

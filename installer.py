@@ -699,14 +699,16 @@ try:
                     site_data["site_available_components"][component] = None
                     continue
                 
-                # Track the IDs obtained from marketplace
-                obtained_template_id = None
-                obtained_image_id = None
+                # Track the IDs obtained from marketplace for each appliance
+                # Dict: {appliance_name: {"template_id": id, "image_id": id}}
+                appliance_ids = {}
                 
                 for component_appliance_name in component_appliances_names_add:
                     component_appliance_url = component_appliances_urls_names[
                         component_appliance_name
                     ]
+                    obtained_template_id = None
+                    obtained_image_id = None
                     if component_appliance_url.startswith(
                         opennebula_public_marketplace_endpoint
                     ):
@@ -732,20 +734,93 @@ try:
                                 f"Appliance {component_appliance_name} not found in marketplaces {opennebula_public_marketplace_name} or {opennebula_sandbox_marketplace_name}"
                             ),
                         )
+                    # Store IDs for this appliance
+                    appliance_ids[component_appliance_name] = {
+                        "template_id": obtained_template_id,
+                        "image_id": obtained_image_id,
+                    }
                 
-                # Auto-fill template_id and image_id if obtained from marketplace
-                if obtained_template_id is not None and "template_id" in appliance_site_variables:
-                    appliance_site_variables["template_id"] = obtained_template_id
-                    msg(
-                        level="info",
-                        message=f"Auto-filled template_id with value {obtained_template_id}",
-                    )
-                if obtained_image_id is not None and "image_id" in appliance_site_variables:
-                    appliance_site_variables["image_id"] = obtained_image_id
-                    msg(
-                        level="info",
-                        message=f"Auto-filled image_id with value {obtained_image_id}",
-                    )
+                # Auto-fill template_id and image_id variables using smart matching
+                # This handles both standard variables (template_id, image_id) and
+                # prefixed variables (collector_template_id, switch_image_id, etc.)
+                # Also handles nested variables for versioned components (e.g., oneKE with "131", "131a" keys)
+                import re
+                
+                for var_name in list(appliance_site_variables.keys()):
+                    var_value = appliance_site_variables[var_name]
+                    matched_ids = None
+                    matched_appliance = None
+                    
+                    # Handle nested dictionaries (e.g., oneKE's "131": {template_id: ...})
+                    if isinstance(var_value, dict):
+                        # Check if this looks like a version key (e.g., "131", "131a", "129")
+                        # Try to match with appliance names containing version numbers
+                        for appliance_name, ids in appliance_ids.items():
+                            # Extract version from appliance name (e.g., "1.31" from "[6G-Sandbox] Service OneKE 1.31")
+                            version_match = re.search(r'(\d+\.\d+[a-z]?)', appliance_name)
+                            if version_match:
+                                version = version_match.group(1)
+                                # Convert version to key format: "1.31" -> "131", "1.31a" -> "131a"
+                                version_key = version.replace(".", "")
+                                
+                                if var_name == version_key:
+                                    # Found a match! Auto-fill template_id and/or image_id in the nested dict
+                                    if "template_id" in var_value and isinstance(var_value["template_id"], str):
+                                        if ids["template_id"] is not None:
+                                            appliance_site_variables[var_name]["template_id"] = ids["template_id"]
+                                            msg(
+                                                level="info",
+                                                message=f"Auto-filled {var_name}.template_id with value {ids['template_id']} (from appliance '{appliance_name}')",
+                                            )
+                                    if "image_id" in var_value and isinstance(var_value["image_id"], str):
+                                        if ids["image_id"] is not None:
+                                            appliance_site_variables[var_name]["image_id"] = ids["image_id"]
+                                            msg(
+                                                level="info",
+                                                message=f"Auto-filled {var_name}.image_id with value {ids['image_id']} (from appliance '{appliance_name}')",
+                                            )
+                                    break
+                        continue
+                    
+                    if var_name == "template_id" or var_name == "image_id":
+                        # Standard variable: use the first/only appliance
+                        if len(appliance_ids) == 1:
+                            matched_appliance = list(appliance_ids.keys())[0]
+                            matched_ids = appliance_ids[matched_appliance]
+                    elif var_name.endswith("_template_id") or var_name.endswith("_image_id"):
+                        # Prefixed variable: extract prefix and find matching appliance
+                        if var_name.endswith("_template_id"):
+                            prefix = var_name[:-12]  # Remove "_template_id"
+                        else:
+                            prefix = var_name[:-9]   # Remove "_image_id"
+                        
+                        # Search for an appliance whose name contains the prefix (case-insensitive)
+                        prefix_lower = prefix.lower()
+                        for appliance_name, ids in appliance_ids.items():
+                            # Normalize appliance name: replace hyphens/underscores with spaces, lowercase
+                            appliance_name_normalized = appliance_name.lower().replace("-", " ").replace("_", " ")
+                            appliance_words = appliance_name_normalized.split()
+                            
+                            # Check if prefix matches any word in the appliance name
+                            if prefix_lower in appliance_words or any(prefix_lower in word for word in appliance_words):
+                                matched_appliance = appliance_name
+                                matched_ids = ids
+                                break
+                    
+                    # Auto-fill the variable if we found a match
+                    if matched_ids is not None:
+                        if var_name.endswith("template_id") and matched_ids["template_id"] is not None:
+                            appliance_site_variables[var_name] = matched_ids["template_id"]
+                            msg(
+                                level="info",
+                                message=f"Auto-filled {var_name} with value {matched_ids['template_id']} (from appliance '{matched_appliance}')",
+                            )
+                        elif var_name.endswith("image_id") and matched_ids["image_id"] is not None:
+                            appliance_site_variables[var_name] = matched_ids["image_id"]
+                            msg(
+                                level="info",
+                                message=f"Auto-filled {var_name} with value {matched_ids['image_id']} (from appliance '{matched_appliance}')",
+                            )
                 
                 appliance_site_variables = read_component_site_variables(
                     data=appliance_site_variables
