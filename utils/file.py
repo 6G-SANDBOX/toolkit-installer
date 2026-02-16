@@ -120,7 +120,7 @@ def read_site_yaml(data: Dict) -> Dict:
             msg(level="info", message=f"Reading nested fields in {key}:")
             aux[key] = read_site_yaml(value)
         elif isinstance(value, List):
-             # Convert list to comma-separated string for default display
+            # Convert list to comma-separated string for default display
             default_str = ", ".join(str(item) for item in value)
             aux[key] = [
                 int(item.strip())
