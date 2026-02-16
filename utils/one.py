@@ -2514,7 +2514,9 @@ def onemarketapp_add(
         try:
             returned_template_id = onetemplate_id(template_name=appliance_name)
             returned_image_id = oneimage_id_by_name(image_name=appliance_name)
-        except Exception:
+        except SystemExit:
+            # onetemplate_id/oneimage_id_by_name may call msg(level="error"), which sys.exit(1)s.
+            # Swallow this here to keep the lookup best-effort and leave IDs as None.
             pass  # Keep None values if we can't get the IDs
     
     return is_added, appliance_name, returned_template_id, returned_image_id
