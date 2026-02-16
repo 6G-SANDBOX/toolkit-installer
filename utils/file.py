@@ -93,15 +93,21 @@ def read_component_site_variables(data: Dict) -> Dict:
             aux[key] = ask_text(
                 message=f"Reading the value of {key}. Auto-filled from marketplace (you can change it):",
                 default=str(value),
+                validate=lambda val: True if val.strip().isdigit() else "Please enter a valid numeric ID",
             )
             aux[key] = int(aux[key])
         elif isinstance(value, str):
             # String values are descriptions that need user input
-            aux[key] = ask_text(
-                message=f"Reading the value of {key}. This key indicates {value}:"
-            )
             if is_template_or_image_id:
+                aux[key] = ask_text(
+                    message=f"Reading the value of {key}. This key indicates {value}:",
+                    validate=lambda val: True if val.strip().isdigit() else "Please enter a valid numeric ID",
+                )
                 aux[key] = int(aux[key])
+            else:
+                aux[key] = ask_text(
+                    message=f"Reading the value of {key}. This key indicates {value}:"
+                )
         else:
             msg(
                 level="info",
@@ -147,15 +153,22 @@ def read_site_yaml(data: Dict) -> Dict:
                 if item.strip()
             ]
         elif isinstance(value, str):
-            aux[key] = ask_text(message=f"Reading the value of {key}:", default=value)
             if is_template_or_image_id:
+                aux[key] = ask_text(
+                    message=f"Reading the value of {key}:",
+                    default=value,
+                    validate=lambda val: True if val.strip().isdigit() else "Please enter a valid numeric ID",
+                )
                 aux[key] = int(aux[key])
+            else:
+                aux[key] = ask_text(message=f"Reading the value of {key}:", default=value)
         elif isinstance(value, int):
             if is_template_or_image_id:
                 # Integer values for template_id/image_id are auto-filled, show with special message
                 user_input = ask_text(
                     message=f"Reading the value of {key}. Auto-filled from marketplace (you can change it):",
                     default=str(value),
+                    validate=lambda val: True if val.strip().isdigit() else "Please enter a valid numeric ID",
                 )
             else:
                 user_input = ask_text(message=f"Enter the value of {key}:", default=str(value))
