@@ -144,6 +144,13 @@ def read_site_yaml(data: Dict) -> Dict:
             user_input = ask_text(
                 message=f"Enter the value of {key} as comma-separated numbers (e.g., 0, 1, 2):",
                 default=default_str,
+                validate=lambda val: (
+                    True if all(
+                        item.strip().lstrip("-").isdigit()
+                        for item in val.strip().strip("[]").split(",")
+                        if item.strip()
+                    ) else "Please enter valid comma-separated integers (e.g., 0, 1, 2)"
+                ),
             )
             # Parse user input, handling both "0, 1, 2" and "[0, 1, 2]" formats
             user_input = user_input.strip().strip("[]")
