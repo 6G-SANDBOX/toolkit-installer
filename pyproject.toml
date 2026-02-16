@@ -8,7 +8,7 @@ authors = [
     { name = "Carlos Andreo", email = "c.andreo@uma.es" },
     { name = "Daniel Garcia", email = "dgarcia@opennebula.io" },
     { name = "Rubén López", email = "rubenlocru@uma.es" },
-    { name = "Rafa García", email = "rafagarciaa31@gmail.com},
+    { name = "Rafa García", email = "rafagarciaa31@gmail.com" },
 ]
 
 dependencies = [
