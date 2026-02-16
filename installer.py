@@ -329,7 +329,10 @@ try:
     appliance_toolkit_service_name = onemarketapp_name(
         appliance_url=appliance_toolkit_service_url
     )
-    print(f"[DEBUG] Name of instantiated service: {appliance_toolkit_service_name}")
+    msg(
+        level="debug",
+        message=f"Name of instantiated service: {appliance_toolkit_service_name}",
+    )
     is_toolkit_service_instantiated, appliance_toolkit_service_name = (
         onemarketapp_instantiate(
             appliance_url=appliance_toolkit_service_url,
