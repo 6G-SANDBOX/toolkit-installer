@@ -12,7 +12,7 @@ SITES_SKIP_KEYS = {
     "site_hypervisor",
     "site_onegate",
     "site_s3_server",
-    "site_routemanager",
+    #"site_routemanager",
     "site_available_components",
 }
 
@@ -82,7 +82,15 @@ def read_component_site_variables(data: Dict) -> Dict:
         if isinstance(value, Dict):
             msg(level="info", message=f"Reading nested fields in {key}:")
             aux[key] = read_site_yaml(value)
+        elif isinstance(value, int) and (key == "template_id" or key == "image_id"):
+            # Integer values for template_id/image_id are auto-filled, show as default but allow override
+            aux[key] = ask_text(
+                message=f"Reading the value of {key}. Auto-filled from marketplace (you can change it):",
+                default=str(value),
+            )
+            aux[key] = int(aux[key])
         elif isinstance(value, str):
+            # String values are descriptions that need user input
             aux[key] = ask_text(
                 message=f"Reading the value of {key}. This key indicates {value}:"
             )
@@ -112,11 +120,13 @@ def read_site_yaml(data: Dict) -> Dict:
             msg(level="info", message=f"Reading nested fields in {key}:")
             aux[key] = read_site_yaml(value)
         elif isinstance(value, List):
+            # Convert list to comma-separated string for default display
+            default_str = ", ".join(str(item) for item in value)
             aux[key] = [
                 int(item.strip())
                 for item in ask_text(
                     message=f"Reading the value of {key} separated by commas. For example: 0, 1, 2:",
-                    default=str(value),
+                    default=default_str,
                 ).split(",")
             ]
         elif isinstance(value, str):

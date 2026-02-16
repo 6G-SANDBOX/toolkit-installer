@@ -110,7 +110,7 @@ try:
     opennebula_sandbox_marketplace_endpoint = get_dotenv_var(
         key="OPENNEBULA_SANDBOX_MARKETPLACE_ENDPOINT"
     )
-    appliance_toolkit_service_url = get_dotenv_var(key="APPLIANCE_TOOLKIT_SERVICE_URL")
+    #appliance_toolkit_service_url = get_dotenv_var(key="APPLIANCE_TOOLKIT_SERVICE_URL")
     toolkit_service_sites_ansible_token = get_dotenv_var(
         key="TOOLKIT_SERVICE_SITES_ANSIBLE_TOKEN"
     )
@@ -180,6 +180,27 @@ try:
     check_one_health()
     msg(level="info", message=f"Your onegate endpoint is {onegate_endpoint()}")
     msg(level="info", message="OpenNebula is healthy")
+
+    opennebula_version: str = ask_select(
+        message="What version of OpenNebula have you installed?",
+        choices=["6.10.x", "7.0.x", "Other"],
+    )
+
+    if opennebula_version == "Other":
+        msg(level="error", message=("The toolkit installer is only available for the following OpenNebula versions: 6.10.x. and 7.0.x. "
+            "Please reinstall OpenNebula using one of these supported versions before proceeding. "
+            f"For more information, refer to the official documentation: {sandbox_documentation_url}/site_admin/toolkit#requirements"
+       ),)
+        exit(1)
+    else:
+        if opennebula_version == "6.10.x":
+            msg(level="info", message="ACCESSING TO TOOLKIT FOR OPENNEBULA 6.10.X")
+            appliance_toolkit_service_url = get_dotenv_var(key="APPLIANCE_TOOLKIT_SERVICE_URL")
+        elif opennebula_version == "7.0.x":
+            msg(level="info", message="ACCESSING TO TOOLKIT FOR OPENNEBULA 7.0.X")
+            appliance_toolkit_service_url = get_dotenv_var(key="APPLIANCE_TOOLKIT_V7_SERVICE_URL")
+
+    
     github_username = ask_text(
         message=f"Introduce the username that has been given access to the team {github_sites_team_name} in the organization {github_organization_name}:",
         validate=lambda github_username: (
@@ -308,6 +329,10 @@ try:
     appliance_toolkit_service_name = onemarketapp_name(
         appliance_url=appliance_toolkit_service_url
     )
+    msg(
+        level="debug",
+        message=f"Name of instantiated service: {appliance_toolkit_service_name}",
+    )
     is_toolkit_service_instantiated, appliance_toolkit_service_name = (
         onemarketapp_instantiate(
             appliance_url=appliance_toolkit_service_url,
@@ -316,6 +341,8 @@ try:
             username=username,
         )
     )
+
+    
     if not is_toolkit_service_instantiated:
         msg(
             level="error",
@@ -658,6 +685,20 @@ try:
                     message=f"Select the appliances that you want to add to the {site} site for the component {component}",
                     choices=component_appliances_names,
                 )
+                
+                # Check if user selected any appliances
+                if not component_appliances_names_add:
+                    msg(
+                        level="warning",
+                        message=f"No appliances selected for component {component}. The component will be added without appliance configuration. You will need to manually download the appliance from the marketplace and create the VM Template.",
+                    )
+                    site_data["site_available_components"][component] = None
+                    continue
+                
+                # Track the IDs obtained from marketplace
+                obtained_template_id = None
+                obtained_image_id = None
+                
                 for component_appliance_name in component_appliances_names_add:
                     component_appliance_url = component_appliances_urls_names[
                         component_appliance_name
@@ -665,7 +706,7 @@ try:
                     if component_appliance_url.startswith(
                         opennebula_public_marketplace_endpoint
                     ):
-                        is_added, _ = onemarketapp_add(
+                        is_added, _, obtained_template_id, obtained_image_id = onemarketapp_add(
                             group_name=group_name,
                             username=username,
                             marketplace_name=opennebula_public_marketplace_name,
@@ -674,7 +715,7 @@ try:
                     elif component_appliance_url.startswith(
                         opennebula_sandbox_marketplace_endpoint
                     ):
-                        is_added, _ = onemarketapp_add(
+                        is_added, _, obtained_template_id, obtained_image_id = onemarketapp_add(
                             group_name=group_name,
                             username=username,
                             marketplace_name=opennebula_sandbox_marketplace_name,
@@ -687,6 +728,21 @@ try:
                                 f"Appliance {component_appliance_name} not found in marketplaces {opennebula_public_marketplace_name} or {opennebula_sandbox_marketplace_name}"
                             ),
                         )
+                
+                # Auto-fill template_id and image_id if obtained from marketplace
+                if obtained_template_id is not None and "template_id" in appliance_site_variables:
+                    appliance_site_variables["template_id"] = obtained_template_id
+                    msg(
+                        level="info",
+                        message=f"Auto-filled template_id with value {obtained_template_id}",
+                    )
+                if obtained_image_id is not None and "image_id" in appliance_site_variables:
+                    appliance_site_variables["image_id"] = obtained_image_id
+                    msg(
+                        level="info",
+                        message=f"Auto-filled image_id with value {obtained_image_id}",
+                    )
+                
                 appliance_site_variables = read_component_site_variables(
                     data=appliance_site_variables
                 )
