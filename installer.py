@@ -766,6 +766,9 @@ try:
                                 
                                 if var_name == version_key:
                                     # Found a match! Auto-fill template_id and/or image_id in the nested dict
+                                    # Note: isinstance(..., str) checks if the value is still a placeholder description
+                                    # (e.g., "ID of the VM template"). If it's already an int, it was previously
+                                    # auto-filled and should not be overwritten.
                                     if "template_id" in var_value and isinstance(var_value["template_id"], str):
                                         if ids["template_id"] is not None:
                                             appliance_site_variables[var_name]["template_id"] = ids["template_id"]
