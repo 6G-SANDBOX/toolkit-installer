@@ -178,14 +178,21 @@ def read_site_yaml(data: Dict) -> Dict:
                     validate=lambda val: True if val.strip().isdigit() else "Please enter a valid numeric ID",
                 )
             else:
+                def _validate_int_or_list(val):
+                    val = val.strip()
+                    if val.lstrip("-").isdigit():
+                        return True
+                    if val.startswith("[") and val.endswith("]"):
+                        items = val.strip("[]").split(",")
+                        if all(item.strip().lstrip("-").isdigit() for item in items if item.strip()):
+                            return True
+                        return "All items inside brackets must be valid integers (e.g., [0, 1, 2])"
+                    return "Please enter a valid integer or a list like [0, 1, 2]"
+
                 user_input = ask_text(
                     message=f"Enter the value of {key}:",
                     default=str(value),
-                    validate=lambda val: (
-                        True if val.strip().lstrip("-").isdigit() or
-                        (val.strip().startswith("[") and val.strip().endswith("]"))
-                        else "Please enter a valid integer or a list like [0, 1, 2]"
-                    ),
+                    validate=_validate_int_or_list,
                 )
             # Handle case where user enters list format like [0] or [0, 1, 2]
             user_input = user_input.strip()
