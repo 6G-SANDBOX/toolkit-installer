@@ -877,7 +877,7 @@ try:
         trial_network_path = join_path(
             library_path, trial_network_component, "sample_tnlcm_descriptor.yaml"
         )
-        tnlcm_create_trial_network = f'''curl -w "%{{http_code}}" -X POST "{tnlcm_url}/api/v1/trial-network" \
+        tnlcm_create_trial_network = f'''curl -w "%{{http_code}}" -X POST "{tnlcm_url}/api/v1/trial-network?validate=true" \
             -H "accept: application/json" \
             -H "Authorization: Bearer {access_token}" \
             -H "Content-Type: multipart/form-data" \
