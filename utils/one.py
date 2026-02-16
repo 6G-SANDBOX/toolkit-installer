@@ -2819,8 +2819,8 @@ def onemarketapp_add(
                 service_details = oneflow_template_show(oneflow_template_name=appliance_name)
                 if service_details and "DOCUMENT" in service_details:
                     returned_template_id = int(service_details["DOCUMENT"]["ID"])
-        except Exception:
-            pass  # Keep None values if we can't get the IDs
+        except (Exception, SystemExit):
+            pass  # Best-effort lookup: keep None values if we can't get the IDs
     
     return is_added, appliance_name, returned_template_id, returned_image_id
 
