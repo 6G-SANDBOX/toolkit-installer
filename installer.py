@@ -1,3 +1,4 @@
+import re
 from typing import Dict, List
 
 from dotenv import load_dotenv
@@ -331,7 +332,10 @@ try:
     appliance_toolkit_service_name = onemarketapp_name(
         appliance_url=appliance_toolkit_service_url
     )
-    print(f"[DEBUG] Name of instantiated service: {appliance_toolkit_service_name}")
+    msg(
+        level="debug",
+        message=f"Name of instantiated service: {appliance_toolkit_service_name}",
+    )
     is_toolkit_service_instantiated, appliance_toolkit_service_name, toolkit_service_id, _ = (
         onemarketapp_instantiate(
             appliance_url=appliance_toolkit_service_url,
@@ -341,7 +345,6 @@ try:
         )
     )
 
-    
     if not is_toolkit_service_instantiated:
         msg(
             level="error",
@@ -744,8 +747,6 @@ try:
                 # This handles both standard variables (template_id, image_id) and
                 # prefixed variables (collector_template_id, switch_image_id, etc.)
                 # Also handles nested variables for versioned components (e.g., oneKE with "131", "131a" keys)
-                import re
-                
                 for var_name in list(appliance_site_variables.keys()):
                     var_value = appliance_site_variables[var_name]
                     matched_ids = None
