@@ -1,3 +1,4 @@
+import re
 from typing import Dict, List
 
 from dotenv import load_dotenv
@@ -34,8 +35,8 @@ from utils.logs import msg, setup_logger
 from utils.one import (
     check_one_health,
     oneacl_create,
-    oneflow_custom_attr_value,
-    oneflow_role_vm_name,
+    oneflow_custom_attr_value_by_id,
+    oneflow_role_vm_name_by_id,
     onegate_endpoint,
     onegroup_addadmin,
     onegroup_create,
@@ -57,9 +58,11 @@ from utils.one import (
     onevm_deploy,
     onevm_disk_resize,
     onevm_ip,
+    onevm_ip_by_id,
     onevm_undeploy_hard,
     onevm_updateconf_cpu_model,
     onevm_user_input,
+    onevm_user_input_by_id,
     onevm_user_template_param,
 )
 from utils.os import (
@@ -333,7 +336,7 @@ try:
         level="debug",
         message=f"Name of instantiated service: {appliance_toolkit_service_name}",
     )
-    is_toolkit_service_instantiated, appliance_toolkit_service_name = (
+    is_toolkit_service_instantiated, appliance_toolkit_service_name, toolkit_service_id, _ = (
         onemarketapp_instantiate(
             appliance_url=appliance_toolkit_service_url,
             group_name=group_name,
@@ -342,7 +345,6 @@ try:
         )
     )
 
-    
     if not is_toolkit_service_instantiated:
         msg(
             level="error",
@@ -356,15 +358,15 @@ try:
             "The public SSH key is stored in the user template of the Jenkins virtual machine."
         ),
     )
-    jenkins_vm = oneflow_role_vm_name(
-        oneflow_name=appliance_toolkit_service_name,
+    jenkins_vm = oneflow_role_vm_name_by_id(
+        oneflow_id=toolkit_service_id,
         oneflow_role=toolkit_service_jenkins_role,
     )
     jenkins_ssh_key = onevm_user_template_param(
         vm_name=jenkins_vm, param=toolkit_service_jenkins_ssh_key_param
     )
-    sites_ansible_token = oneflow_custom_attr_value(
-        oneflow_name=appliance_toolkit_service_name,
+    sites_ansible_token = oneflow_custom_attr_value_by_id(
+        oneflow_id=toolkit_service_id,
         attr_key=toolkit_service_sites_ansible_token,
     )
     sites_ansible_token_path = join_path(
@@ -380,8 +382,8 @@ try:
         level="info",
         message=f"Resizing MinIO disk with id {toolkit_service_minio_disk_id} to {toolkit_service_minio_disk_size} GB",
     )
-    minio_vm = oneflow_role_vm_name(
-        oneflow_name=appliance_toolkit_service_name,
+    minio_vm = oneflow_role_vm_name_by_id(
+        oneflow_id=toolkit_service_id,
         oneflow_role=toolkit_service_minio_role,
     )
     onevm_disk_resize(
@@ -393,8 +395,8 @@ try:
         level="info",
         message=f"Disk with id {toolkit_service_minio_disk_id} resized to {toolkit_service_minio_disk_size} GB",
     )
-    tnlcm_vm = oneflow_role_vm_name(
-        oneflow_name=appliance_toolkit_service_name,
+    tnlcm_vm = oneflow_role_vm_name_by_id(
+        oneflow_id=toolkit_service_id,
         oneflow_role=toolkit_service_tnlcm_role,
     )
     msg(
@@ -449,7 +451,7 @@ try:
     appliance_technitium_name = onemarketapp_name(
         appliance_url=appliance_technitium_url
     )
-    is_technitium_instantiated, appliance_technitium_name = onemarketapp_instantiate(
+    is_technitium_instantiated, appliance_technitium_name, _, technitium_vm_id = onemarketapp_instantiate(
         appliance_url=appliance_technitium_url,
         group_name=group_name,
         marketplace_name=opennebula_sandbox_marketplace_name,
@@ -465,7 +467,7 @@ try:
     appliance_route_manager_api_name = onemarketapp_name(
         appliance_url=appliance_route_manager_api_url
     )
-    is_route_manager_api_instantiated, appliance_route_manager_api_name = (
+    is_route_manager_api_instantiated, appliance_route_manager_api_name, _, route_manager_api_vm_id = (
         onemarketapp_instantiate(
             appliance_url=appliance_route_manager_api_url,
             group_name=group_name,
@@ -475,8 +477,9 @@ try:
     )
     route_manager_api_token = None
     if is_route_manager_api_instantiated:
-        route_manager_api_token = onevm_user_input(
-            vm_name=appliance_route_manager_api_name,
+        # Use VM ID to avoid conflicts with VMs of the same name
+        route_manager_api_token = onevm_user_input_by_id(
+            vm_id=route_manager_api_vm_id,
             user_input=route_manager_api_token_param,
         )
     if not is_route_manager_api_instantiated:
@@ -556,7 +559,8 @@ try:
                 message=f"Key {sites_key} not found in site {site} in repository {sites_repository_name}",
             )
     if is_technitium_instantiated:
-        site_data["site_dns"] = onevm_ip(vm_name=appliance_technitium_name)
+        # Use VM ID to avoid conflicts with VMs of the same name
+        site_data["site_dns"] = onevm_ip_by_id(vm_id=technitium_vm_id)
     else:
         site_data["site_dns"] = "8.8.8.8,1.1.1.1"
     site_data["site_hypervisor"] = "one"
@@ -577,8 +581,9 @@ try:
                 level="error",
                 message=f"API endpoint not found in site_routemanager in site {site} in repository {sites_repository_name}",
             )
-        site_data["site_routemanager"]["api_endpoint"] = onevm_ip(
-            vm_name=appliance_route_manager_api_name
+        # Use VM ID to avoid conflicts with VMs of the same name
+        site_data["site_routemanager"]["api_endpoint"] = onevm_ip_by_id(
+            vm_id=route_manager_api_vm_id
         )
         if "token" not in core_site_data["site_routemanager"]:
             msg(
@@ -638,9 +643,11 @@ try:
                 level="error",
                 message=f"Long description for component {component} in repository {library_repository_name} using ref {library_ref} is not a string",
             )
+        component_upper = component.upper()
+        component_header = f"\n{'━' * 60}\n📦 Component: {component_upper}\n{'━' * 60}"
         add_component = ask_confirm(
             message=(
-                f"\nDo you want to add {component} component to your site? Very important to know the availability of the component in the site. Ask to the administrator of the site. \n{long_description}"
+                f"{component_header}\n\n{long_description}\n\nDo you want to add {component} to your site? (Check availability with site admin)"
             ),
             default=False,
         )
@@ -695,14 +702,16 @@ try:
                     site_data["site_available_components"][component] = None
                     continue
                 
-                # Track the IDs obtained from marketplace
-                obtained_template_id = None
-                obtained_image_id = None
+                # Track the IDs obtained from marketplace for each appliance
+                # Dict: {appliance_name: {"template_id": id, "image_id": id}}
+                appliance_ids = {}
                 
                 for component_appliance_name in component_appliances_names_add:
                     component_appliance_url = component_appliances_urls_names[
                         component_appliance_name
                     ]
+                    obtained_template_id = None
+                    obtained_image_id = None
                     if component_appliance_url.startswith(
                         opennebula_public_marketplace_endpoint
                     ):
@@ -728,20 +737,94 @@ try:
                                 f"Appliance {component_appliance_name} not found in marketplaces {opennebula_public_marketplace_name} or {opennebula_sandbox_marketplace_name}"
                             ),
                         )
+                    # Store IDs for this appliance
+                    appliance_ids[component_appliance_name] = {
+                        "template_id": obtained_template_id,
+                        "image_id": obtained_image_id,
+                    }
                 
-                # Auto-fill template_id and image_id if obtained from marketplace
-                if obtained_template_id is not None and "template_id" in appliance_site_variables:
-                    appliance_site_variables["template_id"] = obtained_template_id
-                    msg(
-                        level="info",
-                        message=f"Auto-filled template_id with value {obtained_template_id}",
-                    )
-                if obtained_image_id is not None and "image_id" in appliance_site_variables:
-                    appliance_site_variables["image_id"] = obtained_image_id
-                    msg(
-                        level="info",
-                        message=f"Auto-filled image_id with value {obtained_image_id}",
-                    )
+                # Auto-fill template_id and image_id variables using smart matching
+                # This handles both standard variables (template_id, image_id) and
+                # prefixed variables (collector_template_id, switch_image_id, etc.)
+                # Also handles nested variables for versioned components (e.g., oneKE with "131", "131a" keys)
+                for var_name in list(appliance_site_variables.keys()):
+                    var_value = appliance_site_variables[var_name]
+                    matched_ids = None
+                    matched_appliance = None
+                    
+                    # Handle nested dictionaries (e.g., oneKE's "131": {template_id: ...})
+                    if isinstance(var_value, dict):
+                        # Check if this looks like a version key (e.g., "131", "131a", "129")
+                        # Try to match with appliance names containing version numbers
+                        for appliance_name, ids in appliance_ids.items():
+                            # Extract version from appliance name (e.g., "1.31" from "[6G-Sandbox] Service OneKE 1.31")
+                            version_match = re.search(r'(\d+\.\d+[a-z]?)', appliance_name)
+                            if version_match:
+                                version = version_match.group(1)
+                                # Convert version to key format: "1.31" -> "131", "1.31a" -> "131a"
+                                version_key = version.replace(".", "")
+                                
+                                if var_name == version_key:
+                                    # Found a match! Auto-fill template_id and/or image_id in the nested dict
+                                    # Note: isinstance(..., str) checks if the value is still a placeholder description
+                                    # (e.g., "ID of the VM template"). If it's already an int, it was previously
+                                    # auto-filled and should not be overwritten.
+                                    if "template_id" in var_value and isinstance(var_value["template_id"], str):
+                                        if ids["template_id"] is not None:
+                                            appliance_site_variables[var_name]["template_id"] = ids["template_id"]
+                                            msg(
+                                                level="info",
+                                                message=f"Auto-filled {var_name}.template_id with value {ids['template_id']} (from appliance '{appliance_name}')",
+                                            )
+                                    if "image_id" in var_value and isinstance(var_value["image_id"], str):
+                                        if ids["image_id"] is not None:
+                                            appliance_site_variables[var_name]["image_id"] = ids["image_id"]
+                                            msg(
+                                                level="info",
+                                                message=f"Auto-filled {var_name}.image_id with value {ids['image_id']} (from appliance '{appliance_name}')",
+                                            )
+                                    break
+                        continue
+                    
+                    if var_name == "template_id" or var_name == "image_id":
+                        # Standard variable: use the first/only appliance
+                        if len(appliance_ids) == 1:
+                            matched_appliance = list(appliance_ids.keys())[0]
+                            matched_ids = appliance_ids[matched_appliance]
+                    elif var_name.endswith("_template_id") or var_name.endswith("_image_id"):
+                        # Prefixed variable: extract prefix and find matching appliance
+                        if var_name.endswith("_template_id"):
+                            prefix = var_name[:-12]  # Remove "_template_id"
+                        else:
+                            prefix = var_name[:-9]   # Remove "_image_id"
+                        
+                        # Search for an appliance whose name contains the prefix (case-insensitive)
+                        prefix_lower = prefix.lower()
+                        for appliance_name, ids in appliance_ids.items():
+                            # Normalize appliance name: replace hyphens/underscores with spaces, lowercase
+                            appliance_name_normalized = appliance_name.lower().replace("-", " ").replace("_", " ")
+                            appliance_words = appliance_name_normalized.split()
+                            
+                            # Check if prefix matches any word in the appliance name
+                            if prefix_lower in appliance_words or any(prefix_lower in word for word in appliance_words):
+                                matched_appliance = appliance_name
+                                matched_ids = ids
+                                break
+                    
+                    # Auto-fill the variable if we found a match
+                    if matched_ids is not None:
+                        if var_name.endswith("template_id") and matched_ids["template_id"] is not None:
+                            appliance_site_variables[var_name] = matched_ids["template_id"]
+                            msg(
+                                level="info",
+                                message=f"Auto-filled {var_name} with value {matched_ids['template_id']} (from appliance '{matched_appliance}')",
+                            )
+                        elif var_name.endswith("image_id") and matched_ids["image_id"] is not None:
+                            appliance_site_variables[var_name] = matched_ids["image_id"]
+                            msg(
+                                level="info",
+                                message=f"Auto-filled {var_name} with value {matched_ids['image_id']} (from appliance '{matched_appliance}')",
+                            )
                 
                 appliance_site_variables = read_component_site_variables(
                     data=appliance_site_variables
@@ -787,14 +870,14 @@ try:
         if status_code != "201":
             msg(
                 level="error",
-                message=f"Failed to login to TNLCM. Command: {tnlcm_login}. Error received: {stderr}. Return code: {rc}",
+                message=f"Failed to login to TNLCM. Status code: {status_code}. API response: {tokens}. Return code: {rc}",
             )
         access_token = loads_json(data=tokens)["access_token"]
         msg(level="info", message="Logged in successfully to TNLCM")
         trial_network_path = join_path(
             library_path, trial_network_component, "sample_tnlcm_descriptor.yaml"
         )
-        tnlcm_create_trial_network = f'''curl -w "%{{http_code}}" -X POST "{tnlcm_url}/api/v1/trial-network?validate=True" \
+        tnlcm_create_trial_network = f'''curl -w "%{{http_code}}" -X POST "{tnlcm_url}/api/v1/trial-network?validate=true" \
             -H "accept: application/json" \
             -H "Authorization: Bearer {access_token}" \
             -H "Content-Type: multipart/form-data" \
@@ -809,7 +892,7 @@ try:
         if status_code != "201":
             msg(
                 level="error",
-                message=f"Failed to create trial network in TNLCM. Command: {tnlcm_create_trial_network}. Error received: {stderr}. Return code: {rc}",
+                message=f"Failed to create trial network in TNLCM. Status code: {status_code}. API response: {response_create_trial_network}. Return code: {rc}",
             )
         trial_network_id = loads_json(data=response_create_trial_network)["tn_id"]
         msg(
@@ -824,7 +907,7 @@ try:
         if status_code != "200":
             msg(
                 level="error",
-                message=f"Failed to deploy trial network in TNLCM. Command: {deploy_trial_network}. Error received: {stderr}. Return code: {rc}",
+                message=f"Failed to deploy trial network in TNLCM. Status code: {status_code}. API response: {response_deploy_trial_network}. Return code: {rc}",
             )
         msg(
             level="info",
