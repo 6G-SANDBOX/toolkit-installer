@@ -79,23 +79,35 @@ def read_component_site_variables(data: Dict) -> Dict:
     """
     aux = {}
     for key, value in data.items():
+        # Check if this is a template_id or image_id variable (standard or prefixed)
+        is_template_or_image_id = (
+            key == "template_id" or key == "image_id" or
+            key.endswith("_template_id") or key.endswith("_image_id")
+        )
+        
         if isinstance(value, Dict):
             msg(level="info", message=f"Reading nested fields in {key}:")
             aux[key] = read_site_yaml(value)
-        elif isinstance(value, int) and (key == "template_id" or key == "image_id"):
+        elif isinstance(value, int) and is_template_or_image_id:
             # Integer values for template_id/image_id are auto-filled, show as default but allow override
             aux[key] = ask_text(
                 message=f"Reading the value of {key}. Auto-filled from marketplace (you can change it):",
                 default=str(value),
+                validate=lambda val: True if val.strip().isdigit() else "Please enter a valid numeric ID",
             )
             aux[key] = int(aux[key])
         elif isinstance(value, str):
             # String values are descriptions that need user input
-            aux[key] = ask_text(
-                message=f"Reading the value of {key}. This key indicates {value}:"
-            )
-            if key == "template_id" or key == "image_id":
+            if is_template_or_image_id:
+                aux[key] = ask_text(
+                    message=f"Reading the value of {key}. This key indicates {value}:",
+                    validate=lambda val: True if val.strip().isdigit() else "Please enter a valid numeric ID",
+                )
                 aux[key] = int(aux[key])
+            else:
+                aux[key] = ask_text(
+                    message=f"Reading the value of {key}. This key indicates {value}:"
+                )
         else:
             msg(
                 level="info",
@@ -116,25 +128,84 @@ def read_site_yaml(data: Dict) -> Dict:
     for key, value in data.items():
         if key in SITES_SKIP_KEYS:
             continue
-        elif isinstance(value, Dict):
+        
+        # Check if this is a template_id or image_id variable (standard or prefixed)
+        is_template_or_image_id = (
+            key == "template_id" or key == "image_id" or
+            key.endswith("_template_id") or key.endswith("_image_id")
+        )
+        
+        if isinstance(value, Dict):
             msg(level="info", message=f"Reading nested fields in {key}:")
             aux[key] = read_site_yaml(value)
         elif isinstance(value, List):
-            # Convert list to comma-separated string for default display
+            # Convert list to comma-separated string for display
             default_str = ", ".join(str(item) for item in value)
+            user_input = ask_text(
+                message=f"Enter the value of {key} as comma-separated numbers (e.g., 0, 1, 2):",
+                default=default_str,
+                validate=lambda val: (
+                    True if all(
+                        item.strip().lstrip("-").isdigit()
+                        for item in val.strip().strip("[]").split(",")
+                        if item.strip()
+                    ) else "Please enter valid comma-separated integers (e.g., 0, 1, 2)"
+                ),
+            )
+            # Parse user input, handling both "0, 1, 2" and "[0, 1, 2]" formats
+            user_input = user_input.strip().strip("[]")
             aux[key] = [
                 int(item.strip())
-                for item in ask_text(
-                    message=f"Reading the value of {key} separated by commas. For example: 0, 1, 2:",
-                    default=default_str,
-                ).split(",")
+                for item in user_input.split(",")
+                if item.strip()
             ]
         elif isinstance(value, str):
-            aux[key] = ask_text(message=f"Reading the value of {key}:", default=value)
+            if is_template_or_image_id:
+                aux[key] = ask_text(
+                    message=f"Reading the value of {key}:",
+                    default=value,
+                    validate=lambda val: True if val.strip().isdigit() else "Please enter a valid numeric ID",
+                )
+                aux[key] = int(aux[key])
+            else:
+                aux[key] = ask_text(message=f"Reading the value of {key}:", default=value)
         elif isinstance(value, int):
-            aux[key] = int(
-                ask_text(message=f"Enter the value of {key}:", default=str(value))
-            )
+            if is_template_or_image_id:
+                # Integer values for template_id/image_id are auto-filled, show with special message
+                user_input = ask_text(
+                    message=f"Reading the value of {key}. Auto-filled from marketplace (you can change it):",
+                    default=str(value),
+                    validate=lambda val: True if val.strip().isdigit() else "Please enter a valid numeric ID",
+                )
+            else:
+                def _validate_int_or_list(val):
+                    val = val.strip()
+                    if val.lstrip("-").isdigit():
+                        return True
+                    if val.startswith("[") and val.endswith("]"):
+                        items = val.strip("[]").split(",")
+                        if all(item.strip().lstrip("-").isdigit() for item in items if item.strip()):
+                            return True
+                        return "All items inside brackets must be valid integers (e.g., [0, 1, 2])"
+                    return "Please enter a valid integer or a list like [0, 1, 2]"
+
+                user_input = ask_text(
+                    message=f"Enter the value of {key}:",
+                    default=str(value),
+                    validate=_validate_int_or_list,
+                )
+            # Handle case where user enters list format like [0] or [0, 1, 2]
+            user_input = user_input.strip()
+            if user_input.startswith("[") and user_input.endswith("]"):
+                # User entered list format, convert to list
+                user_input = user_input.strip("[]")
+                aux[key] = [
+                    int(item.strip())
+                    for item in user_input.split(",")
+                    if item.strip()
+                ]
+            else:
+                aux[key] = int(user_input)
         elif isinstance(value, bool):
             new_value = ask_confirm(message=f"Enter the value of {key}:", default=value)
             aux[key] = new_value

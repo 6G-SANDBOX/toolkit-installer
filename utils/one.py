@@ -1,5 +1,81 @@
+"""
+OpenNebula CLI Wrapper Functions
+
+================================================================================
+                              FUNCTION INDEX
+================================================================================
+- OPENNEBULA MANAGEMENT (line ~93):
+    check_one_health, get_oned_conf_path, onegate_endpoint, restart_one
+
+- ACL MANAGEMENT (line ~181):
+    check_group_acl, oneacl_create, oneacl_list
+
+- DATASTORE MANAGEMENT (line ~274):
+    onedatastore_list, onedatastores_names
+
+- ONEFLOW MANAGEMENT (line ~334):
+    oneflow_chown, oneflow_custom_attr_value, oneflow_id, oneflow_list,
+    oneflow_role_info, oneflow_role_vm_name, oneflow_roles, oneflow_roles_vm_names,
+    oneflow_show, oneflow_show_by_id, oneflow_state_by_id, oneflow_name_by_id,
+    oneflow_roles_by_id, oneflow_roles_vm_names_by_id, oneflow_chown_by_id,
+    oneflow_role_info_by_id, oneflow_role_vm_name_by_id,
+    oneflow_custom_attr_value_by_id, oneflow_state, oneflows_names
+
+- ONEFLOW TEMPLATE MANAGEMENT (line ~910):
+    oneflow_template_chown, oneflow_template_custom_attrs, oneflow_template_ids,
+    oneflow_template_image_ids, split_attr_description, oneflow_template_instantiate,
+    oneflow_template_networks, oneflow_template_roles, oneflow_template_show
+
+- GROUP MANAGEMENT (line ~1363):
+    check_group_admin, onegroup_addadmin, onegroup_create, onegroup_id,
+    onegroup_list, onegroup_show, onegroups_names
+
+- HOST MANAGEMENT (line ~1551):
+    onehost_available_cpu, onehost_available_mem, onehost_cpu_model,
+    onehost_list, onehost_show, onehosts_avx_cpu_mem
+
+- IMAGES MANAGEMENT (line ~1771):
+    oneimage_chown, oneimage_name, oneimage_id_by_name, oneimage_delete,
+    oneimage_list, oneimage_rename, oneimage_show, oneimage_state,
+    oneimage_update, oneimage_version, oneimages_attribute, oneimages_names
+
+- MARKETPLACE MANAGEMENT (line ~2101):
+    get_marketplace_monitoring_interval, update_marketplace_monitoring_interval,
+    onemarket_create, onemarket_endpoint, onemarket_list, onemarket_show,
+    onemarkets_names
+
+- MARKETAPP MANAGEMENT (line ~2316):
+    onemarketapp_add, onemarketapp_instantiate, onemarketapp_export,
+    onemarketapp_curl, onemarketapp_description, onemarketapp_name,
+    onemarketapp_show, onemarketapp_type, onemarketapp_version
+
+- TEMPLATE MANAGEMENT (line ~3184):
+    onetemplate_chown, onetemplate_delete, onetemplate_id, onetemplate_image_ids,
+    onetemplate_instantiate, onetemplate_name, onetemplate_list, onetemplate_rename,
+    onetemplate_show, onetemplate_user_inputs, onetemplates_names
+
+- USER MANAGEMENT (line ~3641):
+    oneuser_chgrp, oneuser_create, oneuser_list, oneuser_public_ssh_keys,
+    oneuser_show, oneuser_update_public_ssh_key, oneusername, oneusername_id,
+    oneusernames
+
+- VM MANAGEMENT (line ~3912):
+    onevm_chown, onevm_chown_by_id, onevm_cpu_model, onevm_deploy, onevm_disk_resize,
+    onevm_disk_size, onevm_id, onevm_ip, onevm_ip_by_id, onevm_list, onevm_template_id,
+    onevm_terminate_hard, onevm_show, onevm_show_by_id, onevm_state, onevm_state_by_id,
+    onevm_undeploy_hard, onevm_updateconf_cpu_model, onevm_user_input,
+    onevm_user_input_by_id, onevm_user_template, onevm_user_template_param,
+    onevms_names, onevms_running, onevms_running_with_ids
+
+- NETWORKS MANAGEMENT (line ~4564):
+    onevnet_id, onevnet_list, onevnet_show, onevnets_names
+
+================================================================================
+"""
+
 import os
 import re
+from datetime import datetime
 from textwrap import dedent
 from time import sleep
 from typing import Dict, List, Optional, Tuple
@@ -17,7 +93,9 @@ from utils.questionary import (
 )
 
 
-## OPENNEBULA MANAGEMENT ##
+# ##############################################################################
+# ##                         OPENNEBULA MANAGEMENT                            ##
+# ##############################################################################
 def check_one_health() -> None:
     """
     Check OpenNebula health
@@ -103,7 +181,11 @@ def restart_one() -> None:
     )
 
 
-## ACL MANAGEMENT ##
+# ##############################################################################
+# ##                            ACL MANAGEMENT                                ##
+# ##############################################################################
+
+
 def check_group_acl(group_id: str, resources: str, rights: str) -> bool:
     """
     Check if group has ACL in OpenNebula
@@ -192,7 +274,11 @@ def oneacl_list() -> Dict | None:
         return loads_json(data=stdout)
 
 
-## DATASTORE MANAGEMENT ##
+# ##############################################################################
+# ##                         DATASTORE MANAGEMENT                             ##
+# ##############################################################################
+
+
 def onedatastore_list() -> Dict:
     """
     Get the list of datastores in OpenNebula
@@ -248,7 +334,11 @@ def onedatastores_names() -> List[str]:
     return datastores_names
 
 
-## ONEFLOW MANAGEMENT ##
+# ##############################################################################
+# ##                          ONEFLOW MANAGEMENT                              ##
+# ##############################################################################
+
+
 def oneflow_chown(oneflow_name: str, username: str, group_name: str) -> None:
     """
     Change the owner of a service in OpenNebula
@@ -583,6 +673,188 @@ def oneflow_name_by_id(oneflow_id: int) -> str:
     return oneflow["DOCUMENT"]["NAME"]
 
 
+def oneflow_roles_by_id(oneflow_id: int) -> List:
+    """
+    Get the roles of a service in OpenNebula by ID
+
+    :param oneflow_id: the ID of the service, ``int``
+    :return: the roles of the service, ``List``
+    """
+    oneflow = oneflow_show_by_id(oneflow_id=oneflow_id)
+    if oneflow is None:
+        msg(
+            level="error",
+            message=f"Service with ID {oneflow_id} not found",
+        )
+    if (
+        "DOCUMENT" not in oneflow
+        or "TEMPLATE" not in oneflow["DOCUMENT"]
+        or "BODY" not in oneflow["DOCUMENT"]["TEMPLATE"]
+    ):
+        msg(
+            level="error",
+            message=f"DOCUMENT key not found in service ID {oneflow_id} or TEMPLATE key not found in DOCUMENT or BODY key not found in TEMPLATE",
+        )
+    if "roles" not in oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]:
+        msg(
+            level="error",
+            message=f"roles key not found in service ID {oneflow_id}",
+        )
+    roles = oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]["roles"]
+    if roles is None:
+        msg(
+            level="error",
+            message=f"Could not get roles of service ID {oneflow_id}",
+        )
+    return roles
+
+
+def oneflow_roles_vm_names_by_id(oneflow_id: int) -> List[str]:
+    """
+    Get the names of the VMs in the roles of a service in OpenNebula by ID
+
+    :param oneflow_id: the ID of the service, ``int``
+    :return: the names of the VMs in the roles of the service, ``List[str]``
+    """
+    roles = oneflow_roles_by_id(oneflow_id=oneflow_id)
+    roles_vm_names = []
+    for role in roles:
+        if "nodes" not in role:
+            msg(
+                level="error",
+                message="nodes key not found in role",
+            )
+        for node in role["nodes"]:
+            if "vm_info" not in node or "VM" not in node["vm_info"]:
+                msg(
+                    level="error",
+                    message="vm_info key not found in role or VM key not found in vm_info",
+                )
+            if "NAME" not in node["vm_info"]["VM"]:
+                msg(
+                    level="error",
+                    message="NAME key not found in role",
+                )
+            vm_name = node["vm_info"]["VM"]["NAME"]
+            roles_vm_names.append(vm_name)
+    return roles_vm_names
+
+
+def oneflow_chown_by_id(oneflow_id: int, username: str, group_name: str) -> None:
+    """
+    Change the owner of a service in OpenNebula by ID
+
+    :param oneflow_id: the ID of the service, ``int``
+    :param username: the name of the user, ``str``
+    :param group_name: the name of the group, ``str``
+    """
+    command = f'oneflow chown {oneflow_id} "{username}" "{group_name}"'
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="error",
+            message=f"Could not change owner of service ID {oneflow_id} to {username}:{group_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+    msg(
+        level="debug",
+        message=f"Owner of service ID {oneflow_id} changed to {username}:{group_name}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+    )
+
+
+def oneflow_role_info_by_id(oneflow_id: int, oneflow_role: str) -> Dict:
+    """
+    Get the details of a role in a service in OpenNebula by ID
+
+    :param oneflow_id: the ID of the service, ``int``
+    :param oneflow_role: the name of the role, ``str``
+    :return: the details of the role, ``Dict``
+    """
+    roles = oneflow_roles_by_id(oneflow_id=oneflow_id)
+    for role in roles:
+        if "name" not in role:
+            msg(
+                level="error",
+                message="name key not found in role",
+            )
+        if role["name"] == oneflow_role:
+            return role
+    msg(
+        level="error",
+        message=f"Role {oneflow_role} not found in service ID {oneflow_id}",
+    )
+
+
+def oneflow_role_vm_name_by_id(oneflow_id: int, oneflow_role: str) -> str:
+    """
+    Get the name of a role in a service in OpenNebula by ID
+
+    :param oneflow_id: the ID of the service, ``int``
+    :param oneflow_role: the name of the role, ``str``
+    :return: the name of the role, ``str``
+    """
+    role = oneflow_role_info_by_id(oneflow_id=oneflow_id, oneflow_role=oneflow_role)
+    if "nodes" not in role:
+        msg(
+            level="error",
+            message=f"nodes key not found in role {oneflow_role}",
+        )
+    for node in role["nodes"]:
+        if "vm_info" not in node or "VM" not in node["vm_info"]:
+            msg(
+                level="error",
+                message=f"vm_info key not found in role {oneflow_role} or VM key not found in vm_info",
+            )
+        if "NAME" not in node["vm_info"]["VM"]:
+            msg(
+                level="error",
+                message=f"NAME key not found in role {oneflow_role}",
+            )
+        return node["vm_info"]["VM"]["NAME"]
+
+
+def oneflow_custom_attr_value_by_id(oneflow_id: int, attr_key: str) -> str:
+    """
+    Get the value of a custom attribute of a service in OpenNebula by ID
+
+    :param oneflow_id: the ID of the service, ``int``
+    :param attr_key: the key of the custom attribute, ``str``
+    :return: the value of the custom attribute, ``str``
+    """
+    oneflow = oneflow_show_by_id(oneflow_id=oneflow_id)
+    if oneflow is None:
+        msg(
+            level="error",
+            message=f"Service with ID {oneflow_id} not found",
+        )
+    if (
+        "DOCUMENT" not in oneflow
+        or "TEMPLATE" not in oneflow["DOCUMENT"]
+        or "BODY" not in oneflow["DOCUMENT"]["TEMPLATE"]
+    ):
+        msg(
+            level="error",
+            message=f"DOCUMENT key not found in service ID {oneflow_id} or TEMPLATE key not found in DOCUMENT or BODY key not found in TEMPLATE",
+        )
+    if "custom_attrs_values" not in oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]:
+        msg(
+            level="error",
+            message=f"custom_attrs_values key not found in service ID {oneflow_id}",
+        )
+    custom_attrs_values = oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]["custom_attrs_values"]
+    if attr_key not in custom_attrs_values:
+        msg(
+            level="error",
+            message=f"Custom attribute {attr_key} not found in service ID {oneflow_id}",
+        )
+    attr_value = custom_attrs_values[attr_key]
+    if attr_value is None:
+        msg(
+            level="error",
+            message=f"Could not get value of custom attribute {attr_key} in service ID {oneflow_id}",
+        )
+    return attr_value
+
+
 def oneflow_state(oneflow_name: str) -> int:
     """
     Get the state of a service in OpenNebula
@@ -638,7 +910,11 @@ def oneflows_names() -> List[str]:
     return oneflows_names
 
 
-## ONEFLOW TEMPLATE MANAGEMENT ##
+# ##############################################################################
+# ##                     ONEFLOW TEMPLATE MANAGEMENT                          ##
+# ##############################################################################
+
+
 def oneflow_template_chown(
     oneflow_template_name: str,
     username: str,
@@ -767,14 +1043,14 @@ def split_attr_description(
 
 def oneflow_template_instantiate(
     oneflow_template_name: str, username: str, group_name: str
-) -> str:
+) -> Tuple[str, int]:
     """
     Instantiate a service in OpenNebula
 
     :param oneflow_template_name: the name of the service, ``str``
     :param username: the name of the user, ``str``
     :param group_name: the name of the group, ``str``
-    :return: the name of the instantiated service, ``str``
+    :return: tuple with the name and ID of the instantiated service, ``Tuple[str, int]``
     """
     # refer: https://docs.opennebula.io/6.10/management_and_operations/references/template.html#template-user-inputs
     custom_attrs = oneflow_template_custom_attrs(
@@ -895,14 +1171,16 @@ def oneflow_template_instantiate(
         data.update(custom_attrs_values)
     if networks_values:
         data.update(networks_values)
-    if data:
-        custom_attrs_path = join_path(
-            TEMP_DIRECTORY, f"{oneflow_template_name}_service_custom_attrs.json"
-        )
-        save_json_file(data=data, file_path=custom_attrs_path)
-        command = f'oneflow-template instantiate "{oneflow_template_name}" < "{custom_attrs_path}"'
-    else:
-        command = f'oneflow-template instantiate "{oneflow_template_name}"'
+    # Generate unique service name with username and timestamp to differentiate instances
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    unique_service_name = f"{oneflow_template_name} - {username} - {timestamp}"
+    data["name"] = unique_service_name
+    # Always save data to file since we now always have at least the name
+    custom_attrs_path = join_path(
+        TEMP_DIRECTORY, f"{oneflow_template_name}_service_custom_attrs.json"
+    )
+    save_json_file(data=data, file_path=custom_attrs_path)
+    command = f'oneflow-template instantiate "{oneflow_template_name}" < "{custom_attrs_path}"'
     stdout, stderr, rc = run_command(command=command)
     if rc != 0:
         msg(
@@ -933,7 +1211,8 @@ def oneflow_template_instantiate(
         sleep(20)
         state = oneflow_state_by_id(oneflow_id=service_id)
     
-    roles_vm_names = oneflow_roles_vm_names(oneflow_name=service_name)
+    # Use ID-based functions to avoid conflicts with services of the same name
+    roles_vm_names = oneflow_roles_vm_names_by_id(oneflow_id=service_id)
     if roles_vm_names:
         for vm_name in roles_vm_names:
             onevm_chown(
@@ -946,8 +1225,8 @@ def oneflow_template_instantiate(
         username=username,
         group_name=group_name,
     )
-    oneflow_chown(
-        oneflow_name=service_name,
+    oneflow_chown_by_id(
+        oneflow_id=service_id,
         username=username,
         group_name=group_name,
     )
@@ -967,7 +1246,7 @@ def oneflow_template_instantiate(
             username=username,
             group_name=group_name,
         )
-    return service_name
+    return service_name, service_id
 
 
 def oneflow_template_networks(
@@ -1086,7 +1365,11 @@ def oneflow_template_show(
 #     msg("info", "Service updated")
 
 
-## GROUP MANAGEMENT ##
+# ##############################################################################
+# ##                           GROUP MANAGEMENT                               ##
+# ##############################################################################
+
+
 def check_group_admin(username: str, group_name: str) -> bool:
     """
     Check if user is admin of group in OpenNebula
@@ -1270,7 +1553,11 @@ def onegroups_names() -> List[str]:
     return groups_names
 
 
-## HOST MANAGEMENT ##
+# ##############################################################################
+# ##                            HOST MANAGEMENT                               ##
+# ##############################################################################
+
+
 def onehost_available_cpu(host_name: str) -> float:
     """
     Get the available percentage of CPU of a host in OpenNebula
@@ -1486,7 +1773,11 @@ def onehosts_avx_cpu_mem(
     return hosts_with_avx
 
 
-## IMAGES MANAGEMENT ##
+# ##############################################################################
+# ##                          IMAGES MANAGEMENT                               ##
+# ##############################################################################
+
+
 def oneimage_chown(image_name: str, username: str, group_name: str) -> None:
     """
     Change the owner of an image in OpenNebula
@@ -1812,7 +2103,11 @@ def oneimages_names() -> List[str]:
     return images_names
 
 
-## MARKETPLACE MANAGEMENT ##
+# ##############################################################################
+# ##                       MARKETPLACE MANAGEMENT                             ##
+# ##############################################################################
+
+
 def get_marketplace_monitoring_interval() -> int:
     """
     Get the monitoring interval of the marketplace
@@ -2023,7 +2318,11 @@ def onemarkets_names() -> List[str]:
     return marketplaces_names
 
 
-## MARKETAPP MANAGEMENT ##
+# ##############################################################################
+# ##                        MARKETAPP MANAGEMENT                              ##
+# ##############################################################################
+
+
 def onemarketapp_add(
     group_name: str,
     username: str,
@@ -2510,21 +2809,25 @@ def onemarketapp_add(
             is_added = True
     
     # If appliance was added, try to get the template_id and first image_id
-    if is_added and appliance_type == "IMAGE":
+    if is_added:
         try:
-            returned_template_id = onetemplate_id(template_name=appliance_name)
-            returned_image_id = oneimage_id_by_name(image_name=appliance_name)
-        except SystemExit:
-            # onetemplate_id/oneimage_id_by_name may call msg(level="error"), which sys.exit(1)s.
-            # Swallow this here to keep the lookup best-effort and leave IDs as None.
-            pass  # Keep None values if we can't get the IDs
+            if appliance_type == "IMAGE":
+                returned_template_id = onetemplate_id(template_name=appliance_name)
+                returned_image_id = oneimage_id_by_name(image_name=appliance_name)
+            elif appliance_type != "VM":
+                # For SERVICE type, get the oneflow-template ID
+                service_details = oneflow_template_show(oneflow_template_name=appliance_name)
+                if service_details and "DOCUMENT" in service_details:
+                    returned_template_id = int(service_details["DOCUMENT"]["ID"])
+        except (Exception, SystemExit):
+            pass  # Best-effort lookup: keep None values if we can't get the IDs
     
     return is_added, appliance_name, returned_template_id, returned_image_id
 
 
 def onemarketapp_instantiate(
     appliance_url: str, group_name: str, marketplace_name: str, username: str
-) -> Tuple[bool, str]:
+) -> Tuple[bool, str, Optional[int], Optional[int]]:
     """
     Ask if user has instantiated an appliance in OpenNebula
 
@@ -2532,32 +2835,66 @@ def onemarketapp_instantiate(
     :param group_name: the name of the group, ``str``
     :param marketplace_name: the name of the marketplace, ``str``
     :param username: the name of the user, ``str``
-    :return: tuple with the status of the appliance and the name of the appliance, ``Tuple[bool, str]``
+    :return: tuple with the status, name, optional service ID, and optional VM ID (for IMAGE type), ``Tuple[bool, str, Optional[int], Optional[int]]``
     """
     is_instantiated = False
     appliance_target_name = None
+    service_id = None
+    vm_id = None
+    vm_name = None
+    service_name = None
+    vms_running_with_ids = {}
     appliance_name = onemarketapp_name(appliance_url=appliance_url)
     appliance_type = onemarketapp_type(
         appliance_name=appliance_name,
         marketplace_name=marketplace_name,
     )
-    instantiate_appliance = ask_confirm(
-        message=f"Do yo have {appliance_name} instantiated in OpenNebula?",
-        default=False,
-    )
+    while True:
+        instantiate_appliance = ask_confirm(
+            message=f"Do you have {appliance_name} instantiated in OpenNebula?",
+            default=False,
+        )
+        if not instantiate_appliance:
+            break
+        if appliance_type == "IMAGE" or appliance_type == "VM":
+            # Get running VMs with their IDs to avoid name conflicts
+            vms_running_with_ids = onevms_running_with_ids()
+            if not vms_running_with_ids:
+                msg(
+                    level="warning",
+                    message=f"No running virtual machines found in OpenNebula. Cannot select an instance of {appliance_name}. Please check your OpenNebula environment",
+                )
+                continue
+            vm_name = ask_select(
+                message=f"Since you have an instance of {appliance_name} in OpenNebula, can you select the name of the virtual machine?",
+                choices=list(vms_running_with_ids.keys()),
+            )
+            break
+        else:
+            available_services = oneflows_names()
+            if not available_services:
+                msg(
+                    level="warning",
+                    message=f"No services found in OpenNebula. Cannot select an instance of {appliance_name}. Please check your OpenNebula environment",
+                )
+                continue
+            service_name = ask_select(
+                message=f"Since you have an instance of {appliance_name} in OpenNebula, can you select the name of the service instantiated?",
+                choices=available_services,
+            )
+            break
+
     if instantiate_appliance:
         if appliance_type == "IMAGE" or appliance_type == "VM":
-            vm_name = ask_select(
-                message=f"Since you have an instance of {appliance_name} in OpenNebula, can you select the name of the virtual machine? ",
-                choices=onevms_names(),
-            )
-            if onevm_state(vm_name=vm_name) != "3":  # 3 means running
+            vm_id = vms_running_with_ids[vm_name]
+            # Use ID-based functions from here to avoid conflicts with VMs of the same name
+            if onevm_state_by_id(vm_id=vm_id) != "3":  # 3 means running
                 msg(
                     level="error",
-                    message=f"Virtual machine {vm_name} is not in RUNNING state",
+                    message=f"Virtual machine {vm_name} (ID: {vm_id}) is not in RUNNING state",
                 )
-            onevm_chown(
-                vm_name=vm_name,
+            onevm_chown_by_id(
+                vm_id=vm_id,
                 username=username,
                 group_name=group_name,
             )
@@ -2574,16 +2911,14 @@ def onemarketapp_instantiate(
                 )
             appliance_target_name = vm_name
         else:
-            service_name = ask_select(
-                message=f"Since you have an instance of {appliance_name} in OpenNebula, can you select the name of the service instantiated?",
-                choices=oneflows_names(),
-            )
-            if oneflow_state(oneflow_name=service_name) != 2:  # 2 means running
+            service_id = oneflow_id(oneflow_name=service_name)
+            # Use ID-based functions from here to avoid conflicts with services of the same name
+            if oneflow_state_by_id(oneflow_id=service_id) != 2:  # 2 means running
                 msg(
                     level="error",
-                    message=f"Service {service_name} is not in RUNNING state",
+                    message=f"Service {service_name} (ID: {service_id}) is not in RUNNING state",
                 )
-            roles_vm_names = oneflow_roles_vm_names(oneflow_name=service_name)
+            roles_vm_names = oneflow_roles_vm_names_by_id(oneflow_id=service_id)
             if roles_vm_names:
                 for vm_name in roles_vm_names:
                     onevm_chown(
@@ -2596,8 +2931,8 @@ def onemarketapp_instantiate(
                 username=username,
                 group_name=group_name,
             )
-            oneflow_chown(
-                oneflow_name=service_name,
+            oneflow_chown_by_id(
+                oneflow_id=service_id,
                 username=username,
                 group_name=group_name,
             )
@@ -2640,9 +2975,11 @@ def onemarketapp_instantiate(
                         group_name=group_name,
                     )
                     appliance_target_name = appliance_name
+                    # Get VM ID for IMAGE type appliances to avoid name conflicts later
+                    vm_id = onevm_id(vm_name=appliance_name)
                 else:
-                    # oneflow_template_instantiate returns the actual service name
-                    appliance_target_name = oneflow_template_instantiate(
+                    # oneflow_template_instantiate returns the actual service name and ID
+                    appliance_target_name, service_id = oneflow_template_instantiate(
                         oneflow_template_name=appliance_name,
                         group_name=group_name,
                         username=username,
@@ -2652,7 +2989,7 @@ def onemarketapp_instantiate(
                 appliance_target_name = appliance_name
         else:
             appliance_target_name = appliance_name
-    return is_instantiated, appliance_target_name
+    return is_instantiated, appliance_target_name, service_id, vm_id
 
 
 def onemarketapp_export(
@@ -2886,7 +3223,11 @@ def onemarketapp_version(appliance_url: str) -> Tuple[str, str]:
     return appliance_software_version, appliance_version
 
 
-## TEMPLATE MANAGEMENT ##
+# ##############################################################################
+# ##                         TEMPLATE MANAGEMENT                              ##
+# ##############################################################################
+
+
 def onetemplate_chown(template_name: str, username: str, group_name: str) -> None:
     """
     Change the owner of a template in OpenNebula
@@ -3339,7 +3680,11 @@ def onetemplates_names() -> List[str]:
     return templates_names
 
 
-## USER MANAGEMENT ##
+# ##############################################################################
+# ##                            USER MANAGEMENT                               ##
+# ##############################################################################
+
+
 def oneuser_chgrp(username: str, group_name: str) -> None:
     """
     Assign user to group in OpenNebula
@@ -3596,7 +3941,11 @@ def oneusernames() -> List[str]:
     return usernames
 
 
-## VM MANAGEMENT ##
+# ##############################################################################
+# ##                             VM MANAGEMENT                                ##
+# ##############################################################################
+
+
 def onevm_chown(vm_name: str, username: str, group_name: str) -> None:
     """
     Change the owner of a VM in OpenNebula
@@ -3615,6 +3964,27 @@ def onevm_chown(vm_name: str, username: str, group_name: str) -> None:
     msg(
         level="debug",
         message=f"Owner of VM {vm_name} changed to {username}:{group_name}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+    )
+
+
+def onevm_chown_by_id(vm_id: int, username: str, group_name: str) -> None:
+    """
+    Change the owner of a VM in OpenNebula by VM ID
+
+    :param vm_id: the ID of the VM, ``int``
+    :param username: the name of the user, ``str``
+    :param group_name: the name of the group, ``str``
+    """
+    command = f'onevm chown {vm_id} "{username}" "{group_name}"'
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="error",
+            message=f"Could not change owner of VM ID {vm_id} to {username}:{group_name}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+    msg(
+        level="debug",
+        message=f"Owner of VM ID {vm_id} changed to {username}:{group_name}. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
     )
 
 
@@ -3736,6 +4106,27 @@ def onevm_disk_size(vm_name: str, disk_id: int) -> int:
         level="error",
         message=f"Disk {disk_id} not found in VM {vm_name}",
     )
+
+
+def onevm_id(vm_name: str) -> int:
+    """
+    Get the ID of a VM in OpenNebula by name
+
+    :param vm_name: the name of the VM, ``str``
+    :return: the ID of the VM, ``int``
+    """
+    vm = onevm_show(vm_name=vm_name)
+    if vm is None:
+        msg(level="error", message=f"VM {vm_name} not found")
+    if "VM" not in vm or "ID" not in vm["VM"]:
+        msg(
+            level="error",
+            message=f"VM key not found in vm {vm_name} or ID key not found in VM",
+        )
+    vm_id = int(vm["VM"]["ID"])
+    if vm_id is None:
+        msg(level="error", message=f"Could not get ID of VM {vm_name}")
+    return vm_id
 
 
 def onevm_ip(vm_name: str) -> str:
@@ -3865,6 +4256,59 @@ def onevm_show(vm_name: str) -> Dict | None:
         return loads_json(data=stdout)
 
 
+def onevm_show_by_id(vm_id: int) -> Dict | None:
+    """
+    Get the details of a VM in OpenNebula by VM ID
+
+    :param vm_id: the ID of the VM, ``int``
+    :return: the details of the VM, ``Dict``
+    """
+    command = f"onevm show {vm_id} -j"
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="debug",
+            message=f"VM ID {vm_id} not found. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+        return None
+    else:
+        msg(
+            level="debug",
+            message=f"VM ID {vm_id} found. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
+        )
+        return loads_json(data=stdout)
+
+
+def onevm_ip_by_id(vm_id: int) -> str:
+    """
+    Get the IP of a VM in OpenNebula by VM ID
+
+    :param vm_id: the ID of the VM, ``int``
+    :return: the IP of the VM, ``str``
+    """
+    vm = onevm_show_by_id(vm_id=vm_id)
+    if vm is None:
+        msg(level="error", message=f"VM ID {vm_id} not found")
+    if "VM" not in vm or "TEMPLATE" not in vm["VM"]:
+        msg(
+            level="error",
+            message=f"VM key not found in VM ID {vm_id} or TEMPLATE key not found in VM",
+        )
+    if "NIC" not in vm["VM"]["TEMPLATE"]:
+        msg(
+            level="error",
+            message=f"NIC key not found in TEMPLATE for VM ID {vm_id}",
+        )
+    nics = vm["VM"]["TEMPLATE"]["NIC"]
+    for nic in nics:
+        if "IP" in nic:
+            return nic["IP"]
+    msg(
+        level="error",
+        message=f"IP not found in VM ID {vm_id}",
+    )
+
+
 def onevm_state(vm_name: str) -> str:
     """
     Get the state of a VM in OpenNebula
@@ -3883,6 +4327,27 @@ def onevm_state(vm_name: str) -> str:
     vm_state = vm["VM"]["STATE"]
     if vm_state is None:
         msg(level="error", message=f"Could not get state of VM {vm_name}")
+    return vm_state
+
+
+def onevm_state_by_id(vm_id: int) -> str:
+    """
+    Get the state of a VM in OpenNebula by VM ID
+
+    :param vm_id: the ID of the VM, ``int``
+    :return: the state of the VM, ``str``
+    """
+    vm = onevm_show_by_id(vm_id=vm_id)
+    if vm is None:
+        msg(level="error", message=f"VM ID {vm_id} not found")
+    if "VM" not in vm or "STATE" not in vm["VM"]:
+        msg(
+            level="error",
+            message=f"VM key not found in VM ID {vm_id} or STATE key not found in VM",
+        )
+    vm_state = vm["VM"]["STATE"]
+    if vm_state is None:
+        msg(level="error", message=f"Could not get state of VM ID {vm_id}")
     return vm_state
 
 
@@ -3952,6 +4417,33 @@ def onevm_user_input(vm_name, user_input: str) -> str:
         msg(
             level="error",
             message=f"User input {user_input} not found in VM {vm_name}",
+        )
+    return vm["VM"]["USER_TEMPLATE"][user_input]
+
+
+def onevm_user_input_by_id(vm_id: int, user_input: str) -> str:
+    """
+    Get the value of a user input in a VM in OpenNebula by VM ID
+
+    :param vm_id: the ID of the VM, ``int``
+    :param user_input: the name of the user input, ``str``
+    :return: the value of the user input, ``str``
+    """
+    vm = onevm_show_by_id(vm_id=vm_id)
+    if vm is None:
+        msg(
+            level="error",
+            message=f"VM ID {vm_id} not found",
+        )
+    if "VM" not in vm or "USER_TEMPLATE" not in vm["VM"]:
+        msg(
+            level="error",
+            message=f"VM key not found in VM ID {vm_id} or USER_TEMPLATE key not found in VM",
+        )
+    if user_input not in vm["VM"]["USER_TEMPLATE"]:
+        msg(
+            level="error",
+            message=f"User input {user_input} not found in VM ID {vm_id}",
         )
     return vm["VM"]["USER_TEMPLATE"][user_input]
 
@@ -4063,7 +4555,49 @@ def onevms_running() -> List[str]:
     return vms_names
 
 
-## NETWORKS MANAGEMENT ##
+def onevms_running_with_ids() -> Dict[str, int]:
+    """
+    Get the names and IDs of the running VMs in OpenNebula
+
+    :return: a dictionary with VM names as keys and VM IDs as values, ``Dict[str, int]``
+    """
+    vms = onevm_list()
+    vms_dict = {}
+    if vms is None:
+        return {}
+    if "VM_POOL" not in vms or "VM" not in vms["VM_POOL"]:
+        msg(
+            level="error",
+            message="VM_POOL key not found in vms or VM key not found in VM_POOL",
+        )
+    for vm in vms["VM_POOL"]["VM"]:
+        if vm is None:
+            msg(level="error", message="VM is empty")
+        if "NAME" not in vm:
+            msg(
+                level="error",
+                message="NAME key not found in vm",
+            )
+        if "ID" not in vm:
+            msg(
+                level="error",
+                message="ID key not found in vm",
+            )
+        if "STATE" not in vm:
+            msg(
+                level="error",
+                message="STATE key not found in vm",
+            )
+        if vm["STATE"] == "3":
+            vms_dict[vm["NAME"]] = int(vm["ID"])
+    return vms_dict
+
+
+# ##############################################################################
+# ##                         NETWORKS MANAGEMENT                              ##
+# ##############################################################################
+
+
 def onevnet_id(vnet_name: str) -> int:
     """
     Get the id of a vnet in OpenNebula

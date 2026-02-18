@@ -1,5 +1,27 @@
 # Changelog
 
+## [v1.5.0] - 2026-02-16
+
+### Added
+
+- Support for OpenNebula 7.0.x.
+- Smart auto-fill for template_id and image_id variables from marketplace appliances.
+- VM ID-based functions to prevent naming conflicts with multiple instances.
+- Unique naming for instantiated services.
+- Function index and section headers to OpenNebula CLI wrapper.
+- Component selection prompt readability improvements.
+
+### Changed
+
+- site_routemanager is now optional.
+- Enhanced user input handling for list values in site YAML.
+
+### Fixed
+
+- Handle empty VM/service list in onemarketapp_instantiate.
+- Multi-instance support with ID-based lookups in installer.
+- Unpack 4 return values from onemarketapp_instantiate.
+
 ## [v1.0.0] - 2025-09-11
 
 ### Added
@@ -35,6 +57,7 @@
 
 - First toolkit version.
 
+[v1.5.0]: https://github.com/6G-SANDBOX/toolkit-installer/compare/v1.0.0...v1.5.0
 [v1.0.0]: https://github.com/6G-SANDBOX/toolkit-installer/compare/v0.5.1...v1.0.0
 [v0.5.1]: https://github.com/6G-SANDBOX/toolkit-installer/compare/v0.5.0...v0.5.1
 [v0.5.0]: https://github.com/6G-SANDBOX/toolkit-installer/compare/v0.4.0...v0.5.0
