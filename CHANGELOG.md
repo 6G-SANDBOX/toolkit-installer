@@ -1,4 +1,9 @@
 # Changelog
+## [v1.5.1] - 2026-05-08
+
+### Fixed
+
+- Fix 6GLibrary reference version
 
 ## [v1.5.0] - 2026-02-16
 
