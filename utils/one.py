@@ -3940,6 +3940,45 @@ def oneusernames() -> List[str]:
         usernames.append(user["NAME"])
     return usernames
 
+# ##                             TEST                                ##
+def oneuser_rotate_jenkins_ssh_key(username: str, new_public_ssh_key: str) -> None:
+    """
+    Replace all existing Jenkins service SSH keys with the new one.
+    Keys belonging to Jenkins pods (containing 'jenkins@jenkins-0--service-')
+    are removed, and the new key is added. Non-Jenkins keys are preserved.
+
+    :param username: the name of the user, ``str``
+    :param new_public_ssh_key: the new public SSH key from the current Jenkins pod, ``str``
+    """
+    all_keys = oneuser_public_ssh_keys(username=username)
+
+    # Keep non-Jenkins keys and discard old Jenkins pod keys
+    JENKINS_KEY_MARKER = "jenkins@jenkins-0--service-"
+    preserved_keys = [k for k in all_keys if k and JENKINS_KEY_MARKER not in k]
+
+    # Check if the new key is already registered
+    if new_public_ssh_key in all_keys:
+        msg(
+            level="debug",
+            message=f"User {username} already has current Jenkins SSH key. No rotation needed.",
+        )
+        return
+
+    # Build the final key list: preserved non-Jenkins keys + new Jenkins key
+    final_keys = preserved_keys + [new_public_ssh_key]
+    all_public_ssh_keys = "\n".join(final_keys)
+
+    command = f'echo \'SSH_PUBLIC_KEY="{all_public_ssh_keys}"\' | oneuser update "{username}" --append'
+    stdout, stderr, rc = run_command(command=command)
+    if rc != 0:
+        msg(
+            level="error",
+            message=f"Could not rotate Jenkins SSH key for user {username}. Command executed: {command}. Error received: {stderr}. Return code: {rc}",
+        )
+    msg(
+        level="debug",
+        message=f"Jenkins SSH key rotated for user {username}. Removed {len(all_keys) - len(preserved_keys)} old Jenkins key(s). Command: {command}. Output: {stdout}.",
+    )
 
 # ##############################################################################
 # ##                             VM MANAGEMENT                                ##
