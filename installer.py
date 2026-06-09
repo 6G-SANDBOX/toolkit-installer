@@ -52,6 +52,7 @@ from utils.one import (
     oneuser_chgrp,
     oneuser_create,
     oneuser_update_public_ssh_key,
+#Funcion de prueba
     oneuser_rotate_jenkins_ssh_key,
     oneusername_id,
     oneusernames,
