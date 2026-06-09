@@ -52,6 +52,7 @@ from utils.one import (
     oneuser_chgrp,
     oneuser_create,
     oneuser_update_public_ssh_key,
+    oneuser_rotate_jenkins_ssh_key,
     oneusername_id,
     oneusernames,
     onevm_cpu_model,
@@ -376,8 +377,10 @@ try:
         data=sites_ansible_token,
         file_path=sites_ansible_token_path,
     )
-    oneuser_update_public_ssh_key(username=username, public_ssh_key=jenkins_ssh_key)
-    msg(level="info", message=f"Public SSH key added to user {username}")
+    #oneuser_update_public_ssh_key(username=username, public_ssh_key=jenkins_ssh_key)
+    #msg(level="info", message=f"Public SSH key added to user {username}")
+    oneuser_rotate_jenkins_ssh_key(username=username, new_public_ssh_key=jenkins_ssh_key)
+    msg(level="info", message=f"Jenkins SSH key rotated for user {username}")
     msg(
         level="info",
         message=f"Resizing MinIO disk with id {toolkit_service_minio_disk_id} to {toolkit_service_minio_disk_size} GB",
