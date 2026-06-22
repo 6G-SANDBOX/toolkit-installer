@@ -447,48 +447,24 @@ try:
             message="The CPU model of the TNLCM virtual machine has not been changed",
         )
 
-    # technitium
-    appliance_technitium_name = onemarketapp_name(
-        appliance_url=appliance_technitium_url
+    # technitium is optional and not present in this OpenNebula marketplace.
+    is_technitium_instantiated = False
+    technitium_vm_id = None
+    appliance_technitium_name = "Technitium DNS"
+    msg(
+        level="warning",
+        message=f"Skipping optional appliance {appliance_technitium_name}",
     )
-    is_technitium_instantiated, appliance_technitium_name, _, technitium_vm_id = onemarketapp_instantiate(
-        appliance_url=appliance_technitium_url,
-        group_name=group_name,
-        marketplace_name=opennebula_sandbox_marketplace_name,
-        username=username,
-    )
-    if not is_technitium_instantiated:
-        msg(
-            level="warning",
-            message=f"Appliance {appliance_technitium_name} not instantiated and is optional",
-        )
 
-    # route-manager-api
-    appliance_route_manager_api_name = onemarketapp_name(
-        appliance_url=appliance_route_manager_api_url
-    )
-    is_route_manager_api_instantiated, appliance_route_manager_api_name, _, route_manager_api_vm_id = (
-        onemarketapp_instantiate(
-            appliance_url=appliance_route_manager_api_url,
-            group_name=group_name,
-            marketplace_name=opennebula_sandbox_marketplace_name,
-            username=username,
-        )
-    )
+    # route-manager-api is optional and not present in this OpenNebula marketplace.
+    is_route_manager_api_instantiated = False
+    route_manager_api_vm_id = None
     route_manager_api_token = None
-    if is_route_manager_api_instantiated:
-        # Use VM ID to avoid conflicts with VMs of the same name
-        route_manager_api_token = onevm_user_input_by_id(
-            vm_id=route_manager_api_vm_id,
-            user_input=route_manager_api_token_param,
-        )
-    if not is_route_manager_api_instantiated:
-        msg(
-            level="warning",
-            message=(
-                f"Appliance {appliance_route_manager_api_name} not instantiated and is optional"
-            ),
-        )
+    appliance_route_manager_api_name = "route-manager-api"
+    msg(
+        level="warning",
+        message=f"Skipping optional appliance {appliance_route_manager_api_name}",
+    )
 
     # sites
     msg(

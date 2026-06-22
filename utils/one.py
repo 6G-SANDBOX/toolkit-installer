@@ -814,11 +814,9 @@ def oneflow_role_vm_name_by_id(oneflow_id: int, oneflow_role: str) -> str:
 
 def oneflow_custom_attr_value_by_id(oneflow_id: int, attr_key: str) -> str:
     """
-    Get the value of a custom attribute of a service in OpenNebula by ID
+    Get the value of a custom attribute of a service in OpenNebula by ID.
 
-    :param oneflow_id: the ID of the service, ``int``
-    :param attr_key: the key of the custom attribute, ``str``
-    :return: the value of the custom attribute, ``str``
+    Falls back to user_inputs_values for OpenNebula 7 OneFlow services.
     """
     oneflow = oneflow_show_by_id(oneflow_id=oneflow_id)
     if oneflow is None:
@@ -826,6 +824,7 @@ def oneflow_custom_attr_value_by_id(oneflow_id: int, attr_key: str) -> str:
             level="error",
             message=f"Service with ID {oneflow_id} not found",
         )
+
     if (
         "DOCUMENT" not in oneflow
         or "TEMPLATE" not in oneflow["DOCUMENT"]
@@ -835,24 +834,33 @@ def oneflow_custom_attr_value_by_id(oneflow_id: int, attr_key: str) -> str:
             level="error",
             message=f"DOCUMENT key not found in service ID {oneflow_id} or TEMPLATE key not found in DOCUMENT or BODY key not found in TEMPLATE",
         )
-    if "custom_attrs_values" not in oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]:
-        msg(
-            level="error",
-            message=f"custom_attrs_values key not found in service ID {oneflow_id}",
-        )
-    custom_attrs_values = oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]["custom_attrs_values"]
-    if attr_key not in custom_attrs_values:
-        msg(
-            level="error",
-            message=f"Custom attribute {attr_key} not found in service ID {oneflow_id}",
-        )
-    attr_value = custom_attrs_values[attr_key]
-    if attr_value is None:
-        msg(
-            level="error",
-            message=f"Could not get value of custom attribute {attr_key} in service ID {oneflow_id}",
-        )
-    return attr_value
+
+    body = oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]
+
+    if "custom_attrs_values" in body:
+        custom_attrs_values = body["custom_attrs_values"]
+        if attr_key in custom_attrs_values:
+            attr_value = custom_attrs_values[attr_key]
+            if attr_value is not None:
+                return attr_value
+
+    if "user_inputs_values" in body:
+        user_inputs_values = body["user_inputs_values"]
+        fallback_keys = [
+            attr_key,
+            attr_key.upper(),
+        ]
+
+        for fallback_key in fallback_keys:
+            if fallback_key in user_inputs_values:
+                attr_value = user_inputs_values[fallback_key]
+                if attr_value is not None:
+                    return attr_value
+
+    msg(
+        level="error",
+        message=f"Could not get value of custom attribute {attr_key} in service ID {oneflow_id}",
+    )
 
 
 def oneflow_state(oneflow_name: str) -> int:
@@ -2900,15 +2908,9 @@ def onemarketapp_instantiate(
             )
             template_id = onevm_template_id(vm_name=vm_name)
             template_name = onetemplate_name(template_id=template_id)
-            onetemplate_chown(
-                template_name=template_name, username=username, group_name=group_name
-            )
             image_ids = onetemplate_image_ids(template_name=template_name)
             for image_id in image_ids:
                 image_name = oneimage_name(image_id=image_id)
-                oneimage_chown(
-                    image_name=image_name, username=username, group_name=group_name
-                )
             appliance_target_name = vm_name
         else:
             service_id = oneflow_id(oneflow_name=service_name)
@@ -2926,32 +2928,11 @@ def onemarketapp_instantiate(
                         username=username,
                         group_name=group_name,
                     )
-            oneflow_template_chown(
-                oneflow_template_name=service_name,
-                username=username,
-                group_name=group_name,
-            )
             oneflow_chown_by_id(
                 oneflow_id=service_id,
                 username=username,
                 group_name=group_name,
             )
-            image_ids = oneflow_template_image_ids(oneflow_template_name=service_name)
-            template_ids = oneflow_template_ids(oneflow_template_name=service_name)
-            for template_id in template_ids:
-                template_name = onetemplate_name(template_id=template_id)
-                onetemplate_chown(
-                    template_name=template_name,
-                    username=username,
-                    group_name=group_name,
-                )
-            for image_id in image_ids:
-                image_name = oneimage_name(image_id=image_id)
-                oneimage_chown(
-                    image_name=image_name,
-                    username=username,
-                    group_name=group_name,
-                )
             appliance_target_name = service_name
         _, _, _, _ = onemarketapp_add(appliance_url=appliance_url, group_name=group_name, username=username, marketplace_name=marketplace_name)
         is_instantiated = True
