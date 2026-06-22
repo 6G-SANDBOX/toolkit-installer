@@ -2929,7 +2929,6 @@ def onemarketapp_instantiate(
                 group_name=group_name,
             )
             appliance_target_name = service_name
-        _, _, _, _ = onemarketapp_add(appliance_url=appliance_url, group_name=group_name, username=username, marketplace_name=marketplace_name)
         is_instantiated = True
     else:
         is_added, appliance_name, _, _ = onemarketapp_add(
