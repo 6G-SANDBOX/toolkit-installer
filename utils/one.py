@@ -2906,11 +2906,6 @@ def onemarketapp_instantiate(
                 username=username,
                 group_name=group_name,
             )
-            template_id = onevm_template_id(vm_name=vm_name)
-            template_name = onetemplate_name(template_id=template_id)
-            image_ids = onetemplate_image_ids(template_name=template_name)
-            for image_id in image_ids:
-                image_name = oneimage_name(image_id=image_id)
             appliance_target_name = vm_name
         else:
             service_id = oneflow_id(oneflow_name=service_name)

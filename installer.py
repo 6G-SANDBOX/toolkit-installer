@@ -62,7 +62,6 @@ from utils.one import (
     onevm_undeploy_hard,
     onevm_updateconf_cpu_model,
     onevm_user_input,
-    onevm_user_input_by_id,
     onevm_user_template_param,
 )
 from utils.os import (
