@@ -852,16 +852,16 @@ try:
         trial_network_path = join_path(
             library_path, trial_network_component, "sample_tnlcm_descriptor.yaml"
         )
-        tnlcm_create_trial_network = f'''curl -w "%{{http_code}}" -X POST "{tnlcm_url}/api/v1/trial-network?validate=true" \
+        tnlcm_create_trial_network = f'''curl -w "%{{http_code}}" -X POST "{tnlcm_url}/api/v1/trial-network?validate=True" \
             -H "accept: application/json" \
             -H "Authorization: Bearer {access_token}" \
-            -H "Content-Type: multipart/form-data" \
             -F "tn_id=test" \
             -F "descriptor=@{trial_network_path}" \
             -F "library_reference_type=branch" \
             -F "library_reference_value={library_ref}" \
             -F "sites_branch={site}" \
-            -F "deployment_site={site}"'''
+            -F "deployment_site={site}" \
+            -F "deployment_site_token={sites_ansible_token}"'''
         stdout, stderr, rc = run_command(command=tnlcm_create_trial_network)
         response_create_trial_network, status_code = stdout[:-3].strip(), stdout[-3:]
         if status_code != "201":
