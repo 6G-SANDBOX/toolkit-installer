@@ -127,6 +127,9 @@ try:
     toolkit_service_minio_disk_size = int(
         get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_SIZE")
     )
+    toolkit_service_minio_tls_enabled = get_dotenv_var(
+        key="TOOLKIT_SERVICE_MINIO_TLS_ENABLED"
+    )
     min_percentage_cpu_available_host = int(
         get_dotenv_var(key="MIN_PERCENTAGE_CPU_AVAILABLE_HOST")
     )
@@ -546,8 +549,13 @@ try:
             level="error",
             message=f"Endpoint not found in site_s3_server in site {site} in repository {sites_repository_name}",
         )
+    minio_tls = oneflow_custom_attr_value_by_id(
+        oneflow_id=toolkit_service_id,
+        attr_key=toolkit_service_minio_tls_enabled,
+    )
+    minio_scheme = "https" if minio_tls and minio_tls.upper() not in ("NO", "FALSE", "0", "") else "http"
     site_data["site_s3_server"]["endpoint"] = (
-        f"https://{onevm_ip(vm_name=minio_vm)}:9000"
+        f"{minio_scheme}://{onevm_ip(vm_name=minio_vm)}:9000"
     )
     site_data["site_routemanager"] = core_site_data["site_routemanager"]
     if is_route_manager_api_instantiated:
