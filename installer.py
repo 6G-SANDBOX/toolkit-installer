@@ -554,7 +554,9 @@ try:
         attr_key=toolkit_service_minio_tls_enabled,
         optional=True,
     )
-    minio_scheme = "https" if minio_tls and minio_tls.upper() not in ("NO", "FALSE", "0", "") else "http"
+    # When ONEAPP_MINIO_TLS_ENABLED is absent (older appliances), mirror the MinIO
+    # appliance.sh default: ONEAPP_MINIO_TLS_ENABLED="${ONEAPP_MINIO_TLS_ENABLED:-YES}"
+    minio_scheme = "http" if minio_tls and minio_tls.upper() in ("NO", "FALSE", "0") else "https"
     site_data["site_s3_server"]["endpoint"] = (
         f"{minio_scheme}://{onevm_ip(vm_name=minio_vm)}:9000"
     )
