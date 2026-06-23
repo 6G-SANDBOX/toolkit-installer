@@ -76,6 +76,7 @@ from utils.os import (
     rename_directory,
 )
 from utils.parser import ansible_decrypt, ansible_encrypt, encode_base64
+from utils.s3 import s3_ensure_bucket
 from utils.questionary import (
     ask_checkbox,
     ask_confirm,
@@ -129,6 +130,12 @@ try:
     )
     toolkit_service_minio_tls_enabled = get_dotenv_var(
         key="TOOLKIT_SERVICE_MINIO_TLS_ENABLED"
+    )
+    toolkit_service_minio_root_user = get_dotenv_var(
+        key="TOOLKIT_SERVICE_MINIO_ROOT_USER"
+    )
+    toolkit_service_minio_root_password = get_dotenv_var(
+        key="TOOLKIT_SERVICE_MINIO_ROOT_PASSWORD"
     )
     min_percentage_cpu_available_host = int(
         get_dotenv_var(key="MIN_PERCENTAGE_CPU_AVAILABLE_HOST")
@@ -559,6 +566,21 @@ try:
     minio_scheme = "http" if minio_tls and minio_tls.upper() in ("NO", "FALSE", "0") else "https"
     site_data["site_s3_server"]["endpoint"] = (
         f"{minio_scheme}://{onevm_ip(vm_name=minio_vm)}:9000"
+    )
+    minio_root_user = oneflow_custom_attr_value_by_id(
+        oneflow_id=toolkit_service_id,
+        attr_key=toolkit_service_minio_root_user,
+    )
+    minio_root_password = oneflow_custom_attr_value_by_id(
+        oneflow_id=toolkit_service_id,
+        attr_key=toolkit_service_minio_root_password,
+    )
+    s3_ensure_bucket(
+        endpoint=site_data["site_s3_server"]["endpoint"],
+        access_key=minio_root_user,
+        secret_key=minio_root_password,
+        bucket=site_data["site_s3_server"]["bucket"],
+        region=site_data["site_s3_server"]["region"],
     )
     site_data["site_routemanager"] = core_site_data["site_routemanager"]
     if is_route_manager_api_instantiated:
