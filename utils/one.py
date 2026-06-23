@@ -812,11 +812,15 @@ def oneflow_role_vm_name_by_id(oneflow_id: int, oneflow_role: str) -> str:
         return node["vm_info"]["VM"]["NAME"]
 
 
-def oneflow_custom_attr_value_by_id(oneflow_id: int, attr_key: str) -> str:
+def oneflow_custom_attr_value_by_id(
+    oneflow_id: int, attr_key: str, optional: bool = False
+) -> Optional[str]:
     """
     Get the value of a custom attribute of a service in OpenNebula by ID.
 
     Falls back to user_inputs_values for OpenNebula 7 OneFlow services.
+    When optional=True, returns None instead of aborting if the attribute is absent
+    (needed for attributes added after an appliance version was released).
     """
     oneflow = oneflow_show_by_id(oneflow_id=oneflow_id)
     if oneflow is None:
@@ -857,10 +861,18 @@ def oneflow_custom_attr_value_by_id(oneflow_id: int, attr_key: str) -> str:
                 if attr_value is not None:
                     return attr_value
 
+    if optional:
+        msg(
+            level="warning",
+            message=f"Custom attribute {attr_key} not found in service ID {oneflow_id}, using default",
+        )
+        return None
+
     msg(
         level="error",
         message=f"Could not get value of custom attribute {attr_key} in service ID {oneflow_id}",
     )
+    raise SystemExit(1)
 
 
 def oneflow_state(oneflow_name: str) -> int:

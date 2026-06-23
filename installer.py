@@ -552,6 +552,7 @@ try:
     minio_tls = oneflow_custom_attr_value_by_id(
         oneflow_id=toolkit_service_id,
         attr_key=toolkit_service_minio_tls_enabled,
+        optional=True,
     )
     minio_scheme = "https" if minio_tls and minio_tls.upper() not in ("NO", "FALSE", "0", "") else "http"
     site_data["site_s3_server"]["endpoint"] = (
