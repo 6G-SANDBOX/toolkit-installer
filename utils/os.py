@@ -30,6 +30,7 @@ def get_dotenv_var(key: str) -> str:
     value = os.getenv(key=key)
     if value is None:
         msg(level="error", message=f"Environment variable {key} not found")
+        raise SystemExit(1)
     msg(level="debug", message=f"Environment variable {key} value: {value}")
     return value
 
