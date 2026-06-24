@@ -76,7 +76,6 @@ from utils.os import (
     rename_directory,
 )
 from utils.parser import ansible_decrypt, ansible_encrypt, encode_base64
-from utils.s3 import s3_ensure_bucket
 from utils.questionary import (
     ask_checkbox,
     ask_confirm,
@@ -84,6 +83,7 @@ from utils.questionary import (
     ask_select,
     ask_text,
 )
+from utils.s3 import s3_ensure_bucket
 
 try:
     # configuration

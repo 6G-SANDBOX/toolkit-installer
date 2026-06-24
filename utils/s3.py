@@ -1,5 +1,5 @@
-import urllib3
 import boto3
+import urllib3
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
