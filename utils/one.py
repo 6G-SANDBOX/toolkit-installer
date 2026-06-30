@@ -1410,12 +1410,12 @@ def check_group_admin(username: str, group_name: str) -> bool:
     if "ID" not in group["GROUP"]["ADMINS"]:
         return False
     elif isinstance(group["GROUP"]["ADMINS"]["ID"], str):
-        user = oneusername(user_id=int(group["GROUP"]["ADMINS"]["ID"]))
-        return user == username
+        user = oneuser_show(user_id=int(group["GROUP"]["ADMINS"]["ID"]))
+        return user is not None and user["USER"]["NAME"] == username
     elif isinstance(group["GROUP"]["ADMINS"]["ID"], List):
         for user_id in group["GROUP"]["ADMINS"]["ID"]:
-            user = oneusername(user_id=int(user_id))
-            if user == username:
+            user = oneuser_show(user_id=int(user_id))
+            if user is not None and user["USER"]["NAME"] == username:
                 return True
     else:
         msg(
