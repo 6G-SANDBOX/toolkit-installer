@@ -3980,6 +3980,8 @@ def oneusernames() -> List[str]:
     user_pool = users["USER_POOL"]["USER"]
     if user_pool is None:
         return []
+    if isinstance(user_pool, dict):
+        user_pool = [user_pool]
     for user in user_pool:
         if user is None:
             msg(level="error", message="User is empty")
