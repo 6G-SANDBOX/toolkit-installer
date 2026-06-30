@@ -988,15 +988,11 @@ def oneflow_template_custom_attrs(
             level="error",
             message=f"DOCUMENT key not found in service {oneflow_template_name} or TEMPLATE key not found in DOCUMENT or BODY key not found in TEMPLATE",
         )
-    if "custom_attrs" not in oneflow_template["DOCUMENT"]["TEMPLATE"]["BODY"]:
-        msg(
-            level="error",
-            message=f"custom_attrs key not found in service {oneflow_template_name}",
-        )
-    custom_attrs = oneflow_template["DOCUMENT"]["TEMPLATE"]["BODY"]["custom_attrs"]
-    if custom_attrs is None:
-        return None
-    return custom_attrs
+    body = oneflow_template["DOCUMENT"]["TEMPLATE"]["BODY"]
+    # OpenNebula 7.0 renamed custom_attrs to user_inputs in service templates.
+    # Fall back to user_inputs when custom_attrs is absent.
+    inputs = body.get("custom_attrs") or body.get("user_inputs")
+    return inputs if inputs else None
 
 
 def oneflow_template_ids(
@@ -1011,12 +1007,14 @@ def oneflow_template_ids(
     roles = oneflow_template_roles(oneflow_template_name=oneflow_template_name)
     template_ids = []
     for role in roles:
-        if "vm_template" not in role:
+        # OpenNebula 7.0 renamed the role key from "vm_template" to "template_id"
+        role_tmpl_key = "template_id" if "template_id" in role else "vm_template"
+        if role_tmpl_key not in role:
             msg(
                 level="error",
-                message="vm_template key not found in role",
+                message=f"Neither 'template_id' nor 'vm_template' key found in role {role.get('name', '?')}",
             )
-        template_ids.append(int(role["vm_template"]))
+        template_ids.append(int(role[role_tmpl_key]))
     return template_ids
 
 
@@ -2665,52 +2663,106 @@ def onemarketapp_add(
                 default=False,
             )
             if add_appliance:
-                datastores_names = onedatastores_names()
-                datastore_name = ask_select(
-                    message=f"Select the datastore where you want to store the image {appliance_name}:",
-                    choices=datastores_names,
+                expected_name = f"{appliance_name} {version}"
+                # OpenNebula 7.0.0 bug: onemarketapp export for srv-type appliances
+                # crashes with a Ruby nil error inside create_service_template.
+                # Check whether a matching service template already exists in
+                # OneFlow before attempting the export, and reuse it if found.
+                existing_service = oneflow_template_show(
+                    oneflow_template_name=expected_name
                 )
-                _, template_ids, _ = onemarketapp_export(
-                    appliance_name=appliance_name,
-                    appliance_new_name=f"{appliance_name} {version}",
-                    datastore_name=datastore_name,
-                )
-                sleep(5)
-                appliance_name = f"{appliance_name} {version}"
-                image_ids = oneflow_template_image_ids(
-                    oneflow_template_name=appliance_name
-                )
-                for template_id in template_ids:
-                    template_name = onetemplate_name(template_id=template_id)
-                    onetemplate_chown(
-                        template_name=template_name,
-                        username=username,
-                        group_name=group_name,
+                if existing_service is None:
+                    tmpl_stdout, _, tmpl_rc = run_command(
+                        command="oneflow-template list -j"
                     )
-                for image_id in image_ids:
-                    image_name = oneimage_name(image_id=image_id)
-                    image_state = oneimage_state(image_name=image_name)
+                    if tmpl_rc == 0:
+                        tmpl_pool = loads_json(data=tmpl_stdout)
+                        docs = (
+                            tmpl_pool.get("DOCUMENT_POOL", {}).get("DOCUMENT", [])
+                        )
+                        if isinstance(docs, dict):
+                            docs = [docs]
+                        for tmpl in docs:
+                            if tmpl.get("NAME", "").startswith(appliance_name):
+                                existing_service = tmpl
+                                expected_name = tmpl["NAME"]
+                                break
+                if existing_service is not None:
                     msg(
                         level="info",
-                        message=f"Wait for the image {image_name} to be ready",
+                        message=f"Service template '{expected_name}' already exists in OneFlow; skipping export",
                     )
-                    while image_state != "1":
-                        sleep(10)
-                        image_state = oneimage_state(image_name=image_name)
-                        if image_state == "5":
-                            msg(
-                                level="error",
-                                message=f"Image {image_name} is in error state",
-                            )
-                    oneimage_update(
-                        image_name=image_name,
-                        file_path=version_attribute_template_path,
+                    appliance_name = expected_name
+                    image_ids = oneflow_template_image_ids(
+                        oneflow_template_name=appliance_name
                     )
-                    oneimage_chown(
-                        image_name=image_name,
+                    template_ids = oneflow_template_ids(
+                        oneflow_template_name=appliance_name
+                    )
+                    oneflow_template_chown(
+                        oneflow_template_name=appliance_name,
                         username=username,
                         group_name=group_name,
                     )
+                    for template_id in template_ids:
+                        onetemplate_chown(
+                            template_name=onetemplate_name(template_id=template_id),
+                            username=username,
+                            group_name=group_name,
+                        )
+                    for image_id in image_ids:
+                        oneimage_chown(
+                            image_name=oneimage_name(image_id=image_id),
+                            username=username,
+                            group_name=group_name,
+                        )
+                else:
+                    datastores_names = onedatastores_names()
+                    datastore_name = ask_select(
+                        message=f"Select the datastore where you want to store the image {appliance_name}:",
+                        choices=datastores_names,
+                    )
+                    _, template_ids, _ = onemarketapp_export(
+                        appliance_name=appliance_name,
+                        appliance_new_name=expected_name,
+                        datastore_name=datastore_name,
+                    )
+                    sleep(5)
+                    appliance_name = expected_name
+                    image_ids = oneflow_template_image_ids(
+                        oneflow_template_name=appliance_name
+                    )
+                    for template_id in template_ids:
+                        template_name = onetemplate_name(template_id=template_id)
+                        onetemplate_chown(
+                            template_name=template_name,
+                            username=username,
+                            group_name=group_name,
+                        )
+                    for image_id in image_ids:
+                        image_name = oneimage_name(image_id=image_id)
+                        image_state = oneimage_state(image_name=image_name)
+                        msg(
+                            level="info",
+                            message=f"Wait for the image {image_name} to be ready",
+                        )
+                        while image_state != "1":
+                            sleep(10)
+                            image_state = oneimage_state(image_name=image_name)
+                            if image_state == "5":
+                                msg(
+                                    level="error",
+                                    message=f"Image {image_name} is in error state",
+                                )
+                        oneimage_update(
+                            image_name=image_name,
+                            file_path=version_attribute_template_path,
+                        )
+                        oneimage_chown(
+                            image_name=image_name,
+                            username=username,
+                            group_name=group_name,
+                        )
                 is_added = True
         else:
             msg(
@@ -2990,7 +3042,27 @@ def onemarketapp_export(
     :param datastore_name: the name of the datastore, ``str``
     :return: the ids of the images, templates and services, ``Tuple[List[int], List[int], int]``
     """
-    command = f'onemarketapp export "{appliance_name}" "{appliance_new_name}" --datastore "{datastore_name}"'
+    # OpenNebula 7.0.0 bug: name-based --datastore and name-based appliance
+    # arguments both trigger a Ruby nil error in xml_element.rb:128.  Resolve
+    # both to numeric IDs before building the export command.
+    datastores = onedatastore_list()
+    datastore_pool = datastores.get("DATASTORE_POOL", {}).get("DATASTORE", [])
+    datastore_id = next(
+        (int(ds["ID"]) for ds in datastore_pool if ds.get("NAME") == datastore_name),
+        None,
+    )
+    if datastore_id is None:
+        msg(
+            level="error",
+            message=f"Datastore {datastore_name} not found in OpenNebula",
+        )
+    show_stdout, _, show_rc = run_command(command=f'onemarketapp show "{appliance_name}" -j')
+    if show_rc == 0:
+        app_data = loads_json(data=show_stdout)
+        appliance_ref = app_data["MARKETPLACEAPP"]["ID"]
+    else:
+        appliance_ref = f'"{appliance_name}"'
+    command = f'onemarketapp export {appliance_ref} "{appliance_new_name}" -d {datastore_id}'
     stdout, stderr, rc = run_command(command=command)
     if rc != 0:
         msg(
@@ -3001,26 +3073,18 @@ def onemarketapp_export(
         level="debug",
         message=f"Appliance {appliance_name} exported. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
     )
-    image_ids = [
-        int(id_)
-        for id_ in re.findall(
-            r"ID:\s*(\d+)",
-            re.search(
-                r"IMAGE\s*\n((?:\s*ID:\s*\d+\s*\n?)*)",
-                stdout,
-            ).group(1),
-        )
-    ]
-    template_ids = [
-        int(id_)
-        for id_ in re.findall(
-            r"ID:\s*(\d+)",
-            re.search(
-                r"VMTEMPLATE\s*\n((?:\s*ID:\s*\d+\s*\n?)*)",
-                stdout,
-            ).group(1),
-        )
-    ]
+    image_match = re.search(r"IMAGE\s*\n((?:\s*ID:\s*\d+\s*\n?)*)", stdout)
+    template_match = re.search(r"VMTEMPLATE\s*\n((?:\s*ID:\s*\d+\s*\n?)*)", stdout)
+    image_ids = (
+        [int(id_) for id_ in re.findall(r"ID:\s*(\d+)", image_match.group(1))]
+        if image_match
+        else []
+    )
+    template_ids = (
+        [int(id_) for id_ in re.findall(r"ID:\s*(\d+)", template_match.group(1))]
+        if template_match
+        else []
+    )
     match = re.search(r"SERVICE_TEMPLATE\s*\n(?:\s*ID:\s*(\d+))+", stdout)
     if match:
         service_id = int(match.group(1))
