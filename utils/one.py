@@ -1559,7 +1559,10 @@ def onegroups_names() -> List[str]:
             level="error",
             message="GROUP_POOL key not found in groups or GROUP key not found in GROUP_POOL",
         )
-    for group in groups["GROUP_POOL"]["GROUP"]:
+    group_pool = groups["GROUP_POOL"]["GROUP"]
+    if isinstance(group_pool, dict):
+        group_pool = [group_pool]
+    for group in group_pool:
         if group is None:
             msg(level="error", message="Group is empty")
         if "NAME" not in group:
@@ -2079,7 +2082,10 @@ def oneimages_attribute(attribute: str, value: str) -> List[str]:
             level="error",
             message="IMAGE_POOL key not found in images or IMAGE key not found in IMAGE_POOL",
         )
-    for image in images["IMAGE_POOL"]["IMAGE"]:
+    image_pool = images["IMAGE_POOL"]["IMAGE"]
+    if isinstance(image_pool, dict):
+        image_pool = [image_pool]
+    for image in image_pool:
         if image is None:
             msg(level="error", message="Image is empty")
         if "NAME" not in image or "TEMPLATE" not in image:
@@ -2109,7 +2115,10 @@ def oneimages_names() -> List[str]:
             level="error",
             message="IMAGE_POOL key not found in images or IMAGE key not found in IMAGE_POOL",
         )
-    for image in images["IMAGE_POOL"]["IMAGE"]:
+    image_pool = images["IMAGE_POOL"]["IMAGE"]
+    if isinstance(image_pool, dict):
+        image_pool = [image_pool]
+    for image in image_pool:
         if image is None:
             msg(level="error", message="Image is empty")
         if "NAME" not in image:
@@ -2324,7 +2333,10 @@ def onemarkets_names() -> List[str]:
             level="error",
             message="MARKETPLACE_POOL key not found in marketplaces or MARKETPLACE key not found in MARKETPLACE_POOL",
         )
-    for marketplace in marketplaces["MARKETPLACE_POOL"]["MARKETPLACE"]:
+    marketplace_pool = marketplaces["MARKETPLACE_POOL"]["MARKETPLACE"]
+    if isinstance(marketplace_pool, dict):
+        marketplace_pool = [marketplace_pool]
+    for marketplace in marketplace_pool:
         if marketplace is None:
             msg(level="error", message="Marketplace is empty")
         if "NAME" not in marketplace:
@@ -3719,7 +3731,10 @@ def onetemplates_names() -> List[str]:
             level="error",
             message="VMTEMPLATE_POOL key not found in templates or VMTEMPLATE key not found in VMTEMPLATE_POOL",
         )
-    for template in templates["VMTEMPLATE_POOL"]["VMTEMPLATE"]:
+    template_pool = templates["VMTEMPLATE_POOL"]["VMTEMPLATE"]
+    if isinstance(template_pool, dict):
+        template_pool = [template_pool]
+    for template in template_pool:
         if template is None:
             msg(level="error", message="Template is empty")
         if "NAME" not in template:
@@ -4563,7 +4578,10 @@ def onevms_names() -> List[str]:
             level="error",
             message="VM_POOL key not found in vms or VM key not found in VM_POOL",
         )
-    for vm in vms["VM_POOL"]["VM"]:
+    vm_pool = vms["VM_POOL"]["VM"]
+    if isinstance(vm_pool, dict):
+        vm_pool = [vm_pool]
+    for vm in vm_pool:
         if vm is None:
             msg(level="error", message="VM is empty")
         if "NAME" not in vm:
@@ -4590,7 +4608,10 @@ def onevms_running() -> List[str]:
             level="error",
             message="VM_POOL key not found in vms or VM key not found in VM_POOL",
         )
-    for vm in vms["VM_POOL"]["VM"]:
+    vm_pool = vms["VM_POOL"]["VM"]
+    if isinstance(vm_pool, dict):
+        vm_pool = [vm_pool]
+    for vm in vm_pool:
         if vm is None:
             msg(level="error", message="VM is empty")
         if "NAME" not in vm:
@@ -4623,7 +4644,10 @@ def onevms_running_with_ids() -> Dict[str, int]:
             level="error",
             message="VM_POOL key not found in vms or VM key not found in VM_POOL",
         )
-    for vm in vms["VM_POOL"]["VM"]:
+    vm_pool = vms["VM_POOL"]["VM"]
+    if isinstance(vm_pool, dict):
+        vm_pool = [vm_pool]
+    for vm in vm_pool:
         if vm is None:
             msg(level="error", message="VM is empty")
         if "NAME" not in vm:
@@ -4735,7 +4759,10 @@ def onevnets_names() -> List[str]:
             level="error",
             message="VNET_POOL key not found in vnets or VNET key not found in VNET_POOL",
         )
-    for vnet in vnets["VNET_POOL"]["VNET"]:
+    vnet_pool = vnets["VNET_POOL"]["VNET"]
+    if isinstance(vnet_pool, dict):
+        vnet_pool = [vnet_pool]
+    for vnet in vnet_pool:
         if vnet is None:
             msg(level="error", message="Vnet is empty")
         if "NAME" not in vnet:
