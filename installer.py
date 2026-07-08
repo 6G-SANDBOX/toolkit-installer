@@ -62,7 +62,6 @@ from utils.one import (
     onevm_undeploy_hard,
     onevm_updateconf_cpu_model,
     onevm_user_input,
-    onevm_user_input_by_id,
     onevm_user_template_param,
 )
 from utils.os import (
@@ -84,6 +83,7 @@ from utils.questionary import (
     ask_select,
     ask_text,
 )
+from utils.s3 import s3_ensure_bucket
 
 try:
     # configuration
@@ -127,6 +127,15 @@ try:
     toolkit_service_minio_disk_id = get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_ID")
     toolkit_service_minio_disk_size = int(
         get_dotenv_var(key="TOOLKIT_SERVICE_MINIO_DISK_SIZE")
+    )
+    toolkit_service_minio_tls_enabled = get_dotenv_var(
+        key="TOOLKIT_SERVICE_MINIO_TLS_ENABLED"
+    )
+    toolkit_service_minio_root_user = get_dotenv_var(
+        key="TOOLKIT_SERVICE_MINIO_ROOT_USER"
+    )
+    toolkit_service_minio_root_password = get_dotenv_var(
+        key="TOOLKIT_SERVICE_MINIO_ROOT_PASSWORD"
     )
     min_percentage_cpu_available_host = int(
         get_dotenv_var(key="MIN_PERCENTAGE_CPU_AVAILABLE_HOST")
@@ -447,48 +456,24 @@ try:
             message="The CPU model of the TNLCM virtual machine has not been changed",
         )
 
-    # technitium
-    appliance_technitium_name = onemarketapp_name(
-        appliance_url=appliance_technitium_url
+    # technitium is optional and not present in this OpenNebula marketplace.
+    is_technitium_instantiated = False
+    technitium_vm_id = None
+    appliance_technitium_name = "Technitium DNS"
+    msg(
+        level="warning",
+        message=f"Skipping optional appliance {appliance_technitium_name}",
     )
-    is_technitium_instantiated, appliance_technitium_name, _, technitium_vm_id = onemarketapp_instantiate(
-        appliance_url=appliance_technitium_url,
-        group_name=group_name,
-        marketplace_name=opennebula_sandbox_marketplace_name,
-        username=username,
-    )
-    if not is_technitium_instantiated:
-        msg(
-            level="warning",
-            message=f"Appliance {appliance_technitium_name} not instantiated and is optional",
-        )
 
-    # route-manager-api
-    appliance_route_manager_api_name = onemarketapp_name(
-        appliance_url=appliance_route_manager_api_url
-    )
-    is_route_manager_api_instantiated, appliance_route_manager_api_name, _, route_manager_api_vm_id = (
-        onemarketapp_instantiate(
-            appliance_url=appliance_route_manager_api_url,
-            group_name=group_name,
-            marketplace_name=opennebula_sandbox_marketplace_name,
-            username=username,
-        )
-    )
+    # route-manager-api is optional and not present in this OpenNebula marketplace.
+    is_route_manager_api_instantiated = False
+    route_manager_api_vm_id = None
     route_manager_api_token = None
-    if is_route_manager_api_instantiated:
-        # Use VM ID to avoid conflicts with VMs of the same name
-        route_manager_api_token = onevm_user_input_by_id(
-            vm_id=route_manager_api_vm_id,
-            user_input=route_manager_api_token_param,
-        )
-    if not is_route_manager_api_instantiated:
-        msg(
-            level="warning",
-            message=(
-                f"Appliance {appliance_route_manager_api_name} not instantiated and is optional"
-            ),
-        )
+    appliance_route_manager_api_name = "route-manager-api"
+    msg(
+        level="warning",
+        message=f"Skipping optional appliance {appliance_route_manager_api_name}",
+    )
 
     # sites
     msg(
@@ -571,8 +556,31 @@ try:
             level="error",
             message=f"Endpoint not found in site_s3_server in site {site} in repository {sites_repository_name}",
         )
+    minio_tls = oneflow_custom_attr_value_by_id(
+        oneflow_id=toolkit_service_id,
+        attr_key=toolkit_service_minio_tls_enabled,
+        optional=True,
+    )
+    # When ONEAPP_MINIO_TLS_ENABLED is absent (older appliances), mirror the MinIO
+    # appliance.sh default: ONEAPP_MINIO_TLS_ENABLED="${ONEAPP_MINIO_TLS_ENABLED:-YES}"
+    minio_scheme = "http" if minio_tls and minio_tls.upper() in ("NO", "FALSE", "0") else "https"
     site_data["site_s3_server"]["endpoint"] = (
-        f"https://{onevm_ip(vm_name=minio_vm)}:9000"
+        f"{minio_scheme}://{onevm_ip(vm_name=minio_vm)}:9000"
+    )
+    minio_root_user = oneflow_custom_attr_value_by_id(
+        oneflow_id=toolkit_service_id,
+        attr_key=toolkit_service_minio_root_user,
+    )
+    minio_root_password = oneflow_custom_attr_value_by_id(
+        oneflow_id=toolkit_service_id,
+        attr_key=toolkit_service_minio_root_password,
+    )
+    s3_ensure_bucket(
+        endpoint=site_data["site_s3_server"]["endpoint"],
+        access_key=minio_root_user,
+        secret_key=minio_root_password,
+        bucket=site_data["site_s3_server"]["bucket"],
+        region=site_data["site_s3_server"]["region"],
     )
     site_data["site_routemanager"] = core_site_data["site_routemanager"]
     if is_route_manager_api_instantiated:
@@ -877,16 +885,16 @@ try:
         trial_network_path = join_path(
             library_path, trial_network_component, "sample_tnlcm_descriptor.yaml"
         )
-        tnlcm_create_trial_network = f'''curl -w "%{{http_code}}" -X POST "{tnlcm_url}/api/v1/trial-network?validate=true" \
+        tnlcm_create_trial_network = f'''curl -w "%{{http_code}}" -X POST "{tnlcm_url}/api/v1/trial-network?validate=True" \
             -H "accept: application/json" \
             -H "Authorization: Bearer {access_token}" \
-            -H "Content-Type: multipart/form-data" \
             -F "tn_id=test" \
             -F "descriptor=@{trial_network_path}" \
             -F "library_reference_type=branch" \
             -F "library_reference_value={library_ref}" \
             -F "sites_branch={site}" \
-            -F "deployment_site={site}"'''
+            -F "deployment_site={site}" \
+            -F "deployment_site_token={sites_ansible_token}"'''
         stdout, stderr, rc = run_command(command=tnlcm_create_trial_network)
         response_create_trial_network, status_code = stdout[:-3].strip(), stdout[-3:]
         if status_code != "201":

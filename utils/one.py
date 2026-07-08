@@ -812,13 +812,15 @@ def oneflow_role_vm_name_by_id(oneflow_id: int, oneflow_role: str) -> str:
         return node["vm_info"]["VM"]["NAME"]
 
 
-def oneflow_custom_attr_value_by_id(oneflow_id: int, attr_key: str) -> str:
+def oneflow_custom_attr_value_by_id(
+    oneflow_id: int, attr_key: str, optional: bool = False
+) -> Optional[str]:
     """
-    Get the value of a custom attribute of a service in OpenNebula by ID
+    Get the value of a custom attribute of a service in OpenNebula by ID.
 
-    :param oneflow_id: the ID of the service, ``int``
-    :param attr_key: the key of the custom attribute, ``str``
-    :return: the value of the custom attribute, ``str``
+    Falls back to user_inputs_values for OpenNebula 7 OneFlow services.
+    When optional=True, returns None instead of aborting if the attribute is absent
+    (needed for attributes added after an appliance version was released).
     """
     oneflow = oneflow_show_by_id(oneflow_id=oneflow_id)
     if oneflow is None:
@@ -826,6 +828,7 @@ def oneflow_custom_attr_value_by_id(oneflow_id: int, attr_key: str) -> str:
             level="error",
             message=f"Service with ID {oneflow_id} not found",
         )
+
     if (
         "DOCUMENT" not in oneflow
         or "TEMPLATE" not in oneflow["DOCUMENT"]
@@ -835,24 +838,41 @@ def oneflow_custom_attr_value_by_id(oneflow_id: int, attr_key: str) -> str:
             level="error",
             message=f"DOCUMENT key not found in service ID {oneflow_id} or TEMPLATE key not found in DOCUMENT or BODY key not found in TEMPLATE",
         )
-    if "custom_attrs_values" not in oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]:
+
+    body = oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]
+
+    if "custom_attrs_values" in body:
+        custom_attrs_values = body["custom_attrs_values"]
+        if attr_key in custom_attrs_values:
+            attr_value = custom_attrs_values[attr_key]
+            if attr_value is not None:
+                return attr_value
+
+    if "user_inputs_values" in body:
+        user_inputs_values = body["user_inputs_values"]
+        fallback_keys = [
+            attr_key,
+            attr_key.upper(),
+        ]
+
+        for fallback_key in fallback_keys:
+            if fallback_key in user_inputs_values:
+                attr_value = user_inputs_values[fallback_key]
+                if attr_value is not None:
+                    return attr_value
+
+    if optional:
         msg(
-            level="error",
-            message=f"custom_attrs_values key not found in service ID {oneflow_id}",
+            level="warning",
+            message=f"Custom attribute {attr_key} not found in service ID {oneflow_id}, using default",
         )
-    custom_attrs_values = oneflow["DOCUMENT"]["TEMPLATE"]["BODY"]["custom_attrs_values"]
-    if attr_key not in custom_attrs_values:
-        msg(
-            level="error",
-            message=f"Custom attribute {attr_key} not found in service ID {oneflow_id}",
-        )
-    attr_value = custom_attrs_values[attr_key]
-    if attr_value is None:
-        msg(
-            level="error",
-            message=f"Could not get value of custom attribute {attr_key} in service ID {oneflow_id}",
-        )
-    return attr_value
+        return None
+
+    msg(
+        level="error",
+        message=f"Could not get value of custom attribute {attr_key} in service ID {oneflow_id}",
+    )
+    raise SystemExit(1)
 
 
 def oneflow_state(oneflow_name: str) -> int:
@@ -968,15 +988,11 @@ def oneflow_template_custom_attrs(
             level="error",
             message=f"DOCUMENT key not found in service {oneflow_template_name} or TEMPLATE key not found in DOCUMENT or BODY key not found in TEMPLATE",
         )
-    if "custom_attrs" not in oneflow_template["DOCUMENT"]["TEMPLATE"]["BODY"]:
-        msg(
-            level="error",
-            message=f"custom_attrs key not found in service {oneflow_template_name}",
-        )
-    custom_attrs = oneflow_template["DOCUMENT"]["TEMPLATE"]["BODY"]["custom_attrs"]
-    if custom_attrs is None:
-        return None
-    return custom_attrs
+    body = oneflow_template["DOCUMENT"]["TEMPLATE"]["BODY"]
+    # OpenNebula 7.0 renamed custom_attrs to user_inputs in service templates.
+    # Fall back to user_inputs when custom_attrs is absent.
+    inputs = body.get("custom_attrs") or body.get("user_inputs")
+    return inputs if inputs else None
 
 
 def oneflow_template_ids(
@@ -991,12 +1007,14 @@ def oneflow_template_ids(
     roles = oneflow_template_roles(oneflow_template_name=oneflow_template_name)
     template_ids = []
     for role in roles:
-        if "vm_template" not in role:
+        # OpenNebula 7.0 renamed the role key from "vm_template" to "template_id"
+        role_tmpl_key = "template_id" if "template_id" in role else "vm_template"
+        if role_tmpl_key not in role:
             msg(
                 level="error",
-                message="vm_template key not found in role",
+                message=f"Neither 'template_id' nor 'vm_template' key found in role {role.get('name', '?')}",
             )
-        template_ids.append(int(role["vm_template"]))
+        template_ids.append(int(role[role_tmpl_key]))
     return template_ids
 
 
@@ -1392,12 +1410,12 @@ def check_group_admin(username: str, group_name: str) -> bool:
     if "ID" not in group["GROUP"]["ADMINS"]:
         return False
     elif isinstance(group["GROUP"]["ADMINS"]["ID"], str):
-        user = oneusername(user_id=int(group["GROUP"]["ADMINS"]["ID"]))
-        return user == username
+        user = oneuser_show(user_id=int(group["GROUP"]["ADMINS"]["ID"]))
+        return user is not None and user["USER"]["NAME"] == username
     elif isinstance(group["GROUP"]["ADMINS"]["ID"], List):
         for user_id in group["GROUP"]["ADMINS"]["ID"]:
-            user = oneusername(user_id=int(user_id))
-            if user == username:
+            user = oneuser_show(user_id=int(user_id))
+            if user is not None and user["USER"]["NAME"] == username:
                 return True
     else:
         msg(
@@ -1541,7 +1559,10 @@ def onegroups_names() -> List[str]:
             level="error",
             message="GROUP_POOL key not found in groups or GROUP key not found in GROUP_POOL",
         )
-    for group in groups["GROUP_POOL"]["GROUP"]:
+    group_pool = groups["GROUP_POOL"]["GROUP"]
+    if isinstance(group_pool, dict):
+        group_pool = [group_pool]
+    for group in group_pool:
         if group is None:
             msg(level="error", message="Group is empty")
         if "NAME" not in group:
@@ -2061,7 +2082,10 @@ def oneimages_attribute(attribute: str, value: str) -> List[str]:
             level="error",
             message="IMAGE_POOL key not found in images or IMAGE key not found in IMAGE_POOL",
         )
-    for image in images["IMAGE_POOL"]["IMAGE"]:
+    image_pool = images["IMAGE_POOL"]["IMAGE"]
+    if isinstance(image_pool, dict):
+        image_pool = [image_pool]
+    for image in image_pool:
         if image is None:
             msg(level="error", message="Image is empty")
         if "NAME" not in image or "TEMPLATE" not in image:
@@ -2091,7 +2115,10 @@ def oneimages_names() -> List[str]:
             level="error",
             message="IMAGE_POOL key not found in images or IMAGE key not found in IMAGE_POOL",
         )
-    for image in images["IMAGE_POOL"]["IMAGE"]:
+    image_pool = images["IMAGE_POOL"]["IMAGE"]
+    if isinstance(image_pool, dict):
+        image_pool = [image_pool]
+    for image in image_pool:
         if image is None:
             msg(level="error", message="Image is empty")
         if "NAME" not in image:
@@ -2306,7 +2333,10 @@ def onemarkets_names() -> List[str]:
             level="error",
             message="MARKETPLACE_POOL key not found in marketplaces or MARKETPLACE key not found in MARKETPLACE_POOL",
         )
-    for marketplace in marketplaces["MARKETPLACE_POOL"]["MARKETPLACE"]:
+    marketplace_pool = marketplaces["MARKETPLACE_POOL"]["MARKETPLACE"]
+    if isinstance(marketplace_pool, dict):
+        marketplace_pool = [marketplace_pool]
+    for marketplace in marketplace_pool:
         if marketplace is None:
             msg(level="error", message="Marketplace is empty")
         if "NAME" not in marketplace:
@@ -2645,52 +2675,106 @@ def onemarketapp_add(
                 default=False,
             )
             if add_appliance:
-                datastores_names = onedatastores_names()
-                datastore_name = ask_select(
-                    message=f"Select the datastore where you want to store the image {appliance_name}:",
-                    choices=datastores_names,
+                expected_name = f"{appliance_name} {version}"
+                # OpenNebula 7.0.0 bug: onemarketapp export for srv-type appliances
+                # crashes with a Ruby nil error inside create_service_template.
+                # Check whether a matching service template already exists in
+                # OneFlow before attempting the export, and reuse it if found.
+                existing_service = oneflow_template_show(
+                    oneflow_template_name=expected_name
                 )
-                _, template_ids, _ = onemarketapp_export(
-                    appliance_name=appliance_name,
-                    appliance_new_name=f"{appliance_name} {version}",
-                    datastore_name=datastore_name,
-                )
-                sleep(5)
-                appliance_name = f"{appliance_name} {version}"
-                image_ids = oneflow_template_image_ids(
-                    oneflow_template_name=appliance_name
-                )
-                for template_id in template_ids:
-                    template_name = onetemplate_name(template_id=template_id)
-                    onetemplate_chown(
-                        template_name=template_name,
-                        username=username,
-                        group_name=group_name,
+                if existing_service is None:
+                    tmpl_stdout, _, tmpl_rc = run_command(
+                        command="oneflow-template list -j"
                     )
-                for image_id in image_ids:
-                    image_name = oneimage_name(image_id=image_id)
-                    image_state = oneimage_state(image_name=image_name)
+                    if tmpl_rc == 0:
+                        tmpl_pool = loads_json(data=tmpl_stdout)
+                        docs = (
+                            tmpl_pool.get("DOCUMENT_POOL", {}).get("DOCUMENT", [])
+                        )
+                        if isinstance(docs, dict):
+                            docs = [docs]
+                        for tmpl in docs:
+                            if tmpl.get("NAME", "").startswith(appliance_name):
+                                existing_service = tmpl
+                                expected_name = tmpl["NAME"]
+                                break
+                if existing_service is not None:
                     msg(
                         level="info",
-                        message=f"Wait for the image {image_name} to be ready",
+                        message=f"Service template '{expected_name}' already exists in OneFlow; skipping export",
                     )
-                    while image_state != "1":
-                        sleep(10)
-                        image_state = oneimage_state(image_name=image_name)
-                        if image_state == "5":
-                            msg(
-                                level="error",
-                                message=f"Image {image_name} is in error state",
-                            )
-                    oneimage_update(
-                        image_name=image_name,
-                        file_path=version_attribute_template_path,
+                    appliance_name = expected_name
+                    image_ids = oneflow_template_image_ids(
+                        oneflow_template_name=appliance_name
                     )
-                    oneimage_chown(
-                        image_name=image_name,
+                    template_ids = oneflow_template_ids(
+                        oneflow_template_name=appliance_name
+                    )
+                    oneflow_template_chown(
+                        oneflow_template_name=appliance_name,
                         username=username,
                         group_name=group_name,
                     )
+                    for template_id in template_ids:
+                        onetemplate_chown(
+                            template_name=onetemplate_name(template_id=template_id),
+                            username=username,
+                            group_name=group_name,
+                        )
+                    for image_id in image_ids:
+                        oneimage_chown(
+                            image_name=oneimage_name(image_id=image_id),
+                            username=username,
+                            group_name=group_name,
+                        )
+                else:
+                    datastores_names = onedatastores_names()
+                    datastore_name = ask_select(
+                        message=f"Select the datastore where you want to store the image {appliance_name}:",
+                        choices=datastores_names,
+                    )
+                    _, template_ids, _ = onemarketapp_export(
+                        appliance_name=appliance_name,
+                        appliance_new_name=expected_name,
+                        datastore_name=datastore_name,
+                    )
+                    sleep(5)
+                    appliance_name = expected_name
+                    image_ids = oneflow_template_image_ids(
+                        oneflow_template_name=appliance_name
+                    )
+                    for template_id in template_ids:
+                        template_name = onetemplate_name(template_id=template_id)
+                        onetemplate_chown(
+                            template_name=template_name,
+                            username=username,
+                            group_name=group_name,
+                        )
+                    for image_id in image_ids:
+                        image_name = oneimage_name(image_id=image_id)
+                        image_state = oneimage_state(image_name=image_name)
+                        msg(
+                            level="info",
+                            message=f"Wait for the image {image_name} to be ready",
+                        )
+                        while image_state != "1":
+                            sleep(10)
+                            image_state = oneimage_state(image_name=image_name)
+                            if image_state == "5":
+                                msg(
+                                    level="error",
+                                    message=f"Image {image_name} is in error state",
+                                )
+                        oneimage_update(
+                            image_name=image_name,
+                            file_path=version_attribute_template_path,
+                        )
+                        oneimage_chown(
+                            image_name=image_name,
+                            username=username,
+                            group_name=group_name,
+                        )
                 is_added = True
         else:
             msg(
@@ -2898,17 +2982,6 @@ def onemarketapp_instantiate(
                 username=username,
                 group_name=group_name,
             )
-            template_id = onevm_template_id(vm_name=vm_name)
-            template_name = onetemplate_name(template_id=template_id)
-            onetemplate_chown(
-                template_name=template_name, username=username, group_name=group_name
-            )
-            image_ids = onetemplate_image_ids(template_name=template_name)
-            for image_id in image_ids:
-                image_name = oneimage_name(image_id=image_id)
-                oneimage_chown(
-                    image_name=image_name, username=username, group_name=group_name
-                )
             appliance_target_name = vm_name
         else:
             service_id = oneflow_id(oneflow_name=service_name)
@@ -2926,34 +2999,12 @@ def onemarketapp_instantiate(
                         username=username,
                         group_name=group_name,
                     )
-            oneflow_template_chown(
-                oneflow_template_name=service_name,
-                username=username,
-                group_name=group_name,
-            )
             oneflow_chown_by_id(
                 oneflow_id=service_id,
                 username=username,
                 group_name=group_name,
             )
-            image_ids = oneflow_template_image_ids(oneflow_template_name=service_name)
-            template_ids = oneflow_template_ids(oneflow_template_name=service_name)
-            for template_id in template_ids:
-                template_name = onetemplate_name(template_id=template_id)
-                onetemplate_chown(
-                    template_name=template_name,
-                    username=username,
-                    group_name=group_name,
-                )
-            for image_id in image_ids:
-                image_name = oneimage_name(image_id=image_id)
-                oneimage_chown(
-                    image_name=image_name,
-                    username=username,
-                    group_name=group_name,
-                )
             appliance_target_name = service_name
-        _, _, _, _ = onemarketapp_add(appliance_url=appliance_url, group_name=group_name, username=username, marketplace_name=marketplace_name)
         is_instantiated = True
     else:
         is_added, appliance_name, _, _ = onemarketapp_add(
@@ -3003,7 +3054,27 @@ def onemarketapp_export(
     :param datastore_name: the name of the datastore, ``str``
     :return: the ids of the images, templates and services, ``Tuple[List[int], List[int], int]``
     """
-    command = f'onemarketapp export "{appliance_name}" "{appliance_new_name}" --datastore "{datastore_name}"'
+    # OpenNebula 7.0.0 bug: name-based --datastore and name-based appliance
+    # arguments both trigger a Ruby nil error in xml_element.rb:128.  Resolve
+    # both to numeric IDs before building the export command.
+    datastores = onedatastore_list()
+    datastore_pool = datastores.get("DATASTORE_POOL", {}).get("DATASTORE", [])
+    datastore_id = next(
+        (int(ds["ID"]) for ds in datastore_pool if ds.get("NAME") == datastore_name),
+        None,
+    )
+    if datastore_id is None:
+        msg(
+            level="error",
+            message=f"Datastore {datastore_name} not found in OpenNebula",
+        )
+    show_stdout, _, show_rc = run_command(command=f'onemarketapp show "{appliance_name}" -j')
+    if show_rc == 0:
+        app_data = loads_json(data=show_stdout)
+        appliance_ref = app_data["MARKETPLACEAPP"]["ID"]
+    else:
+        appliance_ref = f'"{appliance_name}"'
+    command = f'onemarketapp export {appliance_ref} "{appliance_new_name}" -d {datastore_id}'
     stdout, stderr, rc = run_command(command=command)
     if rc != 0:
         msg(
@@ -3014,26 +3085,18 @@ def onemarketapp_export(
         level="debug",
         message=f"Appliance {appliance_name} exported. Command executed: {command}. Output received: {stdout}. Return code: {rc}",
     )
-    image_ids = [
-        int(id_)
-        for id_ in re.findall(
-            r"ID:\s*(\d+)",
-            re.search(
-                r"IMAGE\s*\n((?:\s*ID:\s*\d+\s*\n?)*)",
-                stdout,
-            ).group(1),
-        )
-    ]
-    template_ids = [
-        int(id_)
-        for id_ in re.findall(
-            r"ID:\s*(\d+)",
-            re.search(
-                r"VMTEMPLATE\s*\n((?:\s*ID:\s*\d+\s*\n?)*)",
-                stdout,
-            ).group(1),
-        )
-    ]
+    image_match = re.search(r"IMAGE\s*\n((?:\s*ID:\s*\d+\s*\n?)*)", stdout)
+    template_match = re.search(r"VMTEMPLATE\s*\n((?:\s*ID:\s*\d+\s*\n?)*)", stdout)
+    image_ids = (
+        [int(id_) for id_ in re.findall(r"ID:\s*(\d+)", image_match.group(1))]
+        if image_match
+        else []
+    )
+    template_ids = (
+        [int(id_) for id_ in re.findall(r"ID:\s*(\d+)", template_match.group(1))]
+        if template_match
+        else []
+    )
     match = re.search(r"SERVICE_TEMPLATE\s*\n(?:\s*ID:\s*(\d+))+", stdout)
     if match:
         service_id = int(match.group(1))
@@ -3668,7 +3731,10 @@ def onetemplates_names() -> List[str]:
             level="error",
             message="VMTEMPLATE_POOL key not found in templates or VMTEMPLATE key not found in VMTEMPLATE_POOL",
         )
-    for template in templates["VMTEMPLATE_POOL"]["VMTEMPLATE"]:
+    template_pool = templates["VMTEMPLATE_POOL"]["VMTEMPLATE"]
+    if isinstance(template_pool, dict):
+        template_pool = [template_pool]
+    for template in template_pool:
         if template is None:
             msg(level="error", message="Template is empty")
         if "NAME" not in template:
@@ -3929,6 +3995,8 @@ def oneusernames() -> List[str]:
     user_pool = users["USER_POOL"]["USER"]
     if user_pool is None:
         return []
+    if isinstance(user_pool, dict):
+        user_pool = [user_pool]
     for user in user_pool:
         if user is None:
             msg(level="error", message="User is empty")
@@ -4510,7 +4578,10 @@ def onevms_names() -> List[str]:
             level="error",
             message="VM_POOL key not found in vms or VM key not found in VM_POOL",
         )
-    for vm in vms["VM_POOL"]["VM"]:
+    vm_pool = vms["VM_POOL"]["VM"]
+    if isinstance(vm_pool, dict):
+        vm_pool = [vm_pool]
+    for vm in vm_pool:
         if vm is None:
             msg(level="error", message="VM is empty")
         if "NAME" not in vm:
@@ -4537,7 +4608,10 @@ def onevms_running() -> List[str]:
             level="error",
             message="VM_POOL key not found in vms or VM key not found in VM_POOL",
         )
-    for vm in vms["VM_POOL"]["VM"]:
+    vm_pool = vms["VM_POOL"]["VM"]
+    if isinstance(vm_pool, dict):
+        vm_pool = [vm_pool]
+    for vm in vm_pool:
         if vm is None:
             msg(level="error", message="VM is empty")
         if "NAME" not in vm:
@@ -4570,7 +4644,10 @@ def onevms_running_with_ids() -> Dict[str, int]:
             level="error",
             message="VM_POOL key not found in vms or VM key not found in VM_POOL",
         )
-    for vm in vms["VM_POOL"]["VM"]:
+    vm_pool = vms["VM_POOL"]["VM"]
+    if isinstance(vm_pool, dict):
+        vm_pool = [vm_pool]
+    for vm in vm_pool:
         if vm is None:
             msg(level="error", message="VM is empty")
         if "NAME" not in vm:
@@ -4682,7 +4759,10 @@ def onevnets_names() -> List[str]:
             level="error",
             message="VNET_POOL key not found in vnets or VNET key not found in VNET_POOL",
         )
-    for vnet in vnets["VNET_POOL"]["VNET"]:
+    vnet_pool = vnets["VNET_POOL"]["VNET"]
+    if isinstance(vnet_pool, dict):
+        vnet_pool = [vnet_pool]
+    for vnet in vnet_pool:
         if vnet is None:
             msg(level="error", message="Vnet is empty")
         if "NAME" not in vnet:
