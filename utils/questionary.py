@@ -81,7 +81,7 @@ def ask_select(
         kwargs["validate"] = validate
 
     try:
-        return questionary.select(**kwargs).ask()
+        return select(**kwargs).ask()
     except TypeError:
         # Compatibilidad por si alguna versión no acepta default/validate en select
         kwargs.pop("default", None)
