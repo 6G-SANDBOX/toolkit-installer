@@ -61,19 +61,45 @@ def ask_password(message: str, default: str = "", validate: Any = None) -> str:
         message=message, default=default, validate=validate, qmark="🔹", style=style
     ).unsafe_ask()
 
+def ask_select(
+    message: str,
+    choices: List[str],
+    default: str | None = None,
+    validate=None,
+) -> str:
+    kwargs = {
+        "message": message,
+        "choices": choices,
+        "qmark": "🔹",
+        "style": style,
+    }
 
+    if default is not None:
+        kwargs["default"] = default
+    if validate is not None:
+        kwargs["validate"] = validate
+
+    try:
+        return questionary.select(**kwargs).ask()
+    except TypeError:
+        # Compatibilidad por si alguna versión no acepta default/validate en select
+        kwargs.pop("default", None)
+        kwargs.pop("validate", None)
+        return questionary.select(**kwargs).ask()
+
+"""
 def ask_select(message: str, choices: List[str]) -> str:
-    """
+    """"""
     Prompt the user to select one option from a list
 
     :param prompt: the question to display, ``str``
     :param choices: list of options to choose from, ``List[str]``
     :return: selected option, ``str``
-    """
+    """"""
     return select(
         message=message, choices=choices, qmark="🔹", style=style
     ).unsafe_ask()
-
+"""
 
 def ask_text(message: str, default: str = "", validate: Any = None) -> str:
     """
